@@ -4,3 +4,6 @@ node_modules
 __pycache__
 .DS_Store
 .idea
+.env
+.env.*
+!.env.example

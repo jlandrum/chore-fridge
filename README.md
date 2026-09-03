@@ -62,24 +62,28 @@ If remote access is required, place the application behind a maintained access l
 
 ## Deploy to a NAS
 
-The included script copies the application to an SSH-accessible NAS and rebuilds its Docker container. Supply your own SSH destination and remote path; the repository contains no machine-specific defaults.
+The included script copies the application to an SSH-accessible NAS and rebuilds its Docker container. Copy the example configuration once and fill in your own values:
 
 ```bash
-NAS_HOST=user@nas.local \
-NAS_PATH=/path/to/chore-fridge \
+cp .env.example .env
+```
+
+The local `.env` is ignored by Git. It holds the SSH destination, remote application path, Docker Compose command, and the NAS's private LAN bind address. It should look like this with values appropriate for your network:
+
+```dotenv
+NAS_HOST=user@nas.local
+NAS_PATH=/path/to/chore-fridge
+NAS_DOCKER_COMPOSE="docker compose"
+CHORE_FRIDGE_BIND_ADDRESS=192.168.1.20
+```
+
+Deploy with:
+
+```bash
 ./deploy-nas.sh
 ```
 
-The script leaves the remote `data/` directory untouched. You may also set `NAS_DOCKER_COMPOSE` if Docker Compose has a nonstandard location on the NAS:
-
-```bash
-NAS_HOST=user@nas.local \
-NAS_PATH=/path/to/chore-fridge \
-NAS_DOCKER_COMPOSE="docker compose" \
-./deploy-nas.sh
-```
-
-SSH credentials and agent configuration are deliberately left to the user. Do not add keys, tokens, local socket paths, hostnames, or household data to this repository.
+The script writes only `CHORE_FRIDGE_BIND_ADDRESS` to the remote `.env`; private SSH destination details remain on the deploying computer. It leaves the remote `data/` directory untouched. SSH credentials and agent configuration are deliberately left to the user. Do not add keys, tokens, local socket paths, hostnames, or household data to tracked files.
 
 ## Put it on a fridge or tablet
 
