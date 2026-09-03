@@ -1,0 +1,17 @@
+{
+  "name": "chore-fridge",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "python3 server.py",
+    "deploy": "./deploy-nas.sh"
+  },
+  "devDependencies": {
+    "@js-ox/compiler": "^0.1.0",
+    "vite": "^6.3.5"
+  }
+}

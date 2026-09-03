@@ -1,0 +1,173 @@
+import { state, saveChore, isOnce, isWeekly } from "../state.js";
+import { paint } from "../bus.js";
+import { Btn, showToast, openModal, closeModal } from "../ui.jsox";
+
+export function openTaskForm(opts = {}) {
+  const existing = opts.existing || null;
+  let repeat = existing
+    ? (isOnce(existing) ? "once" : isWeekly(existing) ? "weekly" : "daily")
+    : (opts.repeat || "once");
+  let kidIds = existing
+    ? existing.kidIds.slice()
+    : (opts.kidIds && opts.kidIds.length ? opts.kidIds.slice() : state.kids.map((k) => k.id));
+
+  if (!state.kids.length) {
+    showToast("Add a kid first");
+    return;
+  }
+
+  const titleInput = <input> {
+    .value = existing ? existing.title : ""
+    .placeholder = "What needs doing?"
+    .autocomplete = "off"
+  }
+  const emojiInput = <input> {
+    .value = existing && existing.emoji ? existing.emoji : ""
+    .placeholder = "😀"
+    .title = "Type or paste any emoji"
+    .autocomplete = "off"
+    .spellcheck = false
+  }
+  const pointsInput = <input> {
+    .value = existing ? String(existing.points || 0) : "5"
+    .autocomplete = "off"
+  }
+  const minInput = <input> {
+    .value = existing ? String(existing.minCount || 1) : "1"
+    .autocomplete = "off"
+    .inputMode = "numeric"
+  }
+  const maxInput = <input> {
+    .value = existing ? String(existing.maxCount || 1) : "1"
+    .autocomplete = "off"
+    .inputMode = "numeric"
+  }
+  let gold = !!(existing && existing.gold);
+  const goldBtn = <button> {
+    .type = "button"
+    .className = gold ? "choice on" : "choice"
+    ["Gold star task"]
+    .onclick = () => {
+      gold = !gold;
+      goldBtn.className = gold ? "choice on" : "choice";
+    }
+  }
+
+  const dailyBtn = <button> {
+    .type = "button"
+    .className = repeat === "daily" ? "choice on" : "choice"
+    ["🔁 Every day"]
+    .onclick = () => pickRepeat("daily")
+  }
+  const weeklyBtn = <button> {
+    .type = "button"
+    .className = repeat === "weekly" ? "choice on" : "choice"
+    ["📅 Once a week"]
+    .onclick = () => pickRepeat("weekly")
+  }
+  const onceBtn = <button> {
+    .type = "button"
+    .className = repeat === "once" ? "choice on" : "choice"
+    ["📌 Just once"]
+    .onclick = () => pickRepeat("once")
+  }
+  function pickRepeat(next) {
+    repeat = next;
+    dailyBtn.className = next === "daily" ? "choice on" : "choice";
+    weeklyBtn.className = next === "weekly" ? "choice on" : "choice";
+    onceBtn.className = next === "once" ? "choice on" : "choice";
+  }
+
+  const who = <div> { .className = "row" }
+  for (const kid of state.kids) {
+    const btn = <button> {
+      .type = "button"
+      .className = kidIds.includes(kid.id) ? "choice on" : "choice"
+      [kid.emoji + " " + kid.name]
+      .onclick = () => {
+        const at = kidIds.indexOf(kid.id);
+        if (at === -1) kidIds.push(kid.id);
+        else kidIds.splice(at, 1);
+        btn.classList.toggle("on");
+      }
+    }
+    [who] { [btn] }
+  }
+
+  const sheet = <div> {
+    <h3> { [existing ? "Edit task" : "Add a task"] }
+    <div> {
+      .className = "field"
+      <label> { ["Task"] }
+      [titleInput]
+    }
+    <div> {
+      .className = "field"
+      <label> { ["Emoji"] }
+      [emojiInput]
+    }
+    <p> { .className = "lead"; ["How often?"] }
+    <div> {
+      .className = "row"
+      [dailyBtn]
+      [weeklyBtn]
+      [onceBtn]
+    }
+    <p> { .className = "lead"; ["Who"] }
+    [who]
+    <div> {
+      .className = "field"
+      <label> { ["Stars each time"] }
+      [pointsInput]
+    }
+    <p> { .className = "lead"; ["Times per day (1 and 1 means a normal check-off). Min 2 max 4 = need 2, can do 4."] }
+    <div> {
+      .className = "row"
+      <div> {
+        .className = "field"
+        <label> { ["Min"] }
+        [minInput]
+      }
+      <div> {
+        .className = "field"
+        <label> { ["Max"] }
+        [maxInput]
+      }
+    }
+    <p> { .className = "lead"; ["Gold star tasks get a gold border and earn a gold star each time."] }
+    <div> {
+      .className = "row"
+      [goldBtn]
+    }
+    <div> {
+      .className = "row"
+      .style.marginTop = "16px"
+      [Btn("Cancel", "btn ghost wide", closeModal)]
+      [Btn("Save", "btn wide", () => {
+        const title = titleInput.value.trim();
+        if (!title) {
+          showToast("Name the task");
+          return;
+        }
+        if (!kidIds.length) {
+          showToast("Pick at least one kid");
+          return;
+        }
+        saveChore({
+          id: existing ? existing.id : undefined,
+          title,
+          emoji: emojiInput.value.trim(),
+          repeat,
+          kidIds,
+          points: parseInt(pointsInput.value, 10) || 0,
+          minCount: parseInt(minInput.value, 10) || 1,
+          maxCount: parseInt(maxInput.value, 10) || 1,
+          gold,
+        });
+        closeModal();
+        paint();
+      })]
+    }
+  }
+  openModal(sheet);
+}

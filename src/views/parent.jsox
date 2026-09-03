@@ -1,0 +1,411 @@
+import {
+  state,
+  ui,
+  COLORS,
+  KID_EMOJIS,
+  starsFor,
+  goldFor,
+  uid,
+  persist,
+  defaultState,
+  replaceState,
+  resetSetup,
+} from "../state.js";
+import { paint } from "../bus.js";
+import { Btn, showToast, openModal, closeModal, Star } from "../ui.jsox";
+import { TaskLists } from "./tasks.jsox";
+
+function markOn(row, btn) {
+  for (const child of row.children) child.classList.remove("on");
+  btn.classList.add("on");
+}
+
+function kidForm(existing) {
+  let emoji = existing ? existing.emoji : "🐻";
+  let color = existing ? existing.color : COLORS[state.kids.length % COLORS.length];
+  const nameInput = <input> {
+    .value = existing ? existing.name : ""
+    .autocomplete = "off"
+  }
+
+  const emojiRow = <div> { .className = "row" }
+  for (const e of KID_EMOJIS) {
+    const btn = <button> {
+      .type = "button"
+      .className = e === emoji ? "choice on" : "choice"
+      [e]
+      .onclick = () => {
+        emoji = e;
+        markOn(emojiRow, btn);
+      }
+    }
+    [emojiRow] { [btn] }
+  }
+
+  const colorRow = <div> { .className = "row" }
+  for (const c of COLORS) {
+    const btn = <button> {
+      .type = "button"
+      .className = c === color ? "choice on" : "choice"
+      .style.background = c
+      .style.color = "#fff"
+      [c === color ? "✓" : ""]
+      .onclick = () => {
+        color = c;
+        for (const child of colorRow.children) {
+          child.classList.remove("on");
+          child.textContent = "";
+        }
+        btn.classList.add("on");
+        btn.textContent = "✓";
+      }
+    }
+    [colorRow] { [btn] }
+  }
+
+  openModal(
+    <div> {
+      <h3> { [existing ? "Edit kid" : "Add kid"] }
+      <div> {
+        .className = "field"
+        <label> { ["Name"] }
+        [nameInput]
+      }
+      <p> { .className = "lead"; ["Avatar"] }
+      [emojiRow]
+      <p> { .className = "lead"; ["Color"] }
+      [colorRow]
+      <div> {
+        .className = "row"
+        .style.marginTop = "16px"
+        [Btn("Cancel", "btn ghost wide", closeModal)]
+        [Btn("Save", "btn wide", () => {
+          const name = nameInput.value.trim();
+          if (!name) {
+            showToast("Need a name");
+            return;
+          }
+          if (existing) {
+            existing.name = name;
+            existing.emoji = emoji;
+            existing.color = color;
+          } else {
+            state.kids.push({ id: uid(), name, emoji, color });
+          }
+          persist();
+          closeModal();
+          paint();
+        })]
+      }
+    }
+  );
+}
+
+function rewardForm(existing) {
+  const titleInput = <input> {
+    .value = existing ? existing.title : ""
+    .autocomplete = "off"
+  }
+  const emojiInput = <input> {
+    .value = existing ? existing.emoji : ""
+    .placeholder = "🎁"
+    .title = "Type or paste any emoji"
+    .autocomplete = "off"
+    .spellcheck = false
+  }
+  const costInput = <input> {
+    .value = existing ? String(existing.cost) : "20"
+    .autocomplete = "off"
+  }
+  let gold = !!(existing && existing.gold);
+  const goldBtn = <button> {
+    .type = "button"
+    .className = gold ? "choice on" : "choice"
+    ["Gold star reward"]
+    .onclick = () => {
+      gold = !gold;
+      goldBtn.className = gold ? "choice on" : "choice";
+    }
+  }
+  openModal(
+    <div> {
+      <h3> { [existing ? "Edit reward" : "Add reward"] }
+      <div> {
+        .className = "field"
+        <label> { ["Reward"] }
+        [titleInput]
+      }
+      <div> {
+        .className = "field"
+        <label> { ["Emoji"] }
+        [emojiInput]
+      }
+      <div> {
+        .className = "field"
+        <label> { ["Cost"] }
+        [costInput]
+      }
+      <p> { .className = "lead"; ["Gold rewards spend gold stars instead of regular stars."] }
+      <div> {
+        .className = "row"
+        [goldBtn]
+      }
+      <div> {
+        .className = "row"
+        .style.marginTop = "16px"
+        [Btn("Cancel", "btn ghost wide", closeModal)]
+        [Btn("Save", "btn wide", () => {
+          const title = titleInput.value.trim();
+          if (!title) {
+            showToast("Need a name");
+            return;
+          }
+          const payload = {
+            id: existing ? existing.id : uid(),
+            title,
+            emoji: emojiInput.value.trim() || "🎁",
+            cost: Math.max(1, parseInt(costInput.value, 10) || 1),
+            gold,
+          };
+          if (existing) {
+            const i = state.rewards.findIndex((r) => r.id === existing.id);
+            state.rewards[i] = payload;
+          } else {
+            state.rewards.push(payload);
+          }
+          persist();
+          closeModal();
+          paint();
+        })]
+      }
+    }
+  );
+}
+
+function KidsTab() {
+  const list = <div> { .className = "list" }
+  for (const kid of state.kids) {
+    const gold = goldFor(kid.id);
+    const grow = <div> { .className = "grow" }
+    grow.append(kid.emoji + " " + kid.name + " · ");
+    grow.append(Star(false));
+    grow.append(" " + starsFor(kid.id));
+    if (gold) {
+      grow.append(" · ");
+      grow.append(Star(true));
+      grow.append(" " + gold);
+    }
+    [list] {
+      <div> {
+        .className = "item"
+        [grow]
+        <button> {
+          .type = "button"
+          .className = "tiny"
+          ["Edit"]
+          .onclick = () => kidForm(kid)
+        }
+        <button> {
+          .type = "button"
+          .className = "tiny"
+          ["Remove"]
+          .onclick = () => {
+            if (!confirm("Remove this kid?")) return;
+            state.kids = state.kids.filter((k) => k.id !== kid.id);
+            persist();
+            paint();
+          }
+        }
+      }
+    }
+  }
+  return <div> {
+    <h2> { ["Kids"] }
+    [list]
+    [Btn("Add kid", "btn", () => kidForm(null))]
+  }
+}
+
+function ChoresTab() {
+  return <div> {
+    <h2> { ["Tasks"] }
+    <p> {
+      .className = "lead"
+      ["Daily tasks reset each morning. Weekly ones reset each Monday. One-offs stay until they’re done."]
+    }
+    [TaskLists()]
+  }
+}
+
+function RewardsTab() {
+  const list = <div> { .className = "list" }
+  for (const reward of state.rewards) {
+    [list] {
+      <div> {
+        .className = "item"
+        <div> {
+          .className = "grow"
+          [reward.emoji + " " + reward.title + " · "]
+          [Star(!!reward.gold)]
+          [" " + reward.cost]
+        }
+        <button> {
+          .type = "button"
+          .className = "tiny"
+          ["Edit"]
+          .onclick = () => rewardForm(reward)
+        }
+        <button> {
+          .type = "button"
+          .className = "tiny"
+          ["Remove"]
+          .onclick = () => {
+            state.rewards = state.rewards.filter((r) => r.id !== reward.id);
+            persist();
+            paint();
+          }
+        }
+      }
+    }
+  }
+  return <div> {
+    <h2> { ["Rewards"] }
+    [list]
+    [Btn("Add reward", "btn", () => rewardForm(null))]
+  }
+}
+
+function DisplayTab() {
+  const night = <select> {}
+  const modes = [
+    ["auto", "Auto (dim after 8pm)"],
+    ["off", "Always bright"],
+    ["on", "Always dim"],
+  ];
+  for (const [value, label] of modes) {
+    const opt = <option> {
+      .value = value
+      [label]
+    }
+    if (value === (state.nightMode || "auto")) opt.selected = true;
+    [night] { [opt] }
+  }
+  return <div> {
+    <h2> { ["Display"] }
+    <p> {
+      .className = "lead"
+      ["Fridge screens are often dim, portrait, and a little laggy. These keep the board readable."]
+    }
+    <div> {
+      .className = "field"
+      <label> { ["Night mode"] }
+      [night]
+    }
+    <div> {
+      .className = "row"
+      [Btn("Save", "btn", () => {
+        state.nightMode = night.value || "auto";
+        persist();
+        paint();
+        showToast("Saved");
+      })]
+      [Btn("Change PIN", "btn ghost", () => {
+        ui.pinMode = "set";
+        ui.pinBuf = "";
+        ui.view = "pin";
+        paint();
+      })]
+    }
+    <p> { .className = "lead"; .style.marginTop = "28px"; ["Danger"] }
+    [Btn("Erase board and start over", "btn danger", () => {
+      if (!confirm("Erase everyone and every chore?")) return;
+      replaceState(defaultState());
+      resetSetup();
+      persist();
+      ui.view = "board";
+      paint();
+    })]
+  }
+}
+
+function HelpTab() {
+  return <div> {
+    <h2> { ["Put this on the fridge"] }
+    <div> {
+      .className = "help"
+      <p> {
+        <b> { ["Samsung Family Hub:"] }
+        [" open the Internet app, type this page’s address, tap the star to bookmark, then tap the home-plus icon to pin it on a Family Hub board."]
+      }
+      <p> {
+        <b> { ["iPad / Android tablet on the door:"] }
+        [" open in the browser, Share → Add to Home Screen, then use Guided Access / pin app so kids cannot leave it."]
+      }
+      <p> {
+        <b> { ["LG / other smart fridge browsers:"] }
+        [" same idea — open the URL and bookmark it."]
+      }
+      <p> {
+        <b> { ["Same Wi‑Fi:"] }
+        [" if you ran the Docker image at home, use the computer’s private LAN address. Fridge and phones then share one list."]
+      }
+      <p> {
+        <b> { ["Keep it private:"] }
+        [" this app has no server authentication. Do not expose port 8080 to the internet; allow access only from devices on a trusted home network."]
+      }
+      <p> {
+        ["Forgot the PIN? In Parent → Display you can change it while already unlocked. If you are locked out, clear this site’s data in the fridge browser (that wipes chores too)."]
+      }
+    }
+  }
+}
+
+export function createParent() {
+  const tabs = ["kids", "chores", "rewards", "display", "help"];
+  const tabBtns = {};
+  const bar = <div> { .className = "tabs" }
+  for (const tab of tabs) {
+    const btn = <button> {
+      .type = "button"
+      [tab.charAt(0).toUpperCase() + tab.slice(1)]
+      .onclick = () => {
+        ui.parentTab = tab;
+        paint();
+      }
+    }
+    tabBtns[tab] = btn;
+    [bar] { [btn] }
+  }
+  [bar] {
+    <button> {
+      .type = "button"
+      ["Board"]
+      .onclick = () => {
+        ui.view = "board";
+        paint();
+      }
+    }
+  }
+  const body = <div> {}
+  const root = <div> {
+    .className = "panel"
+    [bar]
+    [body]
+  }
+
+  function sync() {
+    for (const tab of tabs) {
+      tabBtns[tab].className = ui.parentTab === tab ? "on" : "";
+    }
+    let page;
+    if (ui.parentTab === "kids") page = KidsTab();
+    else if (ui.parentTab === "chores") page = ChoresTab();
+    else if (ui.parentTab === "rewards") page = RewardsTab();
+    else if (ui.parentTab === "display") page = DisplayTab();
+    else page = HelpTab();
+    body.replaceChildren();
+    [body] { [page] }
+  }
+
+  return { root, sync };
+}

@@ -1,0 +1,9 @@
+{
+  "name": "Chore Fridge",
+  "short_name": "Chores",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#cfd8de",
+  "theme_color": "#cfd8de",
+  "orientation": "any"
+}

@@ -1,0 +1,84 @@
+import { state, dailyChores, weeklyChores, oneOffChores, removeChore, choreKind, isCounted, minCount, maxCount } from "../state.js";
+import { paint } from "../bus.js";
+import { Btn, showToast, Star } from "../ui.jsox";
+import { openTaskForm } from "./task-form.jsox";
+
+function kidNames(chore) {
+  return (chore.kidIds || [])
+    .map((id) => {
+      const kid = state.kids.find((k) => k.id === id);
+      return kid ? kid.emoji + " " + kid.name : "";
+    })
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function TaskRow(chore) {
+  const sub = <div> { .className = "sub" }
+  sub.append(kidNames(chore) || "Nobody assigned");
+  if (chore.gold) {
+    sub.append(" · ");
+    sub.append(Star(true));
+    sub.append(" gold");
+  }
+  if (isCounted(chore)) sub.append(" · " + minCount(chore) + "–" + maxCount(chore) + " / day");
+  return <div> {
+    .className = "item"
+    <div> {
+      .className = "grow"
+      <div> { [chore.title] }
+      [sub]
+    }
+    <button> {
+      .type = "button"
+      .className = "tiny"
+      ["Edit"]
+      .onclick = () => openTaskForm({ existing: chore })
+    }
+    <button> {
+      .type = "button"
+      .className = "tiny"
+      ["Remove"]
+      .onclick = () => {
+        const kind = "this " + choreKind(chore).toLowerCase() + " task";
+        if (!confirm("Remove " + kind + "?")) return;
+        removeChore(chore.id);
+        paint();
+        showToast("Removed");
+      }
+    }
+  }
+}
+
+function Section(title, hint, chores, repeat) {
+  const list = <div> { .className = "list" }
+  if (!chores.length) {
+    [list] {
+      <div> { .className = "empty-line"; ["None yet."] }
+    }
+  } else {
+    for (const chore of chores) {
+      [list] { [TaskRow(chore)] }
+    }
+  }
+  return <section> {
+    .className = "task-section"
+    <div> {
+      .className = "section-head"
+      <div> {
+        <h2> { [title] }
+        <p> { .className = "lead tight"; [hint] }
+      }
+      [Btn("Add", "btn", () => openTaskForm({ repeat }))]
+    }
+    [list]
+  }
+}
+
+export function TaskLists() {
+  return <div> {
+    [Section("Every day", "These come back each morning until you remove them.", dailyChores(), "daily")]
+    [Section("Once a week", "Shows all week. Check it off any day; it stays done until next week.", weeklyChores(), "weekly")]
+    [Section("One-off", "Add a new one whenever you need it. It stays until it’s done, then it drops off.", oneOffChores(), "once")]
+  }
+}

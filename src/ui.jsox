@@ -1,0 +1,98 @@
+export const modal = <div> {
+  .className = "modal"
+  .hidden = true
+  .onclick = (event) => {
+    if (event.target === modal) closeModal();
+  }
+}
+
+export const toastEl = <div> {
+  .className = "toast"
+  .hidden = true
+}
+
+export const confettiEl = <div> {
+  .className = "confetti"
+  .hidden = true
+}
+
+export function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.hidden = false;
+  clearTimeout(showToast.t);
+  showToast.t = setTimeout(() => {
+    toastEl.hidden = true;
+  }, 2400);
+}
+
+export function burst() {
+  confettiEl.replaceChildren();
+  confettiEl.hidden = false;
+  const colors = ["#e85d4c", "#e9b44c", "#2a9d8f", "#6c63c0", "#fff"];
+  for (let i = 0; i < 28; i++) {
+    const bit = <div> {
+      .className = "bit"
+      .style.left = Math.random() * 100 + "%"
+      .style.background = colors[i % colors.length]
+      .style.animationDelay = Math.random() * 0.25 + "s"
+    }
+    [confettiEl] { [bit] }
+  }
+  setTimeout(() => {
+    confettiEl.hidden = true;
+    confettiEl.replaceChildren();
+  }, 1400);
+}
+
+export function closeModal() {
+  modal.hidden = true;
+  modal.replaceChildren();
+}
+
+export function openModal(node) {
+  modal.replaceChildren();
+  [modal] {
+    <div> {
+      .className = "sheet"
+      [node]
+    }
+  }
+  modal.hidden = false;
+}
+
+export function Field(label, value, attrs = {}) {
+  const input = <input> {
+    .value = value == null ? "" : String(value)
+    .autocomplete = attrs.autocomplete || "off"
+  }
+  if (attrs.name) input.name = attrs.name;
+  if (attrs.type) input.type = attrs.type;
+  if (attrs.placeholder) input.placeholder = attrs.placeholder;
+  return <div> {
+    .className = "field"
+    <label> { [label] }
+    [input]
+  }
+}
+
+export function Panel(title, lead, children) {
+  return <div> {
+    .className = "panel"
+    <h2> { [title] }
+    <p> { .className = "lead"; [lead] }
+    [children]
+  }
+}
+
+export function Btn(label, className, onclick) {
+  return <button> {
+    .type = "button"
+    .className = className
+    [label]
+    .onclick = onclick
+  }
+}
+
+export function Star(gold) {
+  return <span> { .className = gold ? "gold-star" : "star"; ["★"] }
+}

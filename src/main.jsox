@@ -1,0 +1,27 @@
+import "./styles.css";
+import { state, ui, loadLocal, pullServer, applyNight, serverMode } from "./state.js";
+import { paint } from "./bus.js";
+import { modal, toastEl, confettiEl } from "./ui.jsox";
+import { stageRoot, paintApp } from "./app.jsox";
+
+loadLocal();
+if (!state.setupDone) ui.view = "board";
+
+[document.body] {
+  [stageRoot()]
+  [modal]
+  [toastEl]
+  [confettiEl]
+}
+
+paintApp();
+pullServer(() => paint());
+
+setInterval(() => {
+  applyNight();
+  if (serverMode && ui.view === "board") pullServer(() => paint());
+}, 5000);
+
+setInterval(() => {
+  if (ui.view === "board" && state.setupDone) paint();
+}, 60000);

@@ -1,0 +1,43 @@
+import { state, ui, applyNight } from "./state.js";
+import { setSync } from "./bus.js";
+import { createSetup } from "./views/setup.jsox";
+import { createBoard } from "./views/board.jsox";
+import { createPin } from "./views/pin.jsox";
+import { createParent } from "./views/parent.jsox";
+
+const stage = <div> { .id = "app" }
+const setup = createSetup();
+const board = createBoard();
+const pin = createPin();
+const parent = createParent();
+
+[stage] {
+  [setup.root]
+  [board.root]
+  [pin.root]
+  [parent.root]
+}
+
+function currentView() {
+  if (!state.setupDone) return "setup";
+  return ui.view;
+}
+
+export function paintApp() {
+  applyNight();
+  const view = currentView();
+  setup.root.hidden = view !== "setup";
+  board.root.hidden = view !== "board";
+  pin.root.hidden = view !== "pin";
+  parent.root.hidden = view !== "parent";
+  if (view === "setup") setup.sync();
+  else if (view === "board") board.sync();
+  else if (view === "pin") pin.sync();
+  else parent.sync();
+}
+
+setSync(paintApp);
+
+export function stageRoot() {
+  return stage;
+}

@@ -1,0 +1,6 @@
+data
+dist
+node_modules
+.git
+README.md
+public/app.js

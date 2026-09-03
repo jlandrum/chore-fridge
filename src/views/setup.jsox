@@ -1,0 +1,148 @@
+import { setup, COLORS, KID_EMOJIS, uid, finishSetup } from "../state.js";
+import { paint } from "../bus.js";
+import { Btn, showToast } from "../ui.jsox";
+
+export function createSetup() {
+  const titleEl = <h2> {}
+  const leadEl = <p> { .className = "lead" }
+  const body = <div> {}
+  const root = <div> {
+    .className = "panel"
+    [titleEl]
+    [leadEl]
+    [body]
+  }
+
+  function page(title, lead, content) {
+    titleEl.textContent = title;
+    leadEl.textContent = lead;
+    body.replaceChildren();
+    if (content) {
+      [body] { [content] }
+    }
+  }
+
+  function sync() {
+    if (setup.step === 0) {
+      const content = <div> {
+        .className = "row"
+        [Btn("Set up the family", "btn wide", () => {
+          setup.step = 1;
+          paint();
+        })]
+      }
+      page("Chore Fridge", "A giant chore board for the kitchen. You add the kids, then add daily, weekly, and one-off tasks. Nothing is pre-filled.", content);
+      return;
+    }
+    if (setup.step === 1) {
+      const nameInput = <input> {
+        .value = setup.familyName
+        .autocomplete = "off"
+      }
+      const content = <div> {
+        <div> {
+          .className = "field"
+          <label> { ["Name"] }
+          [nameInput]
+        }
+        <div> {
+          .className = "row"
+          [Btn("Next", "btn wide", () => {
+            setup.familyName = nameInput.value.trim() || "Our Family";
+            setup.step = 2;
+            paint();
+          })]
+        }
+      }
+      page("Family name", "This sits at the top of the fridge board.", content);
+      return;
+    }
+    if (setup.step === 2) {
+      const kidInput = <input> {
+        .placeholder = "Kid's name"
+        .autocomplete = "off"
+      }
+      const list = <div> { .className = "list" }
+      setup.kids.forEach((kid, i) => {
+        [list] {
+          <div> {
+            .className = "item"
+            <div> { .className = "grow"; [kid.emoji + " " + kid.name] }
+            <button> {
+              .type = "button"
+              .className = "tiny"
+              ["Remove"]
+              .onclick = () => {
+                setup.kids.splice(i, 1);
+                paint();
+              }
+            }
+          }
+        }
+      });
+      const content = <div> {
+        [list]
+        <div> {
+          .className = "field"
+          <label> { ["Kid's name"] }
+          [kidInput]
+        }
+        <div> {
+          .className = "row"
+          [Btn("Add kid", "btn ghost wide", () => {
+            const name = kidInput.value.trim();
+            if (!name) {
+              showToast("Type a name first");
+              return;
+            }
+            setup.kids.push({
+              id: uid(),
+              name,
+              emoji: KID_EMOJIS[setup.kids.length % KID_EMOJIS.length],
+              color: COLORS[setup.kids.length % COLORS.length],
+            });
+            paint();
+          })]
+          <button> {
+            .type = "button"
+            .className = "btn wide"
+            .disabled = setup.kids.length === 0
+            ["Next"]
+            .onclick = () => {
+              if (!setup.kids.length) return;
+              setup.step = 3;
+              paint();
+            }
+          }
+        }
+      }
+      page("Who is on the board?", "Add each kid. You can change colors and names later.", content);
+      return;
+    }
+    const pinInput = <input> {
+      .autocomplete = "off"
+      .placeholder = "1234"
+    }
+    const content = <div> {
+      <div> {
+        .className = "field"
+        <label> { ["4-digit PIN"] }
+        [pinInput]
+      }
+      <div> {
+        .className = "row"
+        [Btn("Open the board", "btn wide", () => {
+          const result = finishSetup(pinInput.value);
+          if (result.error) {
+            showToast(result.error);
+            return;
+          }
+          paint();
+        })]
+      }
+    }
+    page("Parent lock", "Optional. Keeps kids out of family settings. Tasks are added in Parent.", content);
+  }
+
+  return { root, sync };
+}

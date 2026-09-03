@@ -1,0 +1,11 @@
+services:
+  chore-fridge:
+    build: .
+    container_name: chore-fridge
+    ports:
+      # Secure default: accessible only from this host. Set this to the host's
+      # private LAN address when trusted household devices need access.
+      - "${CHORE_FRIDGE_BIND_ADDRESS:-127.0.0.1}:8080:8080"
+    volumes:
+      - ./data:/data
+    restart: always
