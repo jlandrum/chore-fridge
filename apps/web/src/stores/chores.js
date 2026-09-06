@@ -6,6 +6,7 @@ import { uid, upsert } from "@chore-fridge/domain/records";
 import { todayKey, datesInWeek } from "@chore-fridge/domain/dates";
 import { countRec } from "@chore-fridge/domain/history";
 
+export const $pastOnce = atom([]);
 export const $archivedChores = atom([]);
 export const $chores = atom([]);
 export const $completions = atom({});
@@ -13,7 +14,7 @@ export const $counts = atom({});
 let lastTap = 0;
 
 export { ck, timesEarned, isOnce, isWeekly, choreKind, minCount, maxCount, isCounted } from "@chore-fridge/domain/chores";
-const snapshot = () => ({ chores: $chores.get(), counts: $counts.get(), completions: $completions.get() });
+const snapshot = () => ({ chores: $chores.get(), counts: $counts.get(), completions: $completions.get(), pastOnce:$pastOnce.get() });
 export function countFor(...args) { return rules.countFor(snapshot(), ...args); }
 export function isDone(...args) { return rules.isDone(snapshot(), ...args); }
 export function choresForKid(...args) { return rules.choresForKid(snapshot(), ...args); }

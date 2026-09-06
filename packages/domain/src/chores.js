@@ -81,6 +81,7 @@ function appliesToday(household, chore, date = new Date()) {
   const day = todayKey(date);
   const open = (chore.kidIds || []).some((id) => !isDone(household, chore, id, date));
   if (open) return true;
+  if (household.pastOnce?.includes(chore.id)) return false;
   return Object.keys(household.completions).some((key) => {
     return key.startsWith(day + ":" + chore.id + ":") && Number(household.completions[key]) > 0;
   });

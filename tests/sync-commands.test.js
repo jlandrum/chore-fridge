@@ -51,7 +51,10 @@ test('client imports browser data, retries lost responses without double spendin
     await sync.pullServer();
     assert.match(sync.$syncError.get(),/credit/);
     assert.equal(app.storage.read().state.spent.kid,4);
-    assert.equal(sync.serializeHousehold().spent.kid,4);
+    assert.equal((await import('../apps/web/src/stores/balances.js')).starsFor('kid'),1);
+    assert.equal(requests.some(r => r.url === '/api/state'),false);
+    assert.ok(requests.some(r => r.url.startsWith('/api/board?day=')));
+    assert.equal(sync.serializeHousehold().dayScoped,true);
     // Let the debounced save finish before closing the server.
     await new Promise(resolve => setTimeout(resolve,250));
   } finally {

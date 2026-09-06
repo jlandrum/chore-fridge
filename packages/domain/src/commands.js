@@ -1,4 +1,5 @@
 import { initializeTaskHistory, evolveTaskHistory } from './task-history.js';
+import { validDay } from './day-view.js';
 import { defaultState } from './state.js';
 import { ck, isOnce, isWeekly, isCounted, maxCount, countFor } from './chores.js';
 import { datesInWeek } from './dates.js';
@@ -14,6 +15,7 @@ export function applyCommand(current, command, now = Date.now()) {
   const previous = initializeTaskHistory(current || defaultState(),now);
   let state = structuredClone(previous);
   const p = command.payload;
+  if (p.day) requireValue(validDay(p.day),'Invalid task date');
   let result = { ok:true };
   switch (command.type) {
     case 'kid.save':

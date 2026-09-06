@@ -13,7 +13,7 @@ export const payloadSchemas = {
   'chore.complete':object({...task,versionId:{type:"string",minLength:1,maxLength:512}},Object.keys(task)), 'chore.undo':object({...task,versionId:{type:"string",minLength:1,maxLength:512}},Object.keys(task)),
   'chore.count':object({...task,versionId:{type:"string",minLength:1,maxLength:512}, delta:{ enum:[-1,1] }},[...Object.keys(task),'delta']),
   'reward.save':rewardSchema, 'reward.remove':object({id}),
-  'reward.redeem':object({rewardId:id,kidId:id}),
+  'reward.redeem':object({rewardId:id,kidId:id,day},['rewardId','kidId']),
   'pin.set':object({pin}),
   'setup.finish':object({familyName:text,kids:{type:'array',minItems:1,items:kidSchema},pin}),
   'household.reset':object({}),

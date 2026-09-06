@@ -20,16 +20,16 @@ function credit(task,kidId,units) {
 export function initializeTaskHistory(state, at = Date.now()) {
   if (state.historyVersion === 1) return state;
   const chores = state.chores.map(task => version(task,'baseline-'+task.id,at));
-  const creditLedger = {};
+  const creditProjection = {};
   for (const [key,units] of Object.entries(quantities(state))) {
     const [,taskId,kidId] = key.split(':');
     const task = chores.find(task => task.id === taskId);
     if (units && task) {
       const known = task.kidIds?.includes(kidId) ? task : {...task,points:0,gold:false};
-      creditLedger[key] = [credit(known,kidId,units)];
+      creditProjection[key] = [credit(known,kidId,units)];
     }
   }
-  return {...state,historyVersion:1,historyStartedAt:at,chores,archivedChores:[],taskVersions:chores.slice(),creditLedger};
+  return {...state,historyVersion:1,historyStartedAt:at,chores,archivedChores:[],taskVersions:chores.slice(),creditProjection};
 }
 
 // Derived current state may change; the recorded versions never do.
@@ -52,7 +52,7 @@ export function evolveTaskHistory(previous, next, change, at = Date.now()) {
     if (!chores.some(item => item.id === task.id)) archived.push(make(task,true));
   }
   const state = {...next,historyVersion:1,historyStartedAt:old.historyStartedAt,chores,archivedChores:archived,taskVersions:versions};
-  state.creditLedger = reconcileCredits(state,old.creditLedger,change.payload?.versionId);
+  state.creditProjection = reconcileCredits(state,old.creditProjection,change.payload?.versionId);
   return state;
 }
 

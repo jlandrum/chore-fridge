@@ -13,6 +13,8 @@
 - [x] Live synchronization with SSE and durable command retries
 - [ ] Shared tasks: completion credits the person who finishes it and marks it done for everyone
 - [x] Time travel storage foundation: immutable task versions, archival, fixed credits, historical revisions
+- [x] Append-only credit ledger with linked undo reversals and transactional balances
+- [x] Daily board responses and paginated ledger history
 - [ ] Time travel browsing interface
 - [ ] Login required to mark tasks as done
 

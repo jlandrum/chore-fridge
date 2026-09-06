@@ -18,7 +18,7 @@ function options(t) {
 async function command(app,id,type,payload) {
   const response = await app.inject({method:'POST',url:'/api/commands',payload:{id,type,payload}});
   assert.equal(response.statusCode,200,response.body);
-  return response.json();
+  return {...response.json(),state:app.storage.read().state};
 }
 
 test('edits create immutable versions; archive and restore retain identity, credit, and historical snapshots', async t => {
@@ -71,12 +71,12 @@ test('counted credit keeps per-version values and undo reverses the latest unit 
     await command(app,'edit','chore.save',{...task,maxCount:3,points:3,gold:true});
     const two = await command(app,'two','chore.count',payload);
     assert.deepEqual(balancesFor(two.state).kid,{stars:5,gold:1});
-    const entries = two.state.creditLedger['2026-09-07:task:kid'];
+    const entries = two.state.creditProjection['2026-09-07:task:kid'];
     assert.equal(entries.length,2);
     assert.notEqual(entries[0].versionId,entries[1].versionId);
     const undo = await command(app,'undo','chore.count',{...payload,delta:-1});
     assert.deepEqual(balancesFor(undo.state).kid,{stars:2,gold:0});
-    assert.equal(app.storage.historical(two.revision).state.creditLedger['2026-09-07:task:kid'].length,2);
+    assert.equal(app.storage.historical(two.revision).state.creditProjection['2026-09-07:task:kid'].length,2);
     await command(app,'unassign','chore.save',{...task,maxCount:3,kidIds:['kid'],points:100});
     assert.equal(balancesFor(app.storage.read().state).kid.stars,2);
   } finally { await app.close(); }
@@ -108,7 +108,7 @@ test('legacy writes cannot replace version history or revalue earned credits', a
     app.storage.importLegacy(seed);
     await command(app,'done','chore.complete',{choreId:'task',kidId:'kid',day:'2026-09-07'});
     const old = app.storage.read().state;
-    app.storage.putLegacy({...old,chores:[{...task,points:99}],taskVersions:[],creditLedger:{}});
+    app.storage.putLegacy({...old,chores:[{...task,points:99}],taskVersions:[],creditProjection:{}});
     assert.equal(balancesFor(app.storage.read().state).kid.stars,2);
     assert.equal(app.storage.read().state.taskVersions.length,2);
     app.storage.putLegacy({...old,chores:[]});
