@@ -33,19 +33,22 @@ test('rewritten client reads and saves using the existing Python server contract
     globalThis.fetch = (path, options) => nativeFetch(new URL(path, base), options);
     globalThis.window = { fetch: globalThis.fetch };
     globalThis.localStorage = { setItem() {}, getItem() { return null; } };
-    const client = await import('../src/state.js');
+    const sync = await import('../src/stores/sync.js');
+    const family = await import('../src/stores/family.js');
+    const chores = await import('../src/stores/chores.js');
+    const balances = await import('../src/stores/balances.js');
     const kid = { id:'kid', name:'Test Kid', emoji:'🐻', color:'#e85d4c' };
-    const initial = { ...client.defaultState(), setupDone:true, kids:[kid], familyName:'Existing household', updatedAt:1 };
+    const initial = { ...sync.defaultState(), setupDone:true, kids:[kid], familyName:'Existing household', updatedAt:1 };
     assert.equal((await fetch('/api/state', { method:'PUT', body:JSON.stringify(initial) })).status, 204);
-    client.pullServer();
-    await until(() => client.state.familyName === initial.familyName);
-    assert.equal(client.serverMode, true);
-    const chore = client.saveChore({ title:'Test task', points:5, kidIds:[kid.id], repeat:'daily', minCount:1, maxCount:1 });
+    sync.pullServer();
+    await until(() => family.$familyName.get() === initial.familyName);
+    assert.equal(sync.$serverMode.get(), true);
+    const chore = chores.saveChore({ title:'Test task', points:5, kidIds:[kid.id], repeat:'daily', minCount:1, maxCount:1 });
     await until(async () => (await (await fetch('/api/state')).json()).chores.length === 1);
-    client.toggleChore(chore.id, kid.id);
+    chores.toggleChore(chore.id, kid.id);
     await until(async () => {
       const saved = await (await fetch('/api/state')).json();
-      return saved.completions[client.ck(chore.id, kid.id)] > 0;
+      return saved.completions[chores.ck(chore.id, kid.id)] > 0;
     });
     // Simulate an existing second device using the same full-state HTTP API.
     const secondDevice = await (await fetch('/api/state')).json();
@@ -53,10 +56,10 @@ test('rewritten client reads and saves using the existing Python server contract
     secondDevice.updatedAt = Date.now() + 1000;
     assert.equal((await fetch('/api/state', { method:'PUT', body:JSON.stringify(secondDevice) })).status, 204);
     await until(async () => {
-      client.pullServer();
-      return client.state.familyName === secondDevice.familyName;
+      sync.pullServer();
+      return family.$familyName.get() === secondDevice.familyName;
     });
-    assert.equal(client.starsFor(kid.id), 5);
+    assert.equal(balances.starsFor(kid.id), 5);
   } finally {
     globalThis.fetch = nativeFetch;
     const stopped = once(server, 'exit');

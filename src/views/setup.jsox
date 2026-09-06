@@ -1,5 +1,8 @@
+import { COLORS, KID_EMOJIS } from "../stores/family.js";
+
+import { $setup, setSetup, finishSetup } from "../stores/setup.js";
+import { uid } from "../domain/records.js";
 import { defineScreen } from "../components/screen.jsox";
-import { $setup, setSetup, setup, COLORS, KID_EMOJIS, uid, finishSetup } from "../state.js";
 import { Btn, showToast } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
 
@@ -27,7 +30,7 @@ defineScreen("fridge-setup", (root) => {
   }
 
   function sync() {
-    if (setup.step === 0) {
+    if ($setup.get().step === 0) {
       const content = <div> {
         .className = "row"
         [Btn("Set up the family", "btn wide", () => {
@@ -37,9 +40,9 @@ defineScreen("fridge-setup", (root) => {
       page("Chore Fridge", "A giant chore board for the kitchen. You add the kids, then add daily, weekly, and one-off tasks. Nothing is pre-filled.", content);
       return;
     }
-    if (setup.step === 1) {
+    if ($setup.get().step === 1) {
       const nameInput = <input> {
-        .value = setup.familyName
+        .value = $setup.get().familyName
         .autocomplete = "off"
       }
       const content = <div> {
@@ -58,13 +61,13 @@ defineScreen("fridge-setup", (root) => {
       page("Family name", "This sits at the top of the fridge board.", content);
       return;
     }
-    if (setup.step === 2) {
+    if ($setup.get().step === 2) {
       const kidInput = <input> {
         .placeholder = "Kid's name"
         .autocomplete = "off"
       }
       const list = <div> { .className = "list" }
-      setup.kids.forEach((kid, i) => {
+      $setup.get().kids.forEach((kid, i) => {
         [list] {
           <div> {
             .className = "item"
@@ -74,7 +77,7 @@ defineScreen("fridge-setup", (root) => {
               .className = "tiny"
               ["Remove"]
               .onclick = () => {
-                setSetup({ kids: setup.kids.filter((_, index) => index !== i) });
+                setSetup({ kids: $setup.get().kids.filter((_, index) => index !== i) });
               }
             }
           }
@@ -95,20 +98,20 @@ defineScreen("fridge-setup", (root) => {
               showToast("Type a name first");
               return;
             }
-            setSetup({ kids: [...setup.kids, {
+            setSetup({ kids: [...$setup.get().kids, {
               id: uid(),
               name,
-              emoji: KID_EMOJIS[setup.kids.length % KID_EMOJIS.length],
-              color: COLORS[setup.kids.length % COLORS.length],
+              emoji: KID_EMOJIS[$setup.get().kids.length % KID_EMOJIS.length],
+              color: COLORS[$setup.get().kids.length % COLORS.length],
             }] });
           })]
           <button> {
             .type = "button"
             .className = "btn wide"
-            .disabled = setup.kids.length === 0
+            .disabled = $setup.get().kids.length === 0
             ["Next"]
             .onclick = () => {
-              if (!setup.kids.length) return;
+              if (!$setup.get().kids.length) return;
               setSetup({ step: 3 });
             }
           }

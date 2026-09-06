@@ -1,14 +1,17 @@
+import { $setupDone } from "./stores/family.js";
+import { $ui } from "./stores/navigation.js";
+import { tick } from "./stores/clock.js";
+import { pullServer, $serverMode } from "./stores/sync.js";
 import { defineComponent } from "@js-ox/web-components";
 import { computed } from "nanostores";
-import { $household, $ui, ui, pullServer, serverMode, tick } from "./state.js";
 import { applyTheme } from "./view.js";
 import "./views/setup.jsox";
 import "./views/board.jsox";
 import "./views/pin.jsox";
 import "./views/parent.jsox";
 
-const $screen = computed([$household, $ui], (household, navigation) =>
-  household.setupDone ? navigation.view : "setup"
+const $screen = computed([$setupDone, $ui], (setupDone, navigation) =>
+  setupDone ? navigation.view : "setup"
 );
 
 [defineComponent("chore-fridge")] {
@@ -31,7 +34,7 @@ const $screen = computed([$household, $ui], (household, navigation) =>
     pullServer();
     this.pollTimer = setInterval(() => {
       applyTheme();
-      if (serverMode && ui.view === "board") pullServer();
+      if ($serverMode.get() && $ui.get().view === "board") pullServer();
     }, 5000);
     this.dayTimer = setInterval(tick, 60000);
   }

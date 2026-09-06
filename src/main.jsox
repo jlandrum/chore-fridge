@@ -1,5 +1,6 @@
+
+import { loadLocal } from "./stores/sync.js";
 import "./styles.css";
-import { loadLocal } from "./state.js";
 import { applyView, watchView } from "./view.js";
 import { modal, toastEl, confettiEl } from "./ui.jsox";
 import "./app.jsox";

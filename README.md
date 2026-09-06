@@ -118,12 +118,17 @@ Run component and server integration tests with `npm test`. These compile the ac
 - `src/app.jsox`: the `<chore-fridge>` element subscribes to screen selection and owns polling timers. Disconnecting it cleans up its subscription and timers.
 - `src/views/`: setup, board, PIN, and parent screen components, plus task forms and view controls.
 - `src/components/`: reusable choice groups, kid/chore components, and keyed list updates that preserve element identity.
-- `src/state.js`: Nano Stores for household state, navigation/setup, and computed balances; explicit actions for changes, persistence, and server synchronization.
+- `src/stores/family.js`: independent family-name, PIN, setup-completion, and kid stores.
+- `src/stores/chores.js`: chore definitions, completion/count stores, scheduling rules, and task actions.
+- `src/stores/rewards.js` and `balances.js`: rewards, spending, and computed star/gold balances.
+- `src/stores/navigation.js`, `setup.js`, and `clock.js`: local navigation, onboarding, and date updates.
+- `src/stores/sync.js`: assembles the existing household JSON for local storage and the server, and applies incoming snapshots to the affected stores.
+- `src/domain/`: shared date, record, and history-merge helpers.
 - `src/view.js`: a separate Nano Store for browser-local appearance and zoom preferences.
 
 JSOX constructs and manipulates DOM directly. There is no paint/render cycle, virtual DOM, or app-wide refresh bus. Components build their controls on first connection and use store subscriptions to synchronize existing nodes. The `defineScreen` helper preserves those controls across reconnections and removes subscriptions on disconnect. Parent tabs retain their DOM, and keyed lists retain item controls while records change.
 
-Nano Stores owns the current snapshots. Use actions such as `saveKid`, `saveChore`, `redeemReward`, `setUI`, and `setSetup`; treat exported `state`, `ui`, and `setup` bindings as read-only views of the stores. Household actions copy data before modifying it, so previous snapshots remain stable. Remote loads update the household store without scheduling another save. UI and display changes never enter the shared household payload.
+Nano Stores owns independent domain snapshots. Read the relevant store with `.get()` and change it through actions such as `saveKid`, `saveChore`, `redeemReward`, `setUI`, and `setSetup`. Actions replace only the affected collection or record, preserving unrelated references. A batched action revision notifies persistence after the changes finish. The sync adapter alone assembles the full document required by the existing server; incoming snapshots update only changed domains without scheduling an echo save. UI and display changes never enter the shared household payload. There is no aggregate household store or whole-document clone on local actions.
 
 The direct-DOM convention is also recorded in `AGENTS.md` for future changes.
 

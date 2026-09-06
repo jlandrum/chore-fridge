@@ -1,30 +1,19 @@
+import { COLORS, KID_EMOJIS, $kids, saveKid, removeKid } from "../stores/family.js";
+import { $balances, starsFor, goldFor } from "../stores/balances.js";
+import { $rewards, saveReward, removeReward } from "../stores/rewards.js";
+import { $ui, setUI } from "../stores/navigation.js";
+import { eraseBoard } from "../stores/setup.js";
+import { uid } from "../domain/records.js";
 import { updateList } from "../components/list.js";
 import { Choices } from "../components/choices.jsox";
 import { defineScreen } from "../components/screen.jsox";
-import {
-  state,
-  ui,
-  COLORS,
-  KID_EMOJIS,
-  starsFor,
-  goldFor,
-  uid,
-  $household,
-  $ui,
-  setUI,
-  saveKid,
-  removeKid,
-  saveReward,
-  removeReward,
-  eraseBoard,
-} from "../state.js";
 import { Btn, showToast, openModal, closeModal, Star } from "../ui.jsox";
 import { TaskLists } from "./tasks.jsox";
 import { ViewControls, createViewButton } from "./view-options.jsox";
 
 function kidForm(existing) {
   let emoji = existing ? existing.emoji : "🐻";
-  let color = existing ? existing.color : COLORS[state.kids.length % COLORS.length];
+  let color = existing ? existing.color : COLORS[$kids.get().length % COLORS.length];
   const nameInput = <input> {
     .value = existing ? existing.name : ""
     .autocomplete = "off"
@@ -168,8 +157,8 @@ defineScreen("fridge-kids-settings", (root) => {
     [list]
     [Btn("Add kid", "btn", () => kidForm(null))]
   }
-  return () => updateList(list, state.kids, "fridge-kid-settings");
-}, [$household]);
+  return () => updateList(list, $kids.get(), "fridge-kid-settings");
+}, [$kids, $balances]);
 
 function KidsTab() { return <fridge-kids-settings> }
 
@@ -205,8 +194,8 @@ defineScreen("fridge-rewards-settings", (root) => {
     [list]
     [Btn("Add reward", "btn", () => rewardForm(null))]
   }
-  return () => updateList(list, state.rewards, "fridge-reward-settings");
-}, [$household]);
+  return () => updateList(list, $rewards.get(), "fridge-reward-settings");
+}, [$rewards]);
 
 function RewardsTab() { return <fridge-rewards-settings> }
 
@@ -301,8 +290,8 @@ defineScreen("fridge-parent", (root) => {
   const pages = new Map();
   let currentTab;
   function sync() {
-    if (currentTab === ui.parentTab) return;
-    currentTab = ui.parentTab;
+    if (currentTab === $ui.get().parentTab) return;
+    currentTab = $ui.get().parentTab;
     for (const tab of tabs) tabBtns[tab].className = currentTab === tab ? "on" : "";
     if (!pages.has(currentTab)) pages.set(currentTab, (factories[currentTab] || HelpTab)());
     body.replaceChildren(pages.get(currentTab));

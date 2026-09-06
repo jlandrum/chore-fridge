@@ -1,4 +1,7 @@
-import { state, $household, dailyChores, weeklyChores, oneOffChores, removeChore, choreKind, isCounted, minCount, maxCount } from "../state.js";
+import { $kids } from "../stores/family.js";
+import { $chores, $completions, $counts, choreKind, minCount, maxCount, isCounted, dailyChores, weeklyChores, oneOffChores, removeChore } from "../stores/chores.js";
+
+import { $clock } from "../stores/clock.js";
 import { defineScreen } from "../components/screen.jsox";
 import { updateList } from "../components/list.js";
 import { Btn, showToast, Star } from "../ui.jsox";
@@ -6,7 +9,7 @@ import { openTaskForm } from "./task-form.jsox";
 
 function kidNames(chore) {
   return (chore.kidIds || []).map((id) => {
-    const kid = state.kids.find((item) => item.id === id);
+    const kid = $kids.get().find((item) => item.id === id);
     return kid ? kid.emoji + " " + kid.name : "";
   }).filter(Boolean).join(" · ");
 }
@@ -66,6 +69,6 @@ defineScreen("fridge-task-lists", (root) => {
       empty.hidden = !!items.length;
     }
   };
-}, [$household]);
+}, [$kids, $chores, $completions, $counts, $clock]);
 
 export function TaskLists() { return <fridge-task-lists> }

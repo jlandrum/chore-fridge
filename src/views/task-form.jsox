@@ -1,5 +1,7 @@
+import { $kids } from "../stores/family.js";
+import { isOnce, isWeekly, minCount, maxCount, saveChore } from "../stores/chores.js";
+
 import { Choices } from "../components/choices.jsox";
-import { state, saveChore, isOnce, isWeekly } from "../state.js";
 import { Btn, showToast, openModal, closeModal } from "../ui.jsox";
 
 export function openTaskForm(opts = {}) {
@@ -9,9 +11,9 @@ export function openTaskForm(opts = {}) {
     : (opts.repeat || "once");
   let kidIds = existing
     ? existing.kidIds.slice()
-    : (opts.kidIds && opts.kidIds.length ? opts.kidIds.slice() : state.kids.map((k) => k.id));
+    : (opts.kidIds && opts.kidIds.length ? opts.kidIds.slice() : $kids.get().map((k) => k.id));
 
-  if (!state.kids.length) {
+  if (!$kids.get().length) {
     showToast("Add a kid first");
     return;
   }
@@ -59,7 +61,7 @@ export function openTaskForm(opts = {}) {
     { value: "once", label: "📌 Just once" },
   ], repeat, (value) => { repeat = value; });
   const who = Choices(
-    state.kids.map((kid) => ({ value: kid.id, label: kid.emoji + " " + kid.name })),
+    $kids.get().map((kid) => ({ value: kid.id, label: kid.emoji + " " + kid.name })),
     kidIds, (value) => { kidIds = value; }, { multiple: true }
   );
 

@@ -1,25 +1,19 @@
+import { $familyName, $pin, $kids } from "../stores/family.js";
+import { $chores } from "../stores/chores.js";
+import { $balances, starsFor, goldFor, familyStars, familyGold } from "../stores/balances.js";
+import { $rewards, redeemReward } from "../stores/rewards.js";
+import { setUI } from "../stores/navigation.js";
+import { $clock } from "../stores/clock.js";
+import { prettyDate } from "../domain/dates.js";
 import "../components/kid.jsox";
 import { updateList } from "../components/list.js";
 import { defineScreen } from "../components/screen.jsox";
-import {
-  state,
-  $household,
-  $clock,
-  setUI,
-  ui,
-  starsFor,
-  goldFor,
-  familyStars,
-  familyGold,
-  prettyDate,
-  redeemReward,
-} from "../state.js";
 import { showToast, burst, openModal, closeModal, Btn, Star } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
 
 function askWho(reward) {
   const choices = <div> { .className = "row" }
-  for (const kid of state.kids) {
+  for (const kid of $kids.get()) {
     const have = reward.gold ? goldFor(kid.id) : starsFor(kid.id);
     const disabled = have < reward.cost;
     [choices] {
@@ -107,7 +101,7 @@ defineScreen("fridge-board", (root) => {
           .className = "pill"
           ["Parent"]
           .onclick = () => {
-            if (state.pin) {
+            if ($pin.get()) {
               setUI({ pinMode: "enter", pinBuf: "", view: "pin" });
             } else {
               setUI({ view: "parent" });
@@ -124,12 +118,12 @@ defineScreen("fridge-board", (root) => {
   let rewardKey = "";
 
   function syncDock() {
-    const ids = JSON.stringify(state.rewards);
+    const ids = JSON.stringify($rewards.get());
     if (ids === rewardKey) return;
     rewardKey = ids;
     dockEl.replaceChildren();
-    dockEl.hidden = !state.rewards.length;
-    for (const reward of state.rewards) {
+    dockEl.hidden = !$rewards.get().length;
+    for (const reward of $rewards.get()) {
       [dockEl] {
         <button> {
           .type = "button"
@@ -142,19 +136,20 @@ defineScreen("fridge-board", (root) => {
     }
   }
 
-  function sync() {
-    titleEl.textContent = state.familyName;
-    dateEl.textContent = prettyDate();
-    starsNum.textContent = familyStars();
-    const gold = familyGold();
-    const goldInPlay = gold > 0 || state.chores.some((c) => c.gold) || state.rewards.some((r) => r.gold);
-    goldNum.textContent = gold;
-    goldEl.hidden = !goldInPlay;
-    syncDock();
-    emptyBoard.remove();
-    updateList(boardEl, state.kids, "fridge-kid");
-    if (!state.kids.length) boardEl.append(emptyBoard);
-  }
-
-  return sync;
-}, [$household, $clock]);
+  return [
+    [[$familyName], () => { titleEl.textContent = $familyName.get(); }],
+    [[$clock], () => { dateEl.textContent = prettyDate(); }],
+    [[$balances, $chores, $rewards], () => {
+      starsNum.textContent = familyStars();
+      const gold = familyGold();
+      goldNum.textContent = gold;
+      goldEl.hidden = !(gold > 0 || $chores.get().some((chore) => chore.gold) || $rewards.get().some((reward) => reward.gold));
+    }],
+    [[$rewards], syncDock],
+    [[$kids], () => {
+      emptyBoard.remove();
+      updateList(boardEl, $kids.get(), "fridge-kid");
+      if (!$kids.get().length) boardEl.append(emptyBoard);
+    }],
+  ];
+});

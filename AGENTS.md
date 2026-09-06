@@ -7,3 +7,5 @@ JSOX is direct DOM construction and manipulation, not a rendering framework.
 - Use Nano Stores for state and derived values. Keep subscriptions scoped to the relevant component and clean them up on disconnect.
 - Use explicit state actions. Keep household persistence separate from local UI and display preferences.
 - Preserve the existing server API and household data format unless a task explicitly changes them.
+
+- Keep domain stores independent. Assemble the aggregate household document only at the persistence boundary; do not reintroduce a monolithic store or whole-document cloning for local actions.
