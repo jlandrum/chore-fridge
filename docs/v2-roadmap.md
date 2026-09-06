@@ -12,7 +12,8 @@
 - [x] Automatic legacy JSON migration to transactional SQLite
 - [x] Live synchronization with SSE and durable command retries
 - [ ] Shared tasks: completion credits the person who finishes it and marks it done for everyone
-- [ ] Time travel
+- [x] Time travel storage foundation: immutable task versions, archival, fixed credits, historical revisions
+- [ ] Time travel browsing interface
 - [ ] Login required to mark tasks as done
 
 ## To investigate

@@ -196,3 +196,19 @@ test('reward and PIN edits do not touch existing chore DOM', () => {
   assert.equal(observer.takeRecords().length, 0);
   observer.disconnect();
 });
+
+test('archive and restore controls retain earned credit on a versioned board', async () => {
+  const { applySnapshot, defaultState } = await import('../apps/web/src/stores/sync.js');
+  const { initializeTaskHistory } = await import('@chore-fridge/domain/task-history');
+  applySnapshot(initializeTaskHistory({...defaultState(),setupDone:true,kids:[{id:'history-kid',name:'Alex'}],chores:[{id:'history-task',title:'Keep my credit',kidIds:['history-kid'],points:2,repeat:'daily'}],completions:{'2026-09-07:history-task:history-kid':1}}));
+  navigation.setUI({view:'parent',parentTab:'chores'});
+  click('Archive',active().querySelector('fridge-task-summary'));
+  assert.equal(chores.$chores.get().length,0);
+  assert.equal(balances.starsFor('history-kid'),2);
+  const row = active().querySelector('fridge-archived-task');
+  assert.match(row.textContent,/Keep my credit/);
+  click('Restore',row);
+  assert.equal(chores.$chores.get()[0].taskId,'history-task');
+  assert.equal(chores.$archivedChores.get().length,0);
+  assert.equal(balances.starsFor('history-kid'),2);
+});

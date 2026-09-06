@@ -9,9 +9,9 @@ export const rewardSchema = object({ id, title:text, emoji:{ type:"string", maxL
 const task = { choreId:id, kidId:id, day };
 export const payloadSchemas = {
   'kid.save': kidSchema, 'kid.remove':object({id}),
-  'chore.save':choreSchema, 'chore.remove':object({id}),
-  'chore.complete':object(task), 'chore.undo':object(task),
-  'chore.count':object({...task, delta:{ enum:[-1,1] }}),
+  'chore.save':choreSchema, 'chore.remove':object({id}), 'chore.restore':object({id}),
+  'chore.complete':object({...task,versionId:{type:"string",minLength:1,maxLength:512}},Object.keys(task)), 'chore.undo':object({...task,versionId:{type:"string",minLength:1,maxLength:512}},Object.keys(task)),
+  'chore.count':object({...task,versionId:{type:"string",minLength:1,maxLength:512}, delta:{ enum:[-1,1] }},[...Object.keys(task),'delta']),
   'reward.save':rewardSchema, 'reward.remove':object({id}),
   'reward.redeem':object({rewardId:id,kidId:id}),
   'pin.set':object({pin}),

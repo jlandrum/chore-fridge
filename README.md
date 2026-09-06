@@ -145,6 +145,16 @@ The server owns command validation, completion/count changes, and reward spendin
 
 See [API documentation](docs/api.md) for command examples and compatibility behavior.
 
+## Task versions and history
+
+Tasks have a permanent `taskId` (also exposed as legacy `id`) and a `versionId` identifying immutable rules. Editing creates a version; archiving removes the task from the current board while preserving versions and earned credit. Parent task settings include an archived list with Restore, which creates another version under the same task ID.
+
+Credit entries reference the task and version and retain the points/gold earned at completion. A change from two to three stars does not revalue earlier work. Counted tasks can contain units earned under different versions; undo reverses the most recent units first. Clients send the version they saw with completion commands, including delayed/offline submissions; archived tasks reject new completions.
+
+Each committed action also stores an immutable household snapshot in SQLite in the same transaction. The history API exposes those revisions for time travel; a date-browsing interface is still on the roadmap. Historical snapshots include prior spending, corrections, and archived definitions. Erasing the current board resets its state but does not purge recorded history.
+
+Existing JSON and schema-1 SQLite households automatically gain baseline versions and credit entries. Their known balances are preserved. Full historical snapshots start at the upgrade: old task definitions and actions that were never recorded cannot be recovered. Legacy writes also pass through versioning on the Node server, but old browsers may still display balances using their old calculations until refreshed/upgraded. The Python compatibility fallback does not implement this history foundation.
+
 ## Automatic migration
 
 The next container upgrade keeps the same `./data:/data` volume. On first Node startup:

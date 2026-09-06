@@ -1,5 +1,5 @@
 import { $kids } from "../stores/family.js";
-import { $chores, $completions, $counts, choreKind, minCount, maxCount, isCounted, dailyChores, weeklyChores, oneOffChores, removeChore } from "../stores/chores.js";
+import { $chores, $completions, $counts, choreKind, minCount, maxCount, isCounted, dailyChores, weeklyChores, oneOffChores, removeChore, $archivedChores, restoreChore } from "../stores/chores.js";
 
 import { $clock } from "../stores/clock.js";
 import { defineScreen } from "../components/screen.jsox";
@@ -21,11 +21,11 @@ defineScreen("fridge-task-summary", (root) => {
     .className = "item"
     <div> { .className = "grow"; [title]; [sub] }
     [Btn("Edit", "tiny", () => openTaskForm({ existing: root.model }))]
-    [Btn("Remove", "tiny", () => {
+    [Btn("Archive", "tiny", () => {
       const chore = root.model;
-      if (!confirm("Remove this " + choreKind(chore).toLowerCase() + " task?")) return;
+      if (!confirm("Archive this " + choreKind(chore).toLowerCase() + " task?")) return;
       removeChore(chore.id);
-      showToast("Removed");
+      showToast("Archived");
     })]
   }
   return () => {
@@ -35,6 +35,16 @@ defineScreen("fridge-task-summary", (root) => {
     if (chore.gold) sub.append(" · ", Star(true), " gold");
     if (isCounted(chore)) sub.append(" · " + minCount(chore) + "–" + maxCount(chore) + " / day");
   };
+});
+
+defineScreen("fridge-archived-task", (root) => {
+  const title = <div> { .className = "grow" }
+  [root] {
+    .className = "item"
+    [title]
+    [Btn("Restore", "tiny", () => restoreChore(root.model.id))]
+  }
+  return () => { title.textContent = root.model.title; };
 });
 
 defineScreen("fridge-task-lists", (root) => {
@@ -62,13 +72,23 @@ defineScreen("fridge-task-lists", (root) => {
     }
     return { list, empty, chores };
   });
+  const archivedList = <div> { .className = "list" }
+  const archivedSection = <section> {
+    .className = "task-section"
+    <h2> { ["Archived tasks"] }
+    <p> { .className = "lead tight"; ["Past completions and earned credits are kept. Restore a task to use it again."] }
+    [archivedList]
+  }
+  root.append(archivedSection);
   return () => {
+    archivedSection.hidden = !$archivedChores.get().length;
+    updateList(archivedList,$archivedChores.get(),"fridge-archived-task");
     for (const { list, empty, chores } of sections) {
       const items = chores();
       updateList(list, items, "fridge-task-summary");
       empty.hidden = !!items.length;
     }
   };
-}, [$kids, $chores, $completions, $counts, $clock]);
+}, [$kids, $chores, $archivedChores, $completions, $counts, $clock]);
 
 export function TaskLists() { return <fridge-task-lists> }

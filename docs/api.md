@@ -24,9 +24,10 @@ Supported commands:
 | `kid.save` | `id`, `name`; optional `emoji`, `color` |
 | `kid.remove` | `id` |
 | `chore.save` | `id`, `title`, nonempty `kidIds`; optional `emoji`, `points`, `repeat`, `minCount`, `maxCount`, `gold` |
-| `chore.remove` | `id` |
-| `chore.complete`, `chore.undo` | `choreId`, `kidId`, `day` |
-| `chore.count` | `choreId`, `kidId`, `day`, `delta` (1 or -1) |
+| `chore.remove` | `id` (archive) |
+| `chore.restore` | `id` (restore under the same permanent ID) |
+| `chore.complete`, `chore.undo` | `choreId`, `kidId`, `day`; optional `versionId` |
+| `chore.count` | `choreId`, `kidId`, `day`, `delta` (1 or -1); optional `versionId` |
 | `reward.save` | `id`, `title`, `cost`; optional `emoji`, `gold` |
 | `reward.remove` | `id` |
 | `reward.redeem` | `rewardId`, `kidId` |
@@ -50,3 +51,16 @@ Supported commands:
 `POST /api/import` accepts a version-1 household document only when the database has no household. It atomically rejects subsequent imports with 409. This supports existing browser-only boards; disk JSON migration happens automatically at startup instead.
 
 For server-side reuse, `storage.command(command)` performs validation, transactional persistence, idempotency, and change notification. Future MCP tools should use this entry point. `applyCommand` in the shared domain package is pure and performs no I/O.
+
+## Versions and time travel
+
+`id` and `taskId` identify the same permanent task. `versionId` identifies immutable rules; `validFrom` records when that version was committed. Archive and restore create new versions. Send the version seen by the client with completion/count commands to preserve its credit value when an edit happens before synchronization. Omitting it uses the active version. Unknown versions and completions of archived tasks return 409.
+
+- `GET /api/chores/archived`: archived tasks available for restoration.
+- `GET /api/chores/:id/versions`: all recorded task versions, including archival versions.
+- `GET /api/history`: up to 100 revision summaries, newest first. Use `?before=<oldest-revision>` for the next page.
+- `GET /api/history/:revision`: immutable `{revision, recordedAt, action, state}` snapshot; missing revisions return 404.
+
+`state.creditLedger` records task/version references and fixed point/gold values by completion key. Counts may have several allocations from different versions. Undo updates the current projection; previous allocations remain in immutable historical snapshots. Snapshot revisions are ordered by commit and include every accepted command, import, and legacy write. Retried commands do not create duplicate history entries.
+
+Historical data starts with a migration baseline, not invented past edits. The outer household schema remains version 1 for older clients; `historyVersion: 1` identifies the added domain history fields, and SQLite schema version 2 adds durable revision snapshots. History fields are server-owned: legacy PUT requests cannot replace them. No history purge endpoint is implemented.

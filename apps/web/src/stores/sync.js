@@ -3,17 +3,17 @@ export { defaultState } from "@chore-fridge/domain/state";
 import { atom, batch } from "nanostores";
 import { $revision, $lastChange, commit } from "./changes.js";
 import { $familyName, $pin, $setupDone, $kids } from "./family.js";
-import { $chores, $completions, $counts } from "./chores.js";
+import { $chores, $completions, $counts, $archivedChores } from "./chores.js";
 import { $rewards } from "./rewards.js";
-import { $spent, $goldSpent } from "./balances.js";
+import { $spent, $goldSpent, $creditLedger } from "./balances.js";
 import { mergeCompletions, mergeCounts } from "@chore-fridge/domain/history";
 
 const STORAGE_KEY = "chore-fridge-v2";
 export const $serverMode = atom(false);
 const fields = {
   familyName: $familyName, pin: $pin, setupDone: $setupDone, kids: $kids,
-  chores: $chores, completions: $completions, counts: $counts,
-  rewards: $rewards, spent: $spent, goldSpent: $goldSpent,
+  chores: $chores, archivedChores: $archivedChores, completions: $completions, counts: $counts,
+  rewards: $rewards, spent: $spent, goldSpent: $goldSpent, creditLedger: $creditLedger,
 };
 let metadata = { version: 1, nightMode: "auto", updatedAt: 0 };
 let saveTimer;
@@ -75,7 +75,7 @@ export function serializeHousehold() {
 }
 
 export function applySnapshot(data) {
-  const next = { ...defaultState(), ...data };
+  const next = { ...defaultState(),creditLedger:null,archivedChores:[], ...data };
   metadata = Object.fromEntries(Object.entries(next).filter(([key]) => !(key in fields)));
   batch(() => {
     for (const [key, store] of Object.entries(fields)) {

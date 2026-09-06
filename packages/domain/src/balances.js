@@ -1,10 +1,18 @@
+import { reconcileCredits } from "./task-history.js";
 import { timesEarned } from "./chores.js";
 
 export function balancesFor(household) {
   const result = {};
+  const ledger = household.creditLedger ? reconcileCredits(household,household.creditLedger) : null;
   for (const kid of household.kids) {
     let stars = 0, gold = 0;
-    for (const chore of household.chores) {
+    if (ledger) {
+      for (const entry of Object.values(ledger).flat()) {
+        if (entry.kidId !== kid.id) continue;
+        stars += entry.points * entry.units;
+        if (entry.gold) gold += entry.units;
+      }
+    } else for (const chore of household.chores) {
       if (!(chore.kidIds || []).includes(kid.id)) continue;
       const count = timesEarned(chore, kid.id, household);
       stars += (chore.points || 0) * count;

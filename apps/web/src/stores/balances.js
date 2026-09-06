@@ -3,11 +3,12 @@ import { atom, computed } from "nanostores";
 import { $kids } from "./family.js";
 import { $chores, $completions, $counts } from "./chores.js";
 
+export const $creditLedger = atom(null);
 export const $spent = atom({});
 export const $goldSpent = atom({});
 
-export const $balances = computed([$kids, $chores, $completions, $counts, $spent, $goldSpent], (kids, chores, completions, counts, spent, goldSpent) => {
-  return balancesFor({ kids, chores, completions, counts, spent, goldSpent });
+export const $balances = computed([$kids, $chores, $completions, $counts, $spent, $goldSpent, $creditLedger], (kids, chores, completions, counts, spent, goldSpent, creditLedger) => {
+  return balancesFor({ kids, chores, completions, counts, spent, goldSpent, creditLedger });
 });
 
 export function starsFor(kidId) { return $balances.get()[kidId]?.stars || 0; }

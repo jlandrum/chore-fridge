@@ -14,7 +14,7 @@ export async function createApp(options) {
   app.addHook('onRequest',async (_request,reply) => { reply.header('Cache-Control','no-store'); });
   app.addHook('preClose',async () => { for (const stream of streams) stream.end(); });
   app.addHook('onClose',async () => { storage.close(); });
-  app.get('/api/capabilities',async () => ({version:2,commands:true,events:true,legacyStateWrites:options.legacyWrites !== false}));
+  app.get('/api/capabilities',async () => ({version:2,commands:true,events:true,taskHistory:true,legacyStateWrites:options.legacyWrites !== false}));
   app.get('/api/state',async () => storage.read().state);
   app.put('/api/state',async (request,reply) => {
     if (options.legacyWrites === false) return reply.code(410).send({message:'Use /api/commands'});
@@ -24,6 +24,13 @@ export async function createApp(options) {
   app.post('/api/import',async request => storage.importLegacy(request.body));
   app.post('/api/commands',{schema:{body:commandSchema}},async request => storage.command(request.body));
   for (const resource of ['kids','chores','rewards']) app.get('/api/'+resource,async () => storage.read().state?.[resource] || []);
+  app.get('/api/chores/archived',async () => storage.read().state?.archivedChores || []);
+  app.get('/api/chores/:id/versions',async request => (storage.read().state?.taskVersions || []).filter(task => task.taskId === request.params.id));
+  app.get('/api/history',{schema:{querystring:{type:'object',properties:{before:{type:'string',pattern:'^[0-9]{1,15}$'}}}}},async request => storage.history(request.query.before ? Number(request.query.before) : undefined));
+  app.get('/api/history/:revision',{schema:{params:{type:'object',properties:{revision:{type:'string',pattern:'^[0-9]{1,15}$'}},required:['revision']}}},async (request,reply) => {
+    const snapshot = storage.historical(Number(request.params.revision));
+    return snapshot || reply.code(404).send({message:'Historical revision not found'});
+  });
   app.get('/api/balances',async () => balancesFor(storage.read().state || defaultState()));
   app.get('/api/events',(_request,reply) => {
     reply.hijack();

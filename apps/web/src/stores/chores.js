@@ -6,6 +6,7 @@ import { uid, upsert } from "@chore-fridge/domain/records";
 import { todayKey, datesInWeek } from "@chore-fridge/domain/dates";
 import { countRec } from "@chore-fridge/domain/history";
 
+export const $archivedChores = atom([]);
 export const $chores = atom([]);
 export const $completions = atom({});
 export const $counts = atom({});
@@ -30,7 +31,7 @@ export function bumpChore(choreId, kidId, delta) {
   const cur = countFor(chore, kidId);
   const next = Math.max(0, Math.min(maxCount(chore), cur + delta));
   if (next === cur) return { skipped: true };
-  commit(() => $counts.set({ ...$counts.get(), [key]: { n: next, t: Date.now() } }), { type:"chore.count", payload:{choreId,kidId,delta,day:todayKey()} });
+  commit(() => $counts.set({ ...$counts.get(), [key]: { n: next, t: Date.now() } }), { type:"chore.count", payload:{choreId,kidId,delta,day:todayKey(),...(chore.versionId ? {versionId:chore.versionId} : {})} });
   const chores = choresForKid(kidId);
   const all = chores.length && chores.every((c) => isDone(c, kidId));
   if (navigator.vibrate) navigator.vibrate(12);
@@ -67,7 +68,7 @@ export function toggleChore(choreId, kidId) {
       else completions[key] = Date.now();
     }
     $completions.set(completions);
-  }, { type, payload:{choreId,kidId,day:todayKey()} });
+  }, { type, payload:{choreId,kidId,day:todayKey(),...(chore.versionId ? {versionId:chore.versionId} : {})} });
   const chores = choresForKid(kidId);
   const all = chores.length && chores.every((c) => isDone(c, kidId));
   if (navigator.vibrate) navigator.vibrate(12);
@@ -96,5 +97,18 @@ export function saveChore(payload) {
 }
 
 export function removeChore(id) {
-  commit(() => $chores.set($chores.get().filter((chore) => chore.id !== id)), { type:"chore.remove", payload:{id} });
+  commit(() => {
+    const chore = $chores.get().find(chore => chore.id === id);
+    if (chore?.versionId) $archivedChores.set([...$archivedChores.get(),{...chore,archived:true}]);
+    $chores.set($chores.get().filter(chore => chore.id !== id));
+  }, { type:"chore.remove", payload:{id} });
+}
+
+export function restoreChore(id) {
+  const chore = $archivedChores.get().find(chore => chore.id === id);
+  if (!chore) return;
+  commit(() => {
+    $archivedChores.set($archivedChores.get().filter(chore => chore.id !== id));
+    $chores.set([...$chores.get(),{...chore,archived:false}]);
+  }, {type:"chore.restore",payload:{id}});
 }

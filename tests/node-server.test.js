@@ -25,7 +25,12 @@ test('automatically imports legacy data once, backs it up, and preserves newer S
   const raw = JSON.stringify(data);
   writeFileSync(options.legacyFile,raw);
   let app = await createApp(options);
-  assert.deepEqual((await app.inject('/api/state')).json(),data);
+  const migrated = (await app.inject('/api/state')).json();
+  for (const [key,value] of Object.entries(data)) {
+    if (key !== 'chores') assert.deepEqual(migrated[key],value);
+  }
+  for (const [key,value] of Object.entries(data.chores[0])) assert.deepEqual(migrated.chores[0][key],value);
+  assert.equal(migrated.chores[0].taskId,data.chores[0].id);
   assert.deepEqual((await app.inject('/api/balances')).json(),balancesFor(data));
   const backup = readdirSync(options.directory).find(name => name.endsWith('.bak'));
   assert.equal(readFileSync(join(options.directory,backup),'utf8'),raw);

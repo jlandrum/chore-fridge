@@ -1,3 +1,4 @@
+import { initializeTaskHistory, evolveTaskHistory } from './task-history.js';
 import { defaultState } from './state.js';
 import { ck, isOnce, isWeekly, isCounted, maxCount, countFor } from './chores.js';
 import { datesInWeek } from './dates.js';
@@ -10,7 +11,8 @@ function requireValue(condition, message) {
 
 // Pure application service: HTTP and future MCP adapters use these same rules.
 export function applyCommand(current, command, now = Date.now()) {
-  let state = structuredClone(current || defaultState());
+  const previous = initializeTaskHistory(current || defaultState(),now);
+  let state = structuredClone(previous);
   const p = command.payload;
   let result = { ok:true };
   switch (command.type) {
@@ -20,6 +22,7 @@ export function applyCommand(current, command, now = Date.now()) {
       break;
     case 'kid.remove': state.kids = state.kids.filter(kid => kid.id !== p.id); break;
     case 'chore.save': {
+      requireValue(!state.archivedChores.some(task => task.id === p.id), 'Restore the archived task before editing');
       requireValue(p.title.trim(), 'Task needs a name');
       requireValue(p.kidIds.every(id => state.kids.some(kid => kid.id === id)), 'Unknown assigned kid');
       requireValue((p.maxCount || 1) >= (p.minCount || 1), 'Maximum count must cover minimum count');
@@ -27,6 +30,12 @@ export function applyCommand(current, command, now = Date.now()) {
       break;
     }
     case 'chore.remove': state.chores = state.chores.filter(chore => chore.id !== p.id); break;
+    case 'chore.restore': {
+      const task = state.archivedChores.find(task => task.id === p.id);
+      requireValue(task, 'Unknown archived task');
+      state.chores.push(task);
+      break;
+    }
     case 'reward.save':
       requireValue(p.title.trim(), 'Reward needs a name');
       state.rewards = upsert(state.rewards, {emoji:'🎁',gold:false,...p,title:p.title.trim()});
@@ -54,7 +63,9 @@ export function applyCommand(current, command, now = Date.now()) {
       break;
     }
     case 'chore.complete': case 'chore.undo': case 'chore.count': {
-      const chore = state.chores.find(item => item.id === p.choreId);
+      const active = state.chores.find(item => item.id === p.choreId);
+      const chore = p.versionId ? state.taskVersions.find(item => item.id === p.choreId && item.versionId === p.versionId && !item.archived) : active;
+      requireValue(active, 'Task is archived or missing');
       requireValue(chore && state.kids.some(kid => kid.id === p.kidId), 'Unknown task or kid');
       requireValue(chore.kidIds.includes(p.kidId), 'Task is not assigned to this kid');
       const date = new Date(p.day + 'T12:00:00');
@@ -79,5 +90,8 @@ export function applyCommand(current, command, now = Date.now()) {
     default: throw Object.assign(new Error('Unknown command'), {statusCode:400});
   }
   state.updatedAt = Math.max(now, (current?.updatedAt || 0) + 1);
+  state = command.type === "household.reset"
+    ? initializeTaskHistory(state,state.updatedAt)
+    : evolveTaskHistory(previous,state,command,state.updatedAt);
   return { state, result };
 }
