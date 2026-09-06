@@ -1,13 +1,17 @@
 import { setup, COLORS, KID_EMOJIS, uid, finishSetup } from "../state.js";
 import { paint } from "../bus.js";
 import { Btn, showToast } from "../ui.jsox";
+import { createViewButton } from "./view-options.jsox";
 
 export function createSetup() {
   const titleEl = <h2> {}
   const leadEl = <p> { .className = "lead" }
   const body = <div> {}
+  const viewBtn = createViewButton();
+  viewBtn.className = "pill view-corner";
   const root = <div> {
-    .className = "panel"
+    .className = "panel has-view"
+    [viewBtn]
     [titleEl]
     [leadEl]
     [body]

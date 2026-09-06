@@ -93,13 +93,25 @@ The script writes only `CHORE_FRIDGE_BIND_ADDRESS` to the remote `.env`; private
 
 The Docker/Python server lets all devices on the permitted local network share one board. Without the state server, the application falls back to browser storage and each device has its own independent data.
 
-## Build
+## Display options
+
+Use **View** from setup, the board, the parent lock, or parent settings to adjust this device's display:
+
+- Appearance: Light, Dark, or System (follows the device's color preference).
+- Theme: Classic, Business, Crayon, High contrast, Lego, or Cyberpunk.
+- Zoom: 50–150% in 10% steps.
+
+Changes apply immediately and are remembered in this browser. Display preferences are independent of the shared household state, so each fridge, tablet, or computer can use its own settings. Existing explicit bright/dim preferences are migrated from browser storage; automatic appearance now follows the system instead of dimming after 8 p.m.
+
+## Build and checks
 
 ```bash
 npm run build
 ```
 
 The generated `dist/` directory is excluded from Git.
+
+GitHub Actions runs a clean dependency install, production build, and Python syntax check for pull requests and pushes to `main`.
 
 ## Contributing
 

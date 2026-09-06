@@ -1,3 +1,5 @@
+import { applyTheme } from "./view.js";
+
 export const STORAGE_KEY = "chore-fridge-v2";
 
 export const COLORS = ["#e85d4c", "#2a9d8f", "#e9b44c", "#6c63c0", "#4a7c59", "#d9480f"];
@@ -70,16 +72,7 @@ export function datesInWeek(d = new Date()) {
 }
 
 export function applyNight() {
-  const mode = state.nightMode || "auto";
-  let on = mode === "on";
-  if (mode === "auto") {
-    const h = new Date().getHours();
-    on = h >= 20 || h < 6;
-  }
-  if (on) document.body.classList.add("night");
-  else document.body.classList.remove("night");
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", on ? "#2b3338" : "#cfd8de");
+  applyTheme();
 }
 
 export function loadLocal() {

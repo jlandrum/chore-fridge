@@ -14,6 +14,7 @@ import {
 import { paint } from "../bus.js";
 import { Btn, showToast, openModal, closeModal, Star } from "../ui.jsox";
 import { TaskLists } from "./tasks.jsox";
+import { ViewControls, createViewButton } from "./view-options.jsox";
 
 function markOn(row, btn) {
   for (const child of row.children) child.classList.remove("on");
@@ -276,39 +277,16 @@ function RewardsTab() {
 }
 
 function DisplayTab() {
-  const night = <select> {}
-  const modes = [
-    ["auto", "Auto (dim after 8pm)"],
-    ["off", "Always bright"],
-    ["on", "Always dim"],
-  ];
-  for (const [value, label] of modes) {
-    const opt = <option> {
-      .value = value
-      [label]
-    }
-    if (value === (state.nightMode || "auto")) opt.selected = true;
-    [night] { [opt] }
-  }
   return <div> {
     <h2> { ["Display"] }
     <p> {
       .className = "lead"
-      ["Fridge screens are often dim, portrait, and a little laggy. These keep the board readable."]
+      ["Fridge screens are often dim, portrait, and a little laggy. These keep the board readable on this device."]
     }
-    <div> {
-      .className = "field"
-      <label> { ["Night mode"] }
-      [night]
-    }
+    [ViewControls()]
     <div> {
       .className = "row"
-      [Btn("Save", "btn", () => {
-        state.nightMode = night.value || "auto";
-        persist();
-        paint();
-        showToast("Saved");
-      })]
+      .style.marginTop = "16px"
       [Btn("Change PIN", "btn ghost", () => {
         ui.pinMode = "set";
         ui.pinBuf = "";
@@ -377,6 +355,7 @@ export function createParent() {
     [bar] { [btn] }
   }
   [bar] {
+    [createViewButton()]
     <button> {
       .type = "button"
       ["Board"]
