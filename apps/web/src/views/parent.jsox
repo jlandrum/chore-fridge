@@ -1,4 +1,4 @@
-import { COLORS, KID_EMOJIS, $kids, saveKid, removeKid } from "../stores/family.js";
+import { COLORS, KID_EMOJIS, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion } from "../stores/family.js";
 import { $balances, starsFor, goldFor } from "../stores/balances.js";
 import { $rewards, saveReward, removeReward } from "../stores/rewards.js";
 import { $ui, setUI, lockParent } from "../stores/navigation.js";
@@ -199,6 +199,26 @@ defineScreen("fridge-rewards-settings", (root) => {
 
 function RewardsTab() { return <fridge-rewards-settings> }
 
+defineScreen("fridge-general-settings", (root) => {
+  const required = <input> {
+    .type = "checkbox"
+    .onchange = () => setRequireParentModeForCompletion(required.checked)
+  }
+  [root] {
+    <h2> { ["General"] }
+    <label> {
+      .className = "row"
+      [required]
+      ["Require Parent Mode to complete tasks"]
+    }
+    <p> {
+      .className = "lead"
+      ["When enabled, tasks can only be completed while Parent Mode is unlocked on this device."]
+    }
+  }
+  return () => { required.checked = $requireParentModeForCompletion.get(); };
+}, [$requireParentModeForCompletion]);
+
 function DisplayTab() {
   return <div> {
     <h2> { ["Display"] }
@@ -248,14 +268,14 @@ function HelpTab() {
         [" this app has no server authentication. Do not expose port 8080 to the internet; allow access only from devices on a trusted home network."]
       }
       <p> {
-        ["Use Lock parent when you are finished. Returning to the board keeps settings unlocked on this page until you lock them or reload. Change the PIN in Parent settings → Display while unlocked."]
+        ["Use Lock Parent Mode when you are finished. Returning to the board keeps settings unlocked on this page until you lock them or reload. Change the PIN in Settings → Display while unlocked."]
       }
     }
   }
 }
 
 defineScreen("fridge-parent", (root) => {
-  const tabs = ["kids", "chores", "rewards", "display", "help"];
+  const tabs = ["general", "kids", "chores", "rewards", "display", "help"];
   const tabBtns = {};
   const bar = <div> { .className = "tabs" }
   for (const tab of tabs) {
@@ -271,7 +291,7 @@ defineScreen("fridge-parent", (root) => {
   }
   [bar] {
     [createViewButton()]
-    [Btn("Lock parent", "", lockParent)]
+    [Btn("Lock Parent Mode", "", lockParent)]
     <button> {
       .type = "button"
       ["Board"]
@@ -287,7 +307,7 @@ defineScreen("fridge-parent", (root) => {
     [body]
   }
 
-  const factories = { kids: KidsTab, chores: ChoresTab, rewards: RewardsTab, display: DisplayTab, help: HelpTab };
+  const factories = { general: () => <fridge-general-settings>, kids: KidsTab, chores: ChoresTab, rewards: RewardsTab, display: DisplayTab, help: HelpTab };
   const pages = new Map();
   let currentTab;
   function sync() {

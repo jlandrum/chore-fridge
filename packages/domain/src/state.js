@@ -1,6 +1,7 @@
 export function defaultState() {
   return {
     version: 1,
+    requireParentModeForCompletion: false,
     pin: "",
     familyName: "Our Family",
     nightMode: "auto",

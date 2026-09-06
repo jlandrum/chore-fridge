@@ -95,7 +95,9 @@ The Node server lets all devices on the permitted local network share one board.
 
 ## Parent controls
 
-Use **Unlock parent** to enter the PIN and open settings. Returning to **Board** keeps this page unlocked; use **Parent settings** to reopen it or **Lock parent** to relock. Reloading starts locked, and a PIN change relocks other open pages when synchronized. Without a PIN, Unlock parent opens settings directly. This is a local interface lock, not server authentication.
+Use **Unlock Parent Mode** to enter the PIN and unlock this page. Unlocking keeps you on the board. Open **Settings** separately, and use **Lock Parent Mode** when finished. Reloading starts locked, and a PIN change relocks other open pages when synchronized. Without a PIN, unlocking takes effect immediately.
+
+In **Settings → General**, enable **Require Parent Mode to complete tasks** to block completion and count increases while locked. A blocked tap displays “Unlock Parent Mode to complete tasks.” The preference is shared across household devices; the unlocked state is local to each page. This remains a browser interface control, not server authentication.
 
 ## Display options
 

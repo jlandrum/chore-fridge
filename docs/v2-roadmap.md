@@ -1,7 +1,7 @@
 # Chore Fridge v2 roadmap
 
 - [ ] Child-specific options, including a theme the child can choose for only their card
-- [x] Parent lock/unlock toggle that stays unlocked while navigating
+- [x] Parent Mode lock/unlock, separate Settings, and optional completion lock
 - [ ] New display modes
 - [ ] Onboarding process
 - [ ] More advanced repeating options

@@ -4,7 +4,7 @@ import { map } from "nanostores";
 export const $ui = map({
   view: "board",
   parentUnlocked: false,
-  parentTab: "kids",
+  parentTab: "general",
   pinBuf: "",
   pinMode: "enter",
 });
@@ -13,13 +13,13 @@ export const $ui = map({
 export function setUI(patch) { $ui.set({ ...$ui.get(), ...patch }); }
 
 export function openParent() {
-  if ($ui.get().parentUnlocked) setUI({view:"parent"});
-  else if ($pin.get()) setUI({pinMode:"enter",pinBuf:"",view:"pin"});
+  if ($ui.get().parentUnlocked) return;
+  if ($pin.get()) setUI({pinMode:"enter",pinBuf:"",view:"pin"});
   else unlockParent();
 }
 
 export function unlockParent() {
-  setUI({parentUnlocked:true,pinBuf:"",view:"parent"});
+  setUI({parentUnlocked:true,pinBuf:"",view:"board"});
 }
 
 export function lockParent() {
@@ -30,3 +30,7 @@ export function lockParent() {
 $pin.listen(() => lockParent());
 
 $setupDone.listen(done => { if (!done) lockParent(); });
+
+export function openSettings() {
+  if ($ui.get().parentUnlocked) setUI({view:"parent"});
+}

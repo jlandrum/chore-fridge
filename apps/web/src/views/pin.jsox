@@ -1,5 +1,5 @@
 import { $pin, setPin } from "../stores/family.js";
-import { $ui, setUI, unlockParent } from "../stores/navigation.js";
+import { $ui, setUI, unlockParent, openSettings } from "../stores/navigation.js";
 import { defineScreen } from "../components/screen.jsox";
 import { Btn, showToast } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
@@ -8,19 +8,20 @@ function submitPin() {
   if ($ui.get().pinMode === "set") {
     if (!$ui.get().parentUnlocked) return;
     if ($ui.get().pinBuf.length !== 4) {
-      showToast("Need 4 digits");
+      showToast("Enter a 4-digit PIN.");
       return;
     }
     setPin($ui.get().pinBuf);
     unlockParent();
-    showToast("PIN saved");
+    openSettings();
+    showToast("PIN saved.");
     return;
   }
   if ($ui.get().pinBuf === $pin.get()) {
     unlockParent();
   } else {
     setUI({ pinBuf: "" });
-    showToast("Nope");
+    showToast("Incorrect PIN. Please try again.");
   }
 }
 
@@ -58,7 +59,7 @@ defineScreen("fridge-pin", (root) => {
   [root] {
     .className = "panel has-view"
     [viewBtn]
-    <h2> { ["Parent lock"] }
+    <h2> { ["Parent Mode"] }
     [lead]
     [dotsRow]
     [pad]
@@ -72,7 +73,7 @@ defineScreen("fridge-pin", (root) => {
   }
 
   function sync() {
-    lead.textContent = $ui.get().pinMode === "set" ? "Choose a 4-digit PIN." : "Enter the parent PIN.";
+    lead.textContent = $ui.get().pinMode === "set" ? "Choose a 4-digit PIN." : "Enter your PIN to unlock Parent Mode.";
     dots.forEach((dot, i) => {
       dot.className = i < $ui.get().pinBuf.length ? "full" : "";
     });
