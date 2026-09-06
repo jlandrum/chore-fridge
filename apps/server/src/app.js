@@ -1,9 +1,9 @@
+import { dayView, validDay } from '@chore-fridge/domain/day-view';
+import { todayKey } from '@chore-fridge/domain/dates';
 import Fastify from 'fastify';
 import staticFiles from '@fastify/static';
 import { existsSync } from 'node:fs';
 import { commandSchema } from '@chore-fridge/contracts/api';
-import { balancesFor } from '@chore-fridge/domain/balances';
-import { defaultState } from '@chore-fridge/domain/state';
 import { openStorage } from './storage.js';
 
 export async function createApp(options) {
@@ -14,15 +14,38 @@ export async function createApp(options) {
   app.addHook('onRequest',async (_request,reply) => { reply.header('Cache-Control','no-store'); });
   app.addHook('preClose',async () => { for (const stream of streams) stream.end(); });
   app.addHook('onClose',async () => { storage.close(); });
-  app.get('/api/capabilities',async () => ({version:2,commands:true,events:true,taskHistory:true,legacyStateWrites:options.legacyWrites !== false}));
-  app.get('/api/state',async () => storage.read().state);
+  app.get('/api/capabilities',async () => ({version:2,commands:true,events:true,taskHistory:true,dayBoard:true,appendOnlyLedger:true,legacyStateWrites:options.legacyWrites !== false}));
+  const requestedDay = request => {
+    const day = request.query.day || todayKey();
+    if (!validDay(day)) throw Object.assign(new Error('Invalid calendar day'),{statusCode:400});
+    return day;
+  };
+  app.get('/api/board',async request => {
+    const snapshot = storage.read();
+    const board = dayView(snapshot.state,requestedDay(request),storage.ledger.totals());
+    return board ? {...board,revision:snapshot.revision} : null;
+  });
+  app.get('/api/ledger',async request => {
+    const after = request.query.after || '0';
+    if (!/^[0-9]{1,15}$/.test(after)) throw Object.assign(new Error('Invalid ledger cursor'),{statusCode:400});
+    const day = requestedDay(request);
+    const entries = storage.ledger.list(day,Number(after));
+    return {day,entries,next:entries.length === 100 ? entries.at(-1).sequence : null};
+  });
+  app.get('/api/state',async () => {
+    const state = storage.read().state;
+    return state ? {...state,creditLedger:state.creditProjection} : null;
+  });
   app.put('/api/state',async (request,reply) => {
     if (options.legacyWrites === false) return reply.code(410).send({message:'Use /api/commands'});
     storage.putLegacy(request.body);
     return reply.code(204).send();
   });
-  app.post('/api/import',async request => storage.importLegacy(request.body));
-  app.post('/api/commands',{schema:{body:commandSchema}},async request => storage.command(request.body));
+  app.post('/api/import',async request => ({revision:storage.importLegacy(request.body).revision}));
+  app.post('/api/commands',{schema:{body:commandSchema}},async request => {
+    const {revision,result,replayed} = storage.command(request.body);
+    return {revision,result,replayed};
+  });
   for (const resource of ['kids','chores','rewards']) app.get('/api/'+resource,async () => storage.read().state?.[resource] || []);
   app.get('/api/chores/archived',async () => storage.read().state?.archivedChores || []);
   app.get('/api/chores/:id/versions',async request => (storage.read().state?.taskVersions || []).filter(task => task.taskId === request.params.id));
@@ -31,7 +54,10 @@ export async function createApp(options) {
     const snapshot = storage.historical(Number(request.params.revision));
     return snapshot || reply.code(404).send({message:'Historical revision not found'});
   });
-  app.get('/api/balances',async () => balancesFor(storage.read().state || defaultState()));
+  app.get('/api/balances',async () => {
+    const totals = storage.ledger.totals();
+    return Object.fromEntries((storage.read().state?.kids || []).map(kid => [kid.id,{stars:Math.max(0,totals[kid.id]?.stars || 0),gold:Math.max(0,totals[kid.id]?.gold || 0)}]));
+  });
   app.get('/api/events',(_request,reply) => {
     reply.hijack();
     const stream = reply.raw;

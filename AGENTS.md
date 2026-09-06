@@ -9,3 +9,7 @@ JSOX is direct DOM construction and manipulation, not a rendering framework.
 - Preserve the existing server API and household data format unless a task explicitly changes them.
 
 - Keep domain stores independent. Assemble the aggregate household document only at the persistence boundary; do not reintroduce a monolithic store or whole-document cloning for local actions.
+
+# Changelog
+
+- Update `CHANGELOG.md` under Unreleased for user-facing behavior, API changes, and migrations. Describe the outcome and relevant upgrade impact; do not invent release dates or versions.

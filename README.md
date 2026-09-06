@@ -132,7 +132,7 @@ Nano Stores owns independent domain snapshots. Read the relevant store with `.ge
 
 The direct-DOM convention is also recorded in `AGENTS.md` for future changes.
 
-Shared boards receive server-sent revision events through `/api/events` and fetch updated state. A five-second poll also retries after network failures. Disconnecting the app closes the event stream and timers. The browser queues individual commands in local storage, reuses command IDs on retries, and reconciles optimistic changes with the server after the queue drains. Rejected changes show a message. RxJS is not needed for this flow.
+Shared boards receive server-sent revision events through `/api/events` and fetch `/api/board` for the browser’s current calendar day. Command responses are compact receipts. Past records, task versions, archives, and the journal are not included in normal board requests. A five-second poll also retries after network failures. Disconnecting the app closes the event stream and timers. The browser queues individual commands in local storage, reuses command IDs on retries, and reconciles optimistic changes with the server after the queue drains. Rejected changes show a message. RxJS is not needed for this flow.
 
 ## Workspace and API
 
@@ -149,11 +149,11 @@ See [API documentation](docs/api.md) for command examples and compatibility beha
 
 Tasks have a permanent `taskId` (also exposed as legacy `id`) and a `versionId` identifying immutable rules. Editing creates a version; archiving removes the task from the current board while preserving versions and earned credit. Parent task settings include an archived list with Restore, which creates another version under the same task ID.
 
-Credit entries reference the task and version and retain the points/gold earned at completion. A change from two to three stars does not revalue earlier work. Counted tasks can contain units earned under different versions; undo reverses the most recent units first. Clients send the version they saw with completion commands, including delayed/offline submissions; archived tasks reject new completions.
+The append-only SQLite ledger records credits, linked undo reversals, and spending debits. SQLite prevents journal rows from being updated or deleted. Entries reference the task and version and retain the points/gold earned at completion. A change from two to three stars does not revalue earlier work. Counted tasks can contain units earned under different versions; undo appends negative entries against the most recent units first. Current allocations are a derived projection, not the journal itself. Clients send the version they saw with completion commands, including delayed/offline submissions; archived tasks reject new completions.
 
 Each committed action also stores an immutable household snapshot in SQLite in the same transaction. The history API exposes those revisions for time travel; a date-browsing interface is still on the roadmap. Historical snapshots include prior spending, corrections, and archived definitions. Erasing the current board resets its state but does not purge recorded history.
 
-Existing JSON and schema-1 SQLite households automatically gain baseline versions and credit entries. Their known balances are preserved. Full historical snapshots start at the upgrade: old task definitions and actions that were never recorded cannot be recovered. Legacy writes also pass through versioning on the Node server, but old browsers may still display balances using their old calculations until refreshed/upgraded. The Python compatibility fallback does not implement this history foundation.
+Existing JSON and older SQLite households automatically gain baseline versions and opening journal entries. Schema-2 credit allocations and cumulative spending migrate once into opening credits/debits without revaluing earned points. Their known balances are preserved. Transactional balance totals and small daily projections let the board work without fetching or summing the journal. Detailed ledger reads are day-filtered and paginated. Full historical snapshots start at the upgrade: old task definitions and actions that were never recorded cannot be recovered. Legacy writes also pass through versioning on the Node server, but old browsers may still display balances using their old calculations until refreshed/upgraded. The Python compatibility fallback does not implement this history foundation.
 
 ## Automatic migration
 
@@ -171,6 +171,8 @@ Keep a backup of the data directory before upgrading. For later backups, stop th
 `LEGACY_STATE_WRITES=false` disables the compatibility `PUT /api/state` endpoint once every device uses the new client. It is enabled by default for a gradual upgrade. Legacy whole-state writes retain their old merge behavior and can overwrite edits to other fields; they do not provide the command API's concurrency guarantees. Neither mode supplies authentication yet.
 
 ## Contributing
+
+See [the changelog](CHANGELOG.md) for user-facing changes and upgrade notes.
 
 Issues and pull requests are welcome. Please do not include real household data, credentials, private hostnames, local filesystem paths, or public endpoints in examples or bug reports.
 

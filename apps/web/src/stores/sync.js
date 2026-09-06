@@ -1,11 +1,13 @@
+import { todayKey } from "@chore-fridge/domain/dates";
+import { $ui } from "./navigation.js";
 import { defaultState } from "@chore-fridge/domain/state";
 export { defaultState } from "@chore-fridge/domain/state";
 import { atom, batch } from "nanostores";
 import { $revision, $lastChange, commit } from "./changes.js";
 import { $familyName, $pin, $setupDone, $kids } from "./family.js";
-import { $chores, $completions, $counts, $archivedChores } from "./chores.js";
+import { $chores, $completions, $counts, $archivedChores, $pastOnce } from "./chores.js";
 import { $rewards } from "./rewards.js";
-import { $spent, $goldSpent, $creditLedger } from "./balances.js";
+import { $spent, $goldSpent, $creditProjection, $balanceCarry } from "./balances.js";
 import { mergeCompletions, mergeCounts } from "@chore-fridge/domain/history";
 
 const STORAGE_KEY = "chore-fridge-v2";
@@ -13,7 +15,7 @@ export const $serverMode = atom(false);
 const fields = {
   familyName: $familyName, pin: $pin, setupDone: $setupDone, kids: $kids,
   chores: $chores, archivedChores: $archivedChores, completions: $completions, counts: $counts,
-  rewards: $rewards, spent: $spent, goldSpent: $goldSpent, creditLedger: $creditLedger,
+  rewards: $rewards, spent: $spent, goldSpent: $goldSpent, creditProjection: $creditProjection, balanceCarry:$balanceCarry, pastOnce:$pastOnce,
 };
 let metadata = { version: 1, nightMode: "auto", updatedAt: 0 };
 let saveTimer;
@@ -31,6 +33,7 @@ let pulling;
 let events;
 let retryTimer;
 let active = false;
+let archivesAt;
 function saveQueue() {
   try { localStorage.setItem(QUEUE_KEY, JSON.stringify({commands:queue,base:pendingBase})); } catch {}
 }
@@ -58,10 +61,12 @@ function connectEvents() {
 export function startSync() {
   active = true;
   pullServer();
+  const stopNavigation = $ui.listen(() => refreshArchives());
   retryTimer = setInterval(() => pullServer(), 5000);
   globalThis.window?.addEventListener?.("online", pullServer);
   return () => {
     active = false;
+    stopNavigation();
     clearInterval(retryTimer);
     clearTimeout(saveTimer);
     events?.close(); events = null;
@@ -75,7 +80,7 @@ export function serializeHousehold() {
 }
 
 export function applySnapshot(data) {
-  const next = { ...defaultState(),creditLedger:null,archivedChores:[], ...data };
+  const next = { ...defaultState(),creditProjection:null,balanceCarry:null,pastOnce:[],archivedChores:data?.dayScoped && data.setupDone ? $archivedChores.get() : [], ...data };
   metadata = Object.fromEntries(Object.entries(next).filter(([key]) => !(key in fields)));
   batch(() => {
     for (const [key, store] of Object.entries(fields)) {
@@ -175,8 +180,8 @@ async function pushServer() {
       connectEvents();
       if (!mode.commands) return await pushLegacy();
       let latest;
-      if (pendingBase?.setupDone) {
-        const response = await fetch("/api/state");
+      if (pendingBase?.setupDone && !pendingBase.dayScoped) {
+        const response = await fetch(stateURL());
         if (!response.ok) throw new Error("State server unavailable");
         if (!(await response.json())) await importLocal(pendingBase);
       }
@@ -197,10 +202,10 @@ async function pushServer() {
         $serverMode.set(true);
       }
       // Read again after rejections, and only reconcile once all optimistic actions finish.
-      const response = await fetch("/api/state");
+      const response = await fetch(stateURL());
       if (!response.ok) throw new Error("State server unavailable");
       latest = await response.json();
-      if (!queue.length) { dirty = false; pendingBase = null; saveQueue(); accept(latest); }
+      if (!queue.length) { dirty = false; pendingBase = null; saveQueue(); accept(latest); await refreshArchives(); }
     } catch { $serverMode.set(false); }
   })().finally(() => { flushing = null; });
   return flushing;
@@ -218,16 +223,17 @@ async function performPull() {
     connectEvents();
     if (queue.length || dirty) return await pushServer();
     if (!mode.commands) return await pullLegacy();
-    const response = await fetch("/api/state");
+    const response = await fetch(stateURL());
     if (!response.ok) throw new Error("State server unavailable");
     const data = await response.json();
     if (queue.length || dirty) return;
     // Import browser-only households once into a new, empty server.
-    if (!data && serializeHousehold().setupDone) {
+    if (!data && serializeHousehold().setupDone && !serializeHousehold().dayScoped) {
       await importLocal(serializeHousehold());
       return await performPull();
     } else accept(data);
     $serverMode.set(true);
+    await refreshArchives();
   } catch { $serverMode.set(false); }
 }
 
@@ -236,4 +242,18 @@ async function importLocal(snapshot) {
     method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(snapshot),
   });
   if (!response.ok && response.status !== 409) throw new Error("Local household import failed");
+}
+
+function stateURL() {
+  return capabilities?.dayBoard ? "/api/board?day="+todayKey() : "/api/state";
+}
+async function refreshArchives() {
+  if (!globalThis.window?.fetch || !capabilities?.dayBoard || $ui.get().view !== "parent" || $ui.get().parentTab !== "chores") return;
+  const revision = metadata.revision ?? metadata.updatedAt;
+  if (archivesAt === revision) return;
+  try {
+    const response = await fetch("/api/chores/archived");
+    const items = response.ok ? await response.json() : null;
+    if (items && !queue.length && (metadata.revision ?? metadata.updatedAt) === revision) { $archivedChores.set(items); archivesAt = revision; }
+  } catch {}
 }

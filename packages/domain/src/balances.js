@@ -3,9 +3,10 @@ import { timesEarned } from "./chores.js";
 
 export function balancesFor(household) {
   const result = {};
-  const ledger = household.creditLedger ? reconcileCredits(household,household.creditLedger) : null;
+  const projection = household.creditProjection || household.creditLedger;
+  const ledger = projection ? reconcileCredits(household,projection) : null;
   for (const kid of household.kids) {
-    let stars = 0, gold = 0;
+    let stars = household.balanceCarry?.[kid.id]?.stars || 0, gold = household.balanceCarry?.[kid.id]?.gold || 0;
     if (ledger) {
       for (const entry of Object.values(ledger).flat()) {
         if (entry.kidId !== kid.id) continue;

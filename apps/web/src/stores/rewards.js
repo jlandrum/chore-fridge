@@ -1,3 +1,4 @@
+import { todayKey } from "@chore-fridge/domain/dates";
 import { atom } from "nanostores";
 import { commit } from "./changes.js";
 import { $kids } from "./family.js";
@@ -21,6 +22,6 @@ export function redeemReward(rewardId, kidId) {
   const available = reward.gold ? goldFor(kidId) : starsFor(kidId);
   if (available < reward.cost) return { error: reward.gold ? "Not enough gold stars yet" : "Not enough stars yet" };
   const spending = reward.gold ? $goldSpent : $spent;
-  commit(() => spending.set({ ...spending.get(), [kidId]: (spending.get()[kidId] || 0) + reward.cost }), { type:"reward.redeem", payload:{rewardId,kidId} });
+  commit(() => spending.set({ ...spending.get(), [kidId]: (spending.get()[kidId] || 0) + reward.cost }), { type:"reward.redeem", payload:{rewardId,kidId,day:todayKey()} });
   return { ok: true, reward, kid: $kids.get().find((kid) => kid.id === kidId) || null };
 }

@@ -14,7 +14,7 @@ Send `POST /api/commands` with `Content-Type: application/json`:
 }
 ```
 
-The response contains `state`, a monotonically increasing `revision`, `result`, and `replayed`. Persist and reuse the same ID and request body when retrying a request whose response was lost. IDs remain recorded across restarts. Reusing an ID for another request returns 409. Schemas reject malformed commands with 400; domain conflicts (including insufficient credit) return 409 without changing state. Dates identify the household calendar day supplied by the client; they are validated as real dates, not restricted to today.
+The response is a compact receipt containing a monotonically increasing `revision`, `result`, and `replayed`. It does not contain household state; fetch `/api/board` after pending commands finish. Persist and reuse the same ID and request body when retrying a request whose response was lost. IDs remain recorded across restarts. Reusing an ID for another request returns 409. Schemas reject malformed commands with 400; domain conflicts (including insufficient credit) return 409 without changing state. Dates identify the household calendar day supplied by the client; they are validated as real dates, not restricted to today.
 
 Supported commands:
 
@@ -30,7 +30,7 @@ Supported commands:
 | `chore.count` | `choreId`, `kidId`, `day`, `delta` (1 or -1); optional `versionId` |
 | `reward.save` | `id`, `title`, `cost`; optional `emoji`, `gold` |
 | `reward.remove` | `id` |
-| `reward.redeem` | `rewardId`, `kidId` |
+| `reward.redeem` | `rewardId`, `kidId`; optional calendar `day` |
 | `pin.set` | `pin` (empty or four digits) |
 | `household.reset` | empty object |
 
@@ -38,17 +38,18 @@ Supported commands:
 
 ## Reads and live updates
 
-- `GET /api/state`: legacy version-1 household document, or `null` before setup/import.
+- `GET /api/board?day=YYYY-MM-DD`: the day-scoped board, or `null` before setup/import. The client sends its local calendar day; omission uses the server’s current day.
+- `GET /api/state`: full version-1 household document for legacy compatibility/export. The modern board never requests it.
 - `GET /api/kids`, `/api/chores`, `/api/rewards`: resource arrays.
 - `GET /api/balances`: star and gold balances keyed by kid ID.
 - `GET /api/capabilities`: command, event, and compatibility availability.
-- `GET /api/events`: SSE stream; initial/current and subsequent messages carry `{ "revision": 1 }`. Fetch state after a message. Reconnecting receives the current revision; this is not an event-history API.
+- `GET /api/events`: SSE stream; initial/current and subsequent messages carry `{ "revision": 1 }`. Fetch the current day’s board after a message. Reconnecting receives the current revision; this is not an event-history API.
 
 ## Compatibility and import
 
 `PUT /api/state` retains the original 204 response and completion/count merge semantics. Set `LEGACY_STATE_WRITES=false` to return 410 for this endpoint after upgrading all clients. New clients use commands; when connected to the old Python server they fall back to its state protocol. Legacy writes are intentionally a transition path and can bypass command rules.
 
-`POST /api/import` accepts a version-1 household document only when the database has no household. It atomically rejects subsequent imports with 409. This supports existing browser-only boards; disk JSON migration happens automatically at startup instead.
+`POST /api/import` accepts a version-1 household document only when the database has no household. It atomically rejects subsequent imports with 409. This supports existing browser-only boards; disk JSON migration happens automatically at startup instead. The response contains only `revision`. Day-scoped views are rejected by both import and legacy PUT so a partial cache cannot replace the household.
 
 For server-side reuse, `storage.command(command)` performs validation, transactional persistence, idempotency, and change notification. Future MCP tools should use this entry point. `applyCommand` in the shared domain package is pure and performs no I/O.
 
@@ -61,6 +62,18 @@ For server-side reuse, `storage.command(command)` performs validation, transacti
 - `GET /api/history`: up to 100 revision summaries, newest first. Use `?before=<oldest-revision>` for the next page.
 - `GET /api/history/:revision`: immutable `{revision, recordedAt, action, state}` snapshot; missing revisions return 404.
 
-`state.creditLedger` records task/version references and fixed point/gold values by completion key. Counts may have several allocations from different versions. Undo updates the current projection; previous allocations remain in immutable historical snapshots. Snapshot revisions are ordered by commit and include every accepted command, import, and legacy write. Retried commands do not create duplicate history entries.
+`state.creditProjection` is a derived collection of active credit allocations by completion key. The SQLite ledger is the append-only accounting journal: undo inserts a negative row linked to the original credit, redo inserts a new credit, and reward spending inserts a debit. Original rows cannot be updated or deleted (enforced by SQLite triggers). Counts can reverse individual allocations from different task versions. `creditLedger` is retained only as a deprecated projection alias on the legacy full-state endpoint. Snapshot revisions are ordered by commit and include every accepted command, import, and legacy write. Retried commands do not create duplicate history entries.
 
-Historical data starts with a migration baseline, not invented past edits. The outer household schema remains version 1 for older clients; `historyVersion: 1` identifies the added domain history fields, and SQLite schema version 2 adds durable revision snapshots. History fields are server-owned: legacy PUT requests cannot replace them. No history purge endpoint is implemented.
+Historical data starts with a migration baseline, not invented past edits. The outer household schema remains version 1 for older clients; `historyVersion: 1` identifies the added domain history fields, and SQLite schema version 3 adds the journal and transactional balance totals alongside durable revision snapshots. History fields are server-owned: legacy PUT requests cannot replace them. No history purge endpoint is implemented.
+
+## Daily payloads and append-only credits
+
+The daily board contains active household configuration, current-day completion/count records, and compact carried status for weekly and one-off tasks. It omits archived task definitions, task-version history, old completion/count records, spending history, and journal entries. Archived tasks are fetched separately when parent task settings open.
+
+`creditProjection` in this response contains only the allocations relevant to the displayed status. `balanceCarry` contains signed all-time balance totals less those displayed allocations, allowing optimistic completion/undo and redemption without downloading the journal. The final displayed balance is clamped to zero; a negative underlying balance still offsets future earnings. Carried weekly/one-off status is represented under the selected day’s keys, not as old activity records. The daily endpoint is a view of current state for a calendar day, not a reconstruction of household configuration at a past timestamp; historical snapshots remain an explicit separate API.
+
+`GET /api/ledger?day=YYYY-MM-DD&after=<sequence>` returns `{day, entries, next}`. It defaults to the current server day and returns at most 100 entries; use `next` as `after` to continue that same day. Entries include immutable `id`, task/version references, signed `units`, `stars`, `gold`, and `reverses` for undo. The command’s calendar day is the effective accounting day; `recordedAt` separately records when the server received it. No unbounded journal endpoint is exposed.
+
+Existing balances migrate once as opening credits and opening spending debits. Known dated credit allocations retain their day; cumulative spending has no recoverable original dates and is recorded on the migration day. Historical undo events that were never journaled are not invented. Balance totals, journal entries, current projections, revision snapshots, and command receipts commit atomically. Reset keeps journal rows and appends offsetting adjustments to bring the current household to zero.
+
+The normal board payload does not grow with the number of past journal entries or task versions. Server-side household snapshots and the explicit legacy/export and revision-history APIs still contain full historical projections; this change bounds regular network responses, not every internal storage operation.
