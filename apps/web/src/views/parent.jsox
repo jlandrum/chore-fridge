@@ -3,7 +3,7 @@ import { $balances, starsFor, goldFor } from "../stores/balances.js";
 import { $rewards, saveReward, removeReward } from "../stores/rewards.js";
 import { $ui, setUI } from "../stores/navigation.js";
 import { eraseBoard } from "../stores/setup.js";
-import { uid } from "../domain/records.js";
+import { uid } from "@chore-fridge/domain/records";
 import { updateList } from "../components/list.js";
 import { Choices } from "../components/choices.jsox";
 import { defineScreen } from "../components/screen.jsox";

@@ -18,7 +18,9 @@ async function until(check) {
 test('rewritten client reads and saves using the existing Python server contract', { timeout: 15000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'chore-fridge-test-'));
   const server = spawn('python3', ['-u', '-c', [
-    'from server import Handler, ThreadingHTTPServer',
+    "import runpy",
+    "legacy = runpy.run_path('tests/fixtures/legacy-server.py')",
+    "Handler, ThreadingHTTPServer = legacy['Handler'], legacy['ThreadingHTTPServer']",
     'httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)',
     'print(httpd.server_port, flush=True)',
     'httpd.serve_forever()',
@@ -33,10 +35,10 @@ test('rewritten client reads and saves using the existing Python server contract
     globalThis.fetch = (path, options) => nativeFetch(new URL(path, base), options);
     globalThis.window = { fetch: globalThis.fetch };
     globalThis.localStorage = { setItem() {}, getItem() { return null; } };
-    const sync = await import('../src/stores/sync.js');
-    const family = await import('../src/stores/family.js');
-    const chores = await import('../src/stores/chores.js');
-    const balances = await import('../src/stores/balances.js');
+    const sync = await import('../apps/web/src/stores/sync.js');
+    const family = await import('../apps/web/src/stores/family.js');
+    const chores = await import('../apps/web/src/stores/chores.js');
+    const balances = await import('../apps/web/src/stores/balances.js');
     const kid = { id:'kid', name:'Test Kid', emoji:'🐻', color:'#e85d4c' };
     const initial = { ...sync.defaultState(), setupDone:true, kids:[kid], familyName:'Existing household', updatedAt:1 };
     assert.equal((await fetch('/api/state', { method:'PUT', body:JSON.stringify(initial) })).status, 204);

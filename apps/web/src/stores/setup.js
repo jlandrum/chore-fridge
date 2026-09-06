@@ -22,7 +22,7 @@ export function finishSetup(pin) {
     $rewards.set([]);
     $pin.set(pin);
     $setupDone.set(true);
-  });
+  }, { type:"setup.finish", payload:{familyName:setup.familyName || "Our Family",kids:setup.kids,pin} });
   return { ok: true };
 }
 

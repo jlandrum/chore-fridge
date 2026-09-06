@@ -1,7 +1,7 @@
 import { COLORS, KID_EMOJIS } from "../stores/family.js";
 
 import { $setup, setSetup, finishSetup } from "../stores/setup.js";
-import { uid } from "../domain/records.js";
+import { uid } from "@chore-fridge/domain/records";
 import { defineScreen } from "../components/screen.jsox";
 import { Btn, showToast } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";

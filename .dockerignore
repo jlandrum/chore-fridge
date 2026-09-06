@@ -6,3 +6,7 @@ README.md
 public/app.js
 .env
 .env.*
+
+**/node_modules
+**/dist
+tests

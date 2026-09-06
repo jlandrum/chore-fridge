@@ -1,0 +1,21 @@
+{
+  "name": "@chore-fridge/web",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@js-ox/web-components": "^0.1.1",
+    "nanostores": "^1.5.3",
+    "@chore-fridge/domain": "*",
+    "@chore-fridge/contracts": "*"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5",
+    "@js-ox/compiler": "^0.2.2"
+  }
+}

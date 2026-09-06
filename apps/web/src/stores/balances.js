@@ -1,27 +1,13 @@
+import { balancesFor } from "@chore-fridge/domain/balances";
 import { atom, computed } from "nanostores";
 import { $kids } from "./family.js";
-import { $chores, $completions, $counts, timesEarned } from "./chores.js";
+import { $chores, $completions, $counts } from "./chores.js";
 
 export const $spent = atom({});
 export const $goldSpent = atom({});
 
 export const $balances = computed([$kids, $chores, $completions, $counts, $spent, $goldSpent], (kids, chores, completions, counts, spent, goldSpent) => {
-  const balances = {};
-  for (const kid of kids) {
-    let stars = 0;
-    let gold = 0;
-    for (const chore of chores) {
-      if (!(chore.kidIds || []).includes(kid.id)) continue;
-      const count = timesEarned(chore, kid.id, { completions, counts });
-      stars += (chore.points || 0) * count;
-      if (chore.gold) gold += count;
-    }
-    balances[kid.id] = {
-      stars: Math.max(0, stars - (spent[kid.id] || 0)),
-      gold: Math.max(0, gold - (goldSpent[kid.id] || 0)),
-    };
-  }
-  return balances;
+  return balancesFor({ kids, chores, completions, counts, spent, goldSpent });
 });
 
 export function starsFor(kidId) { return $balances.get()[kidId]?.stars || 0; }

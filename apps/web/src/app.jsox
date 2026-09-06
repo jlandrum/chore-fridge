@@ -1,9 +1,10 @@
 import { $setupDone } from "./stores/family.js";
 import { $ui } from "./stores/navigation.js";
 import { tick } from "./stores/clock.js";
-import { pullServer, $serverMode } from "./stores/sync.js";
+import { startSync, $syncError } from "./stores/sync.js";
 import { defineComponent } from "@js-ox/web-components";
 import { computed } from "nanostores";
+import { showToast } from "./ui.jsox";
 import { applyTheme } from "./view.js";
 import "./views/setup.jsox";
 import "./views/board.jsox";
@@ -31,15 +32,18 @@ const $screen = computed([$setupDone, $ui], (setupDone, navigation) =>
         if (!screen.hidden) screen.syncDOM();
       }
     });
-    pullServer();
+    this.stopSync = startSync();
+    this.stopErrors = $syncError.listen(message => { if (message) showToast(message); });
     this.pollTimer = setInterval(() => {
       applyTheme();
-      if ($serverMode.get() && $ui.get().view === "board") pullServer();
+
     }, 5000);
     this.dayTimer = setInterval(tick, 60000);
   }
   .disconnected = function () {
     this.unsubscribe();
+    this.stopSync();
+    this.stopErrors();
     clearInterval(this.pollTimer);
     clearInterval(this.dayTimer);
   }

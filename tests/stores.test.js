@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { $kids, $pin, saveKid, setPin } from '../src/stores/family.js';
-import { $chores, $counts, $completions, saveChore, toggleChore } from '../src/stores/chores.js';
-import { $rewards, saveReward } from '../src/stores/rewards.js';
-import { $balances } from '../src/stores/balances.js';
-import { $ui, setUI } from '../src/stores/navigation.js';
-import { $setup } from '../src/stores/setup.js';
-import { defaultState, serializeHousehold, applySnapshot } from '../src/stores/sync.js';
+import { $kids, $pin, saveKid, setPin } from '../apps/web/src/stores/family.js';
+import { $chores, $counts, $completions, saveChore, toggleChore } from '../apps/web/src/stores/chores.js';
+import { $rewards, saveReward } from '../apps/web/src/stores/rewards.js';
+import { $balances } from '../apps/web/src/stores/balances.js';
+import { $ui, setUI } from '../apps/web/src/stores/navigation.js';
+import { $setup } from '../apps/web/src/stores/setup.js';
+import { defaultState, serializeHousehold, applySnapshot } from '../apps/web/src/stores/sync.js';
 
 // No network and no household files; only the real store/persistence boundary.
 globalThis.window = { fetch: null };

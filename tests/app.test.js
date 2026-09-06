@@ -8,15 +8,15 @@ for (const key of ['window', 'document', 'HTMLElement', 'customElements', 'local
 }
 window.fetch = null; // Component tests never contact household storage.
 globalThis.confirm = () => true;
-const family = await import('../src/stores/family.js');
-const chores = await import('../src/stores/chores.js');
-const balances = await import('../src/stores/balances.js');
-const rewards = await import('../src/stores/rewards.js');
-const navigation = await import('../src/stores/navigation.js');
-const { commit } = await import('../src/stores/changes.js');
-const view = await import('../src/view.js');
-const { modal, toastEl, confettiEl, showToast } = await import('../src/ui.jsox');
-await import('../src/app.jsox');
+const family = await import('../apps/web/src/stores/family.js');
+const chores = await import('../apps/web/src/stores/chores.js');
+const balances = await import('../apps/web/src/stores/balances.js');
+const rewards = await import('../apps/web/src/stores/rewards.js');
+const navigation = await import('../apps/web/src/stores/navigation.js');
+const { commit } = await import('../apps/web/src/stores/changes.js');
+const view = await import('../apps/web/src/view.js');
+const { modal, toastEl, confettiEl, showToast } = await import('../apps/web/src/ui.jsox');
+await import('../apps/web/src/app.jsox');
 document.body.append(modal, toastEl, confettiEl);
 const app = document.createElement('chore-fridge');
 document.body.append(app);
