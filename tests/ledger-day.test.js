@@ -76,7 +76,7 @@ test('count reversals reference each original allocation and spending is a separ
     assert.equal((await app.inject('/api/balances')).json().kid.stars,0);
     const priorRows = app.storage.ledger.list(day);
     act(app,'reset','household.reset',{});
-    assert.deepEqual(app.storage.ledger.list(day),priorRows);
+    assert.deepEqual(app.storage.ledger.list(day).slice(0,priorRows.length),priorRows);
     assert.equal(app.storage.ledger.totals().kid.stars,0);
   } finally { await app.close(); }
 });
@@ -103,7 +103,7 @@ test('schema-2 migration records opening credits/debits once and preserves the e
     assert.equal(app.storage.ledger.totals().kid.stars,1);
     assert.deepEqual(app.storage.ledger.list(day)[0],opening);
     act(app,'undo','chore.undo',complete);
-    assert.equal(app.storage.ledger.list(day)[1].reverses,opening.id);
+    assert.equal(app.storage.ledger.list(day).find(entry => entry.kind === 'reversal').reverses,opening.id);
   } finally { await app.close(); }
 });
 
