@@ -1,0 +1,140 @@
+import {
+  getView,
+  setTheme,
+  setLook,
+  setZoom,
+  ZOOM_MIN,
+  ZOOM_MAX,
+  ZOOM_STEP,
+} from "../view.js";
+import { Btn, openModal, closeModal } from "../ui.jsox";
+
+const APPEARANCES = [
+  ["light", "Light"],
+  ["dark", "Dark"],
+  ["system", "System"],
+];
+
+const LOOKS = [
+  ["classic", "Classic"],
+  ["business", "Business"],
+  ["crayon", "Crayon"],
+  ["contrast", "High contrast"],
+  ["lego", "Lego"],
+  ["cyberpunk", "Cyberpunk"],
+];
+
+function markOn(buttons, id) {
+  for (const [key, other] of Object.entries(buttons)) {
+    other.className = "choice" + (key === id ? " on" : "");
+  }
+}
+
+export function ViewControls() {
+  const view = getView();
+  const appearanceBtns = {};
+  const lookBtns = {};
+  const appearanceRow = <div> { .className = "row view-themes" }
+  for (const [id, label] of APPEARANCES) {
+    const btn = <button> {
+      .type = "button"
+      .className = "choice" + (view.appearance === id ? " on" : "")
+      [label]
+      .onclick = () => {
+        setTheme(id);
+        markOn(appearanceBtns, id);
+      }
+    }
+    appearanceBtns[id] = btn;
+    [appearanceRow] { [btn] }
+  }
+
+  const lookRow = <div> { .className = "view-looks" }
+  for (const [id, label] of LOOKS) {
+    const btn = <button> {
+      .type = "button"
+      .className = "choice look-" + id + (view.look === id ? " on" : "")
+      <span> { .className = "look-swatch" }
+      [label]
+      .onclick = () => {
+        setLook(id);
+        for (const [key, other] of Object.entries(lookBtns)) {
+          other.className = "choice look-" + key + (key === id ? " on" : "");
+        }
+      }
+    }
+    lookBtns[id] = btn;
+    [lookRow] { [btn] }
+  }
+
+  const zoomVal = <div> { .className = "zoom-val" }
+  const minus = <button> {
+    .type = "button"
+    .className = "tiny"
+    ["−"]
+  }
+  const plus = <button> {
+    .type = "button"
+    .className = "tiny"
+    ["+"]
+  }
+
+  function syncZoom() {
+    const zoom = getView().zoom;
+    zoomVal.textContent = zoom + "%";
+    minus.disabled = zoom <= ZOOM_MIN;
+    plus.disabled = zoom >= ZOOM_MAX;
+  }
+
+  minus.onclick = () => {
+    setZoom(getView().zoom - ZOOM_STEP);
+    syncZoom();
+  }
+  plus.onclick = () => {
+    setZoom(getView().zoom + ZOOM_STEP);
+    syncZoom();
+  }
+  minus.title = "Zoom out";
+  plus.title = "Zoom in";
+  syncZoom();
+
+  return <div> {
+    .className = "view-controls"
+    <p> { .className = "view-label"; ["Appearance"] }
+    [appearanceRow]
+    <p> { .className = "view-label"; ["Theme"] }
+    [lookRow]
+    <p> { .className = "view-label"; ["Zoom"] }
+    <div> {
+      .className = "zoom-row"
+      [minus]
+      [zoomVal]
+      [plus]
+    }
+    <p> { .className = "lead tight"; ["Saved on this device for the next visit."] }
+  }
+}
+
+export function openViewOptions() {
+  openModal(
+    <div> {
+      <h3> { ["View options"] }
+      [ViewControls()]
+      <div> {
+        .className = "row"
+        .style.marginTop = "16px"
+        [Btn("Done", "btn wide", closeModal)]
+      }
+    }
+  );
+}
+
+export function createViewButton(className) {
+  return <button> {
+    .type = "button"
+    .className = className || "pill"
+    .title = "View options"
+    ["View"]
+    .onclick = openViewOptions
+  }
+}

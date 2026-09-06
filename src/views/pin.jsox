@@ -1,6 +1,7 @@
 import { state, ui, persist } from "../state.js";
 import { paint } from "../bus.js";
 import { Btn, showToast } from "../ui.jsox";
+import { createViewButton } from "./view-options.jsox";
 
 function submitPin() {
   if (ui.pinMode === "set") {
@@ -57,8 +58,11 @@ export function createPin() {
       }
     }
   }
+  const viewBtn = createViewButton();
+  viewBtn.className = "pill view-corner";
   const root = <div> {
-    .className = "panel"
+    .className = "panel has-view"
+    [viewBtn]
     <h2> { ["Parent lock"] }
     [lead]
     [dotsRow]

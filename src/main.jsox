@@ -1,10 +1,13 @@
 import "./styles.css";
 import { state, ui, loadLocal, pullServer, applyNight, serverMode } from "./state.js";
+import { applyView, watchView } from "./view.js";
 import { paint } from "./bus.js";
 import { modal, toastEl, confettiEl } from "./ui.jsox";
 import { stageRoot, paintApp } from "./app.jsox";
 
 loadLocal();
+applyView();
+watchView();
 if (!state.setupDone) ui.view = "board";
 
 [document.body] {
