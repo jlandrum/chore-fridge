@@ -1,5 +1,3 @@
-import { applyTheme } from "./view.js";
-
 export const STORAGE_KEY = "chore-fridge-v2";
 
 export const COLORS = ["#e85d4c", "#2a9d8f", "#e9b44c", "#6c63c0", "#4a7c59", "#d9480f"];
@@ -69,10 +67,6 @@ export function datesInWeek(d = new Date()) {
     out.push(todayKey(x));
   }
   return out;
-}
-
-export function applyNight() {
-  applyTheme();
 }
 
 export function loadLocal() {

@@ -1,169 +1,19 @@
+import "../components/kid.jsox";
+import { updateList } from "../components/list.js";
+import { defineScreen } from "../components/screen.jsox";
 import {
   state,
   ui,
-  choresForKid,
-  isDone,
-  isCounted,
-  choreKind,
-  countFor,
-  maxCount,
   starsFor,
   goldFor,
   familyStars,
   familyGold,
   prettyDate,
-  toggleChore,
-  bumpChore,
   redeemReward,
 } from "../state.js";
 import { paint } from "../bus.js";
 import { showToast, burst, openModal, closeModal, Btn, Star } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
-
-function afterBump(kid, result) {
-  if (result.skipped) return;
-  paint();
-  if (result.all) {
-    burst();
-    showToast(kid.name + " finished everything!");
-  }
-}
-
-function createChoreRow(chore, kid, idx) {
-  const mark = <span> { .className = "mark" }
-  const title = <span> { .className = "title" }
-  const kind = <span> { .className = "kind" }
-  const pts = <span> { .className = "pts" }
-  const btn = <button> {
-    .type = "button"
-    [mark]
-    <span> {
-      .className = "copy"
-      [title]
-      <span> { .className = "meta"; [kind]; [pts] }
-    }
-    <span> { .className = "stamp"; ["DONE"] }
-    .onclick = () => {
-      const result = isCounted(chore)
-        ? bumpChore(chore.id, kid.id, 1)
-        : toggleChore(chore.id, kid.id);
-      afterBump(kid, result);
-    }
-  }
-  mark.onclick = (event) => {
-    if (!isCounted(chore)) return;
-    event.stopPropagation();
-    afterBump(kid, bumpChore(chore.id, kid.id, -1));
-  };
-
-  function sync(nextChore, nextKid, i) {
-    chore = nextChore;
-    kid = nextKid;
-    const complete = isDone(chore, kid.id);
-    const counted = isCounted(chore);
-    btn.className = "chore" + (complete ? " done" : "") + (chore.gold ? " gold" : "");
-    if (counted) {
-      const n = countFor(chore, kid.id);
-      mark.textContent = String(n);
-      kind.textContent = choreKind(chore) + " · " + n + "/" + maxCount(chore);
-    } else {
-      mark.textContent = complete ? "✓" : chore.emoji || "★";
-      kind.textContent = choreKind(chore);
-    }
-    title.textContent = chore.title;
-    pts.replaceChildren();
-    if (chore.gold) {
-      pts.append(Star(true));
-      if (chore.points) {
-        pts.append(" · ");
-        pts.append(Star(false), " " + chore.points);
-      }
-    } else {
-      pts.append(Star(false), " " + (chore.points || 0));
-    }
-  }
-
-  sync(chore, kid, idx);
-  return { root: btn, sync };
-}
-
-function createKidColumn(kid, idx) {
-  const emojiEl = <span> { .className = "emoji" }
-  const nameEl = <span> {}
-  const metaEl = <div> { .className = "kid-meta" }
-  const barEl = <span> {}
-  const list = <div> { .className = "chores" }
-  const empty = <div> { .className = "empty" }
-  const root = <article> {
-    .className = "kid"
-    <div> {
-      .className = "kid-head"
-      <div> {
-        .className = "kid-name"
-        [emojiEl]
-        [nameEl]
-      }
-      [metaEl]
-    }
-    <div> {
-      .className = "progress"
-      [barEl]
-    }
-    [list]
-  }
-
-  const rows = new Map();
-
-  function sync(nextKid, i) {
-    kid = nextKid;
-    idx = i;
-    root.style.setProperty("--kid", kid.color);
-    emojiEl.textContent = kid.emoji;
-    nameEl.textContent = kid.name;
-    const chores = choresForKid(kid.id);
-    let done = 0;
-    const keep = new Set(chores.map((c) => c.id));
-    for (const [id, row] of Array.from(rows.entries())) {
-      if (!keep.has(id)) {
-        row.root.remove();
-        rows.delete(id);
-      }
-    }
-    chores.forEach((chore, n) => {
-      if (isDone(chore, kid.id)) done += 1;
-      let row = rows.get(chore.id);
-      if (!row) {
-        row = createChoreRow(chore, kid, n + idx);
-        rows.set(chore.id, row);
-      } else {
-        row.sync(chore, kid, n + idx);
-      }
-      list.append(row.root);
-    });
-    if (!chores.length) {
-      empty.replaceChildren();
-      empty.append("Nothing on the list yet.");
-      list.append(empty);
-    } else if (done === chores.length) {
-      empty.replaceChildren();
-      const star = <span> { .className = "big"; ["🌟"] }
-      empty.append(star, "All done!");
-      list.append(empty);
-    } else {
-      empty.remove();
-    }
-    const pct = chores.length ? Math.round((done / chores.length) * 100) : 100;
-    const gold = goldFor(kid.id);
-    metaEl.replaceChildren();
-    metaEl.append(Star(false), " " + starsFor(kid.id));
-    if (gold) metaEl.append(" · ", Star(true), " " + gold);
-    metaEl.append(" · " + done + "/" + chores.length);
-    barEl.style.width = pct + "%";
-  }
-
-  sync(kid, idx);
-  return { root, kidId: kid.id, sync };
-}
 
 function askWho(reward) {
   const choices = <div> { .className = "row" }
@@ -212,7 +62,7 @@ function askWho(reward) {
   );
 }
 
-export function createBoard() {
+defineScreen("fridge-board", (root) => {
   const titleEl = <h1> {}
   const dateEl = <div> { .className = "date" }
   const starsNum = <span> {}
@@ -236,7 +86,7 @@ export function createBoard() {
     <h2> { ["No kids yet"] }
     <p> { .className = "lead"; ["Open Parent to add your family."] }
   }
-  const root = <div> {
+  [root] {
     .className = "screen"
     <header> {
       .className = "top"
@@ -271,11 +121,10 @@ export function createBoard() {
     [dockEl]
   }
 
-  let columns = [];
   let rewardKey = "";
 
   function syncDock() {
-    const ids = state.rewards.map((r) => r.id + ":" + (r.gold ? "g" : "") + ":" + r.cost).join(",");
+    const ids = JSON.stringify(state.rewards);
     if (ids === rewardKey) return;
     rewardKey = ids;
     dockEl.replaceChildren();
@@ -302,24 +151,10 @@ export function createBoard() {
     goldNum.textContent = gold;
     goldEl.hidden = !goldInPlay;
     syncDock();
-    const ids = state.kids.map((k) => k.id).join(",");
-    const have = columns.map((c) => c.kidId).join(",");
-    if (ids !== have) {
-      boardEl.replaceChildren();
-      columns = [];
-      if (!state.kids.length) {
-        [boardEl] { [emptyBoard] }
-        return;
-      }
-      state.kids.forEach((kid, i) => {
-        const col = createKidColumn(kid, i);
-        columns.push(col);
-        [boardEl] { [col.root] }
-      });
-      return;
-    }
-    columns.forEach((col, i) => col.sync(state.kids[i], i));
+    emptyBoard.remove();
+    updateList(boardEl, state.kids, "fridge-kid");
+    if (!state.kids.length) boardEl.append(emptyBoard);
   }
 
-  return { root, sync };
-}
+  return sync;
+});

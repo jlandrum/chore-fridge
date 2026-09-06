@@ -1,15 +1,16 @@
+import { defineScreen } from "../components/screen.jsox";
 import { setup, COLORS, KID_EMOJIS, uid, finishSetup } from "../state.js";
 import { paint } from "../bus.js";
 import { Btn, showToast } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
 
-export function createSetup() {
+defineScreen("fridge-setup", (root) => {
   const titleEl = <h2> {}
   const leadEl = <p> { .className = "lead" }
   const body = <div> {}
   const viewBtn = createViewButton();
   viewBtn.className = "pill view-corner";
-  const root = <div> {
+  [root] {
     .className = "panel has-view"
     [viewBtn]
     [titleEl]
@@ -148,5 +149,5 @@ export function createSetup() {
     page("Parent lock", "Optional. Keeps kids out of family settings. Tasks are added in Parent.", content);
   }
 
-  return { root, sync };
-}
+  return sync;
+});

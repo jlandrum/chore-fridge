@@ -1,3 +1,5 @@
+import { Choices } from "../components/choices.jsox";
+import { defineScreen } from "../components/screen.jsox";
 import {
   state,
   ui,
@@ -16,11 +18,6 @@ import { Btn, showToast, openModal, closeModal, Star } from "../ui.jsox";
 import { TaskLists } from "./tasks.jsox";
 import { ViewControls, createViewButton } from "./view-options.jsox";
 
-function markOn(row, btn) {
-  for (const child of row.children) child.classList.remove("on");
-  btn.classList.add("on");
-}
-
 function kidForm(existing) {
   let emoji = existing ? existing.emoji : "🐻";
   let color = existing ? existing.color : COLORS[state.kids.length % COLORS.length];
@@ -29,40 +26,14 @@ function kidForm(existing) {
     .autocomplete = "off"
   }
 
-  const emojiRow = <div> { .className = "row" }
-  for (const e of KID_EMOJIS) {
-    const btn = <button> {
-      .type = "button"
-      .className = e === emoji ? "choice on" : "choice"
-      [e]
-      .onclick = () => {
-        emoji = e;
-        markOn(emojiRow, btn);
-      }
-    }
-    [emojiRow] { [btn] }
-  }
-
-  const colorRow = <div> { .className = "row" }
-  for (const c of COLORS) {
-    const btn = <button> {
-      .type = "button"
-      .className = c === color ? "choice on" : "choice"
-      .style.background = c
-      .style.color = "#fff"
-      [c === color ? "✓" : ""]
-      .onclick = () => {
-        color = c;
-        for (const child of colorRow.children) {
-          child.classList.remove("on");
-          child.textContent = "";
-        }
-        btn.classList.add("on");
-        btn.textContent = "✓";
-      }
-    }
-    [colorRow] { [btn] }
-  }
+  const emojiRow = Choices(
+    KID_EMOJIS.map((value) => ({ value, label: value })),
+    emoji, (value) => { emoji = value; }
+  );
+  const colorRow = Choices(
+    COLORS.map((value) => ({ value, label: "●", color: value })),
+    color, (value) => { color = value; }
+  );
 
   openModal(
     <div> {
@@ -338,7 +309,7 @@ function HelpTab() {
   }
 }
 
-export function createParent() {
+defineScreen("fridge-parent", (root) => {
   const tabs = ["kids", "chores", "rewards", "display", "help"];
   const tabBtns = {};
   const bar = <div> { .className = "tabs" }
@@ -366,7 +337,7 @@ export function createParent() {
     }
   }
   const body = <div> {}
-  const root = <div> {
+  [root] {
     .className = "panel"
     [bar]
     [body]
@@ -386,5 +357,5 @@ export function createParent() {
     [body] { [page] }
   }
 
-  return { root, sync };
-}
+  return sync;
+});

@@ -1,0 +1,12 @@
+import { defineComponent } from "@js-ox/web-components";
+
+// Build each screen once; reconnecting preserves its controls and local state.
+export function defineScreen(name, mount) {
+  [defineComponent(name)] {
+    .connected = function () {
+      if (!this.update) this.update = mount(this);
+      if (!this.hidden) this.update();
+    }
+    .register()
+  }
+}

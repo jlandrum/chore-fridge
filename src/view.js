@@ -145,24 +145,28 @@ export function applyZoom() {
 export function applyView() {
   applyTheme();
   applyZoom();
+  window.dispatchEvent(new Event("fridge-view-change"));
 }
 
 export function setTheme(theme) {
   getView().appearance = APPEARANCES[theme] ? theme : "system";
   save();
   applyTheme();
+  window.dispatchEvent(new Event("fridge-view-change"));
 }
 
 export function setLook(look) {
   getView().look = LOOKS[look] ? look : "classic";
   save();
   applyTheme();
+  window.dispatchEvent(new Event("fridge-view-change"));
 }
 
 export function setZoom(zoom) {
   getView().zoom = clampZoom(zoom);
   save();
   applyZoom();
+  window.dispatchEvent(new Event("fridge-view-change"));
 }
 
 export function watchView() {

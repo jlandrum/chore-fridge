@@ -1542,3 +1542,8 @@ html[data-look="cyberpunk"]:not(.night) body::after { opacity: .18; }
     filter: none;
   }
 }
+
+/* Light-DOM custom elements share the existing layout and theme rules. */
+chore-fridge, fridge-setup, fridge-pin, fridge-parent, fridge-kid,
+fridge-view-controls { display: block; }
+fridge-chore { display: contents; }

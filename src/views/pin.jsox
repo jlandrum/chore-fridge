@@ -1,3 +1,4 @@
+import { defineScreen } from "../components/screen.jsox";
 import { state, ui, persist } from "../state.js";
 import { paint } from "../bus.js";
 import { Btn, showToast } from "../ui.jsox";
@@ -39,7 +40,7 @@ function onKey(k) {
   else paint();
 }
 
-export function createPin() {
+defineScreen("fridge-pin", (root) => {
   const lead = <p> { .className = "lead" }
   const dots = [];
   const dotsRow = <div> { .className = "dots" }
@@ -60,7 +61,7 @@ export function createPin() {
   }
   const viewBtn = createViewButton();
   viewBtn.className = "pill view-corner";
-  const root = <div> {
+  [root] {
     .className = "panel has-view"
     [viewBtn]
     <h2> { ["Parent lock"] }
@@ -85,5 +86,5 @@ export function createPin() {
     });
   }
 
-  return { root, sync };
-}
+  return sync;
+});

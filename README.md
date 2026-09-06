@@ -2,7 +2,7 @@
 
 Chore Fridge is a self-hosted household chore board designed for a smart fridge or wall-mounted tablet. It provides large tap targets, separate kid columns, recurring chores, rewards, stars, and a parent PIN.
 
-The UI is written in [JSOX](https://github.com/javascript-ox/jsox) and compiled to ordinary JavaScript. Browsers only receive the compiled application.
+The UI is written in [JSOX 0.2](https://github.com/javascript-ox/jsox) and compiled to ordinary JavaScript. Native web components use `@js-ox/web-components` with light DOM so the existing themes apply throughout the app. Browsers only receive the compiled application.
 
 ## Run locally
 
@@ -111,7 +111,19 @@ npm run build
 
 The generated `dist/` directory is excluded from Git.
 
-GitHub Actions runs a clean dependency install, production build, and Python syntax check for pull requests and pushes to `main`.
+Run component regression tests with `npm test`. These compile the actual JSOX modules and exercise household flows in an isolated DOM without accessing household data. GitHub Actions runs a clean dependency install, component tests, production build, and Python syntax check for pull requests and pushes to `main`.
+
+## Frontend structure
+
+- `src/app.jsox`: the `<chore-fridge>` element owns screen selection, refresh subscriptions, and polling timers. Disconnecting it cleans up subscriptions and timers.
+- `src/views/`: setup, board, PIN, and parent screen components, plus task forms and view controls.
+- `src/components/`: reusable choice groups, kid/chore components, and keyed list updates that preserve element identity.
+- `src/state.js`: household state, chore/reward rules, persistence, and server synchronization.
+- `src/view.js`: browser-local appearance and zoom preferences.
+
+Screens build their controls on first connection and expose an `update()` function. The small `defineScreen` helper preserves those controls across reconnections. Components use light DOM and native buttons; no virtual DOM or reactive rendering library is required.
+
+Shared boards currently poll `/api/state` every five seconds while the board is open and server connectivity has been established. This rewrite preserves that protocol; server-sent events and RxJS are not implemented.
 
 ## Contributing
 

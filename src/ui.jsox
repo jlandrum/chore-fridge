@@ -60,30 +60,6 @@ export function openModal(node) {
   modal.hidden = false;
 }
 
-export function Field(label, value, attrs = {}) {
-  const input = <input> {
-    .value = value == null ? "" : String(value)
-    .autocomplete = attrs.autocomplete || "off"
-  }
-  if (attrs.name) input.name = attrs.name;
-  if (attrs.type) input.type = attrs.type;
-  if (attrs.placeholder) input.placeholder = attrs.placeholder;
-  return <div> {
-    .className = "field"
-    <label> { [label] }
-    [input]
-  }
-}
-
-export function Panel(title, lead, children) {
-  return <div> {
-    .className = "panel"
-    <h2> { [title] }
-    <p> { .className = "lead"; [lead] }
-    [children]
-  }
-}
-
 export function Btn(label, className, onclick) {
   return <button> {
     .type = "button"

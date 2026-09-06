@@ -1,3 +1,4 @@
+import { Choices } from "../components/choices.jsox";
 import { state, saveChore, isOnce, isWeekly } from "../state.js";
 import { paint } from "../bus.js";
 import { Btn, showToast, openModal, closeModal } from "../ui.jsox";
@@ -53,46 +54,15 @@ export function openTaskForm(opts = {}) {
     }
   }
 
-  const dailyBtn = <button> {
-    .type = "button"
-    .className = repeat === "daily" ? "choice on" : "choice"
-    ["🔁 Every day"]
-    .onclick = () => pickRepeat("daily")
-  }
-  const weeklyBtn = <button> {
-    .type = "button"
-    .className = repeat === "weekly" ? "choice on" : "choice"
-    ["📅 Once a week"]
-    .onclick = () => pickRepeat("weekly")
-  }
-  const onceBtn = <button> {
-    .type = "button"
-    .className = repeat === "once" ? "choice on" : "choice"
-    ["📌 Just once"]
-    .onclick = () => pickRepeat("once")
-  }
-  function pickRepeat(next) {
-    repeat = next;
-    dailyBtn.className = next === "daily" ? "choice on" : "choice";
-    weeklyBtn.className = next === "weekly" ? "choice on" : "choice";
-    onceBtn.className = next === "once" ? "choice on" : "choice";
-  }
-
-  const who = <div> { .className = "row" }
-  for (const kid of state.kids) {
-    const btn = <button> {
-      .type = "button"
-      .className = kidIds.includes(kid.id) ? "choice on" : "choice"
-      [kid.emoji + " " + kid.name]
-      .onclick = () => {
-        const at = kidIds.indexOf(kid.id);
-        if (at === -1) kidIds.push(kid.id);
-        else kidIds.splice(at, 1);
-        btn.classList.toggle("on");
-      }
-    }
-    [who] { [btn] }
-  }
+  const repeats = Choices([
+    { value: "daily", label: "🔁 Every day" },
+    { value: "weekly", label: "📅 Once a week" },
+    { value: "once", label: "📌 Just once" },
+  ], repeat, (value) => { repeat = value; });
+  const who = Choices(
+    state.kids.map((kid) => ({ value: kid.id, label: kid.emoji + " " + kid.name })),
+    kidIds, (value) => { kidIds = value; }, { multiple: true }
+  );
 
   const sheet = <div> {
     <h3> { [existing ? "Edit task" : "Add a task"] }
@@ -107,12 +77,7 @@ export function openTaskForm(opts = {}) {
       [emojiInput]
     }
     <p> { .className = "lead"; ["How often?"] }
-    <div> {
-      .className = "row"
-      [dailyBtn]
-      [weeklyBtn]
-      [onceBtn]
-    }
+    [repeats]
     <p> { .className = "lead"; ["Who"] }
     [who]
     <div> {

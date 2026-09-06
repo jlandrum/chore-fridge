@@ -1,9 +1,10 @@
-export function sync() {
-  if (typeof sync.impl === "function") sync.impl();
+const listeners = new Set();
+
+export function subscribe(listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 }
 
-export function setSync(fn) {
-  sync.impl = fn;
+export function paint() {
+  for (const listener of listeners) listener();
 }
-
-export const paint = sync;

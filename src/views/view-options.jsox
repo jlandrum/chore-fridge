@@ -1,140 +1,78 @@
-import {
-  getView,
-  setTheme,
-  setLook,
-  setZoom,
-  ZOOM_MIN,
-  ZOOM_MAX,
-  ZOOM_STEP,
-} from "../view.js";
+import { defineComponent } from "@js-ox/web-components";
+import { Choices } from "../components/choices.jsox";
+import { getView, setTheme, setLook, setZoom, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "../view.js";
 import { Btn, openModal, closeModal } from "../ui.jsox";
 
-const APPEARANCES = [
-  ["light", "Light"],
-  ["dark", "Dark"],
-  ["system", "System"],
-];
+const appearances = ["light", "dark", "system"].map((value) => ({
+  value, label: value.charAt(0).toUpperCase() + value.slice(1),
+}));
+const looks = [
+  ["classic", "Classic"], ["business", "Business"], ["crayon", "Crayon"],
+  ["contrast", "High contrast"], ["lego", "Lego"], ["cyberpunk", "Cyberpunk"],
+].map(([value, label]) => ({ value, label, className: "look-" + value }));
 
-const LOOKS = [
-  ["classic", "Classic"],
-  ["business", "Business"],
-  ["crayon", "Crayon"],
-  ["contrast", "High contrast"],
-  ["lego", "Lego"],
-  ["cyberpunk", "Cyberpunk"],
-];
-
-function markOn(buttons, id) {
-  for (const [key, other] of Object.entries(buttons)) {
-    other.className = "choice" + (key === id ? " on" : "");
+[defineComponent("fridge-view-controls")] {
+  .connected = function () {
+    if (!this.update) {
+      this.className = "view-controls";
+      const view = getView();
+      const appearance = Choices(appearances, view.appearance, setTheme, { className: "row view-themes" });
+      const look = Choices(looks, view.look, setLook, { className: "view-looks" });
+      const zoomVal = <div> { .className = "zoom-val" }
+      const minus = Btn("−", "tiny", () => setZoom(getView().zoom - ZOOM_STEP));
+      const plus = Btn("+", "tiny", () => setZoom(getView().zoom + ZOOM_STEP));
+      minus.setAttribute("aria-label", "Zoom out");
+      plus.setAttribute("aria-label", "Zoom in");
+      [this] {
+        <p> { .className = "view-label"; ["Appearance"] }
+        [appearance]
+        <p> { .className = "view-label"; ["Theme"] }
+        [look]
+        <p> { .className = "view-label"; ["Zoom"] }
+        <div> { .className = "zoom-row"; [minus]; [zoomVal]; [plus] }
+        <p> { .className = "lead tight"; ["Saved on this device for the next visit."] }
+      }
+      // Swatches are decorative; choice labels remain the accessible names.
+      for (const button of look.querySelectorAll("button")) {
+        const swatch = <span> { .className = "look-swatch" }
+        button.prepend(swatch);
+      }
+      this.update = () => {
+        const current = getView();
+        appearance.value = current.appearance;
+        look.value = current.look;
+        appearance.update();
+        look.update();
+        zoomVal.textContent = current.zoom + "%";
+        minus.disabled = current.zoom <= ZOOM_MIN;
+        plus.disabled = current.zoom >= ZOOM_MAX;
+      };
+    }
+    window.addEventListener("fridge-view-change", this.update);
+    this.update();
   }
+  .disconnected = function () {
+    window.removeEventListener("fridge-view-change", this.update);
+  }
+  .register()
 }
 
 export function ViewControls() {
-  const view = getView();
-  const appearanceBtns = {};
-  const lookBtns = {};
-  const appearanceRow = <div> { .className = "row view-themes" }
-  for (const [id, label] of APPEARANCES) {
-    const btn = <button> {
-      .type = "button"
-      .className = "choice" + (view.appearance === id ? " on" : "")
-      [label]
-      .onclick = () => {
-        setTheme(id);
-        markOn(appearanceBtns, id);
-      }
-    }
-    appearanceBtns[id] = btn;
-    [appearanceRow] { [btn] }
-  }
-
-  const lookRow = <div> { .className = "view-looks" }
-  for (const [id, label] of LOOKS) {
-    const btn = <button> {
-      .type = "button"
-      .className = "choice look-" + id + (view.look === id ? " on" : "")
-      <span> { .className = "look-swatch" }
-      [label]
-      .onclick = () => {
-        setLook(id);
-        for (const [key, other] of Object.entries(lookBtns)) {
-          other.className = "choice look-" + key + (key === id ? " on" : "");
-        }
-      }
-    }
-    lookBtns[id] = btn;
-    [lookRow] { [btn] }
-  }
-
-  const zoomVal = <div> { .className = "zoom-val" }
-  const minus = <button> {
-    .type = "button"
-    .className = "tiny"
-    ["−"]
-  }
-  const plus = <button> {
-    .type = "button"
-    .className = "tiny"
-    ["+"]
-  }
-
-  function syncZoom() {
-    const zoom = getView().zoom;
-    zoomVal.textContent = zoom + "%";
-    minus.disabled = zoom <= ZOOM_MIN;
-    plus.disabled = zoom >= ZOOM_MAX;
-  }
-
-  minus.onclick = () => {
-    setZoom(getView().zoom - ZOOM_STEP);
-    syncZoom();
-  }
-  plus.onclick = () => {
-    setZoom(getView().zoom + ZOOM_STEP);
-    syncZoom();
-  }
-  minus.title = "Zoom out";
-  plus.title = "Zoom in";
-  syncZoom();
-
-  return <div> {
-    .className = "view-controls"
-    <p> { .className = "view-label"; ["Appearance"] }
-    [appearanceRow]
-    <p> { .className = "view-label"; ["Theme"] }
-    [lookRow]
-    <p> { .className = "view-label"; ["Zoom"] }
-    <div> {
-      .className = "zoom-row"
-      [minus]
-      [zoomVal]
-      [plus]
-    }
-    <p> { .className = "lead tight"; ["Saved on this device for the next visit."] }
-  }
+  return <fridge-view-controls>
 }
 
 export function openViewOptions() {
-  openModal(
+  openModal(<div> {
+    <h3> { ["View options"] }
+    <fridge-view-controls>
     <div> {
-      <h3> { ["View options"] }
-      [ViewControls()]
-      <div> {
-        .className = "row"
-        .style.marginTop = "16px"
-        [Btn("Done", "btn wide", closeModal)]
-      }
+      .className = "row"
+      .style.marginTop = "16px"
+      [Btn("Done", "btn wide", closeModal)]
     }
-  );
+  });
 }
 
-export function createViewButton(className) {
-  return <button> {
-    .type = "button"
-    .className = className || "pill"
-    .title = "View options"
-    ["View"]
-    .onclick = openViewOptions
-  }
+export function createViewButton(className = "pill") {
+  return Btn("View", className, openViewOptions);
 }
