@@ -1,0 +1,78 @@
+
+import { defineComponent } from "@js-ox/web-components";
+import { Choices } from "../components/choices.jsox";
+import { $view, getView, setTheme, setLook, setZoom, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "../view.js";
+import { Btn, openModal, closeModal } from "../ui.jsox";
+
+const appearances = ["light", "dark", "system"].map((value) => ({
+  value, label: value.charAt(0).toUpperCase() + value.slice(1),
+}));
+const looks = [
+  ["classic", "Classic"], ["business", "Business"], ["crayon", "Crayon"],
+  ["contrast", "High contrast"], ["lego", "Lego"], ["cyberpunk", "Cyberpunk"],
+].map(([value, label]) => ({ value, label, className: "look-" + value }));
+
+[defineComponent("fridge-view-controls")] {
+  .connected = function () {
+    if (!this.update) {
+      this.className = "view-controls";
+      const view = getView();
+      const appearance = Choices(appearances, view.appearance, setTheme, { className: "row view-themes" });
+      const look = Choices(looks, view.look, setLook, { className: "view-looks" });
+      const zoomVal = <div> { .className = "zoom-val" }
+      const minus = Btn("−", "tiny", () => setZoom(getView().zoom - ZOOM_STEP));
+      const plus = Btn("+", "tiny", () => setZoom(getView().zoom + ZOOM_STEP));
+      minus.setAttribute("aria-label", "Zoom out");
+      plus.setAttribute("aria-label", "Zoom in");
+      [this] {
+        <p> { .className = "view-label"; ["Appearance"] }
+        [appearance]
+        <p> { .className = "view-label"; ["Theme"] }
+        [look]
+        <p> { .className = "view-label"; ["Zoom"] }
+        <div> { .className = "zoom-row"; [minus]; [zoomVal]; [plus] }
+        <p> { .className = "lead tight"; ["Saved on this device for the next visit."] }
+      }
+      // Swatches are decorative; choice labels remain the accessible names.
+      for (const button of look.querySelectorAll("button")) {
+        const swatch = <span> { .className = "look-swatch" }
+        button.prepend(swatch);
+      }
+      this.update = () => {
+        const current = getView();
+        appearance.value = current.appearance;
+        look.value = current.look;
+        appearance.update();
+        look.update();
+        zoomVal.textContent = current.zoom + "%";
+        minus.disabled = current.zoom <= ZOOM_MIN;
+        plus.disabled = current.zoom >= ZOOM_MAX;
+      };
+    }
+    this.unsubscribe = $view.subscribe(this.update);
+  }
+  .disconnected = function () {
+    this.unsubscribe();
+  }
+  .register()
+}
+
+export function ViewControls() {
+  return <fridge-view-controls>
+}
+
+export function openViewOptions() {
+  openModal(<div> {
+    <h3> { ["View options"] }
+    <fridge-view-controls>
+    <div> {
+      .className = "row"
+      .style.marginTop = "16px"
+      [Btn("Done", "btn wide", closeModal)]
+    }
+  });
+}
+
+export function createViewButton(className = "pill") {
+  return Btn("View", className, openViewOptions);
+}

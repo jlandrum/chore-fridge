@@ -4,11 +4,16 @@
 - [ ] Onboarding process
 - [ ] More advanced repeating options
   - [ ] Daily tasks on selected days of the week
-- [ ] Rewrite in JSOX 0.2, using web components to simplify the codebase
+- [x] Rewrite in JSOX 0.2, using web components to simplify the codebase
+- [x] Nano Stores state management with direct DOM subscriptions
 - [ ] MCP support
-- [ ] API support
+- [x] API support: validated commands and household reads
+- [x] Node workspace with shared domain rules and contracts
+- [x] Automatic legacy JSON migration to transactional SQLite
+- [x] Live synchronization with SSE and durable command retries
 - [ ] Shared tasks: completion credits the person who finishes it and marks it done for everyone
-- [ ] Time travel
+- [x] Time travel storage foundation: immutable task versions, archival, fixed credits, historical revisions
+- [ ] Time travel browsing interface
 - [ ] Login required to mark tasks as done
 
 ## To investigate

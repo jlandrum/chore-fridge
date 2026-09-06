@@ -1,0 +1,50 @@
+import { defineComponent } from "@js-ox/web-components";
+
+[defineComponent("fridge-choices")] {
+  .connected = function () {
+    if (this.update) { this.update(); return; }
+    this.className = this.className || "row";
+    const group = this;
+    const buttons = (this.options || []).map((option) => {
+      const button = <button> {
+        .type = "button"
+        .className = "choice" + (option.className ? " " + option.className : "")
+        [option.label]
+        .onclick = () => {
+          if (group.multiple) {
+            const selected = new Set(group.value || []);
+            if (selected.has(option.value)) selected.delete(option.value);
+            else selected.add(option.value);
+            group.value = [...selected];
+          } else group.value = option.value;
+          group.update();
+          group.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }
+      if (option.color) button.style.background = option.color;
+      this.append(button);
+      return { button, option };
+    });
+    this.update = () => {
+      for (const { button, option } of buttons) {
+        const selected = this.multiple
+          ? (this.value || []).includes(option.value)
+          : this.value === option.value;
+        button.classList.toggle("on", selected);
+        button.setAttribute("aria-pressed", String(selected));
+      }
+    };
+    this.update();
+  }
+  .register()
+}
+
+export function Choices(options, value, onChange, attrs = {}) {
+  return <fridge-choices> {
+    .options = options
+    .value = value
+    .multiple = !!attrs.multiple
+    .className = attrs.className || "row"
+    .onchange = (event) => onChange(event.currentTarget.value)
+  }
+}

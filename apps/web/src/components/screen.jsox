@@ -1,0 +1,25 @@
+import { defineComponent } from "@js-ox/web-components";
+import { effect } from "nanostores";
+
+// A component may bind separate DOM regions to separate sets of stores.
+export function defineScreen(name, mount, stores = []) {
+  [defineComponent(name)] {
+    .connected = function () {
+      if (!this.bindings) {
+        const result = mount(this);
+        this.bindings = typeof result === "function" ? [[stores, result]] : result;
+        this.syncDOM = () => this.bindings.forEach(([, sync]) => sync());
+      }
+      this.unsubscribers = this.bindings.map(([sources, sync]) => {
+        const update = () => { if (!this.hidden) sync(); };
+        if (sources.length) return effect(sources, update);
+        update();
+        return () => {};
+      });
+    }
+    .disconnected = function () {
+      for (const unsubscribe of this.unsubscribers || []) unsubscribe();
+    }
+    .register()
+  }
+}

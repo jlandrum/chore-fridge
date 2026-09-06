@@ -1,0 +1,17 @@
+
+import { loadLocal } from "./stores/sync.js";
+import "./styles.css";
+import { applyView, watchView } from "./view.js";
+import { modal, toastEl, confettiEl } from "./ui.jsox";
+import "./app.jsox";
+
+loadLocal();
+applyView();
+watchView();
+
+[document.body] {
+  [modal]
+  [toastEl]
+  [confettiEl]
+  <chore-fridge>
+}

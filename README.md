@@ -2,21 +2,21 @@
 
 Chore Fridge is a self-hosted household chore board designed for a smart fridge or wall-mounted tablet. It provides large tap targets, separate kid columns, recurring chores, rewards, stars, and a parent PIN.
 
-The UI is written in [JSOX](https://github.com/javascript-ox/jsox) and compiled to ordinary JavaScript. Browsers only receive the compiled application.
+The UI is written in [JSOX 0.2](https://github.com/javascript-ox/jsox) and compiled to ordinary JavaScript. Native web components use `@js-ox/web-components` with light DOM so the existing themes apply throughout the app. Browsers only receive the compiled application.
 
 ## Run locally
 
 Requirements:
 
-- Node.js 22 or later
-- Python 3.12 or later, or Docker
+- Node.js 22.13 or later, or Docker
+- Python 3 for the legacy compatibility test only
 
 For development, run the state server and Vite in separate terminals:
 
 ```bash
 npm install
 npm run build
-python3 server.py
+npm start
 ```
 
 ```bash
@@ -41,7 +41,7 @@ CHORE_FRIDGE_BIND_ADDRESS=192.168.1.20 docker compose up --build -d
 
 Replace the example address with the host's actual private address, then open `http://HOST-PRIVATE-ADDRESS:8080` on the household device.
 
-Application data is stored in `data/state.json`. This directory is excluded from Git because it can contain household names, chores, completion history, rewards, and the parent PIN. Back it up separately and never commit it.
+Application data is stored in `data/chore-fridge.sqlite`. Existing `data/state.json` files migrate automatically on first startup (see below). This directory is excluded from Git because it can contain household names, chores, completion history, rewards, and the parent PIN. Back it up separately and never commit it.
 
 ## Security and network access
 
@@ -91,7 +91,7 @@ The script writes only `CHORE_FRIDGE_BIND_ADDRESS` to the remote `.env`; private
 - **iPad or Android tablet:** Open the local URL and choose Add to Home Screen. Guided Access or app pinning can keep the device in the app.
 - **Other smart-fridge browsers:** Open and bookmark the service's local URL.
 
-The Docker/Python server lets all devices on the permitted local network share one board. Without the state server, the application falls back to browser storage and each device has its own independent data.
+The Node server lets all devices on the permitted local network share one board. Without the state server, the application falls back to browser storage and each device has its own independent data.
 
 ## Display options
 
@@ -109,9 +109,66 @@ Changes apply immediately and are remembered in this browser. Display preference
 npm run build
 ```
 
-The generated `dist/` directory is excluded from Git.
+The generated `apps/web/dist/` directory is excluded from Git.
 
-GitHub Actions runs a clean dependency install, production build, and Python syntax check for pull requests and pushes to `main`.
+Run component and server integration tests with `npm test`. These compile the actual JSOX modules and exercise household flows in an isolated DOM and against the Node server and a Python compatibility fixture with temporary test data, without accessing household data. GitHub Actions runs a clean dependency install, component tests, production build, and a container build for pull requests and pushes to `main`.
+
+## Frontend structure
+
+- `apps/web/src/app.jsox`: the `<chore-fridge>` element subscribes to screen selection and owns synchronization connections and timers. Disconnecting it cleans up its subscription and timers.
+- `apps/web/src/views/`: setup, board, PIN, and parent screen components, plus task forms and view controls.
+- `apps/web/src/components/`: reusable choice groups, kid/chore components, and keyed list updates that preserve element identity.
+- `apps/web/src/stores/family.js`: independent family-name, PIN, setup-completion, and kid stores.
+- `apps/web/src/stores/chores.js`: chore definitions, completion/count stores, scheduling rules, and task actions.
+- `apps/web/src/stores/rewards.js` and `balances.js`: rewards, spending, and computed star/gold balances.
+- `apps/web/src/stores/navigation.js`, `setup.js`, and `clock.js`: local navigation, onboarding, and date updates.
+- `apps/web/src/stores/sync.js`: assembles the existing household JSON for local storage and the server, and applies incoming snapshots to the affected stores.
+- `packages/domain/src/`: shared scheduling, balances, command rules, date, record, and history helpers.
+- `apps/web/src/view.js`: a separate Nano Store for browser-local appearance and zoom preferences.
+
+JSOX constructs and manipulates DOM directly. There is no paint/render cycle, virtual DOM, or app-wide refresh bus. Components build their controls on first connection and use store subscriptions to synchronize existing nodes. The `defineScreen` helper preserves those controls across reconnections and removes subscriptions on disconnect. Parent tabs retain their DOM, and keyed lists retain item controls while records change.
+
+Nano Stores owns independent domain snapshots. Read the relevant store with `.get()` and change it through actions such as `saveKid`, `saveChore`, `redeemReward`, `setUI`, and `setSetup`. Actions replace only the affected collection or record, preserving unrelated references. A batched action revision notifies persistence after the changes finish. The sync adapter alone assembles the full document required by the existing server; incoming snapshots update only changed domains without scheduling an echo save. UI and display changes never enter the shared household payload. There is no aggregate household store or whole-document clone on local actions.
+
+The direct-DOM convention is also recorded in `AGENTS.md` for future changes.
+
+Shared boards receive server-sent revision events through `/api/events` and fetch updated state. A five-second poll also retries after network failures. Disconnecting the app closes the event stream and timers. The browser queues individual commands in local storage, reuses command IDs on retries, and reconciles optimistic changes with the server after the queue drains. Rejected changes show a message. RxJS is not needed for this flow.
+
+## Workspace and API
+
+- `apps/web`: JSOX components and independent Nano Stores.
+- `apps/server`: Fastify HTTP API, SSE, transactional SQLite persistence, and startup migration.
+- `packages/domain`: pure household rules shared by browser and server.
+- `packages/contracts`: JSON schemas for commands and legacy snapshots.
+
+The server owns command validation, completion/count changes, and reward spending. Command receipts and state commit in one SQLite transaction, so retrying the same request ID cannot spend credits twice. MCP can later call the same domain/application service; an MCP adapter is not implemented yet.
+
+See [API documentation](docs/api.md) for command examples and compatibility behavior.
+
+## Task versions and history
+
+Tasks have a permanent `taskId` (also exposed as legacy `id`) and a `versionId` identifying immutable rules. Editing creates a version; archiving removes the task from the current board while preserving versions and earned credit. Parent task settings include an archived list with Restore, which creates another version under the same task ID.
+
+Credit entries reference the task and version and retain the points/gold earned at completion. A change from two to three stars does not revalue earlier work. Counted tasks can contain units earned under different versions; undo reverses the most recent units first. Clients send the version they saw with completion commands, including delayed/offline submissions; archived tasks reject new completions.
+
+Each committed action also stores an immutable household snapshot in SQLite in the same transaction. The history API exposes those revisions for time travel; a date-browsing interface is still on the roadmap. Historical snapshots include prior spending, corrections, and archived definitions. Erasing the current board resets its state but does not purge recorded history.
+
+Existing JSON and schema-1 SQLite households automatically gain baseline versions and credit entries. Their known balances are preserved. Full historical snapshots start at the upgrade: old task definitions and actions that were never recorded cannot be recovered. Legacy writes also pass through versioning on the Node server, but old browsers may still display balances using their old calculations until refreshed/upgraded. The Python compatibility fallback does not implement this history foundation.
+
+## Automatic migration
+
+The next container upgrade keeps the same `./data:/data` volume. On first Node startup:
+
+1. Read and validate `DATA_FILE` (default `/data/state.json` in Docker, `data/state.json` locally).
+2. Copy valid legacy data to `state.json.pre-node-<content-hash>.bak`, leaving the source unchanged.
+3. Import the household and record the completed migration in one SQLite transaction.
+4. Use `DATABASE_FILE` (default `chore-fridge.sqlite` beside the JSON file) for all subsequent writes.
+
+Family details, PIN, tasks, rewards, completion tombstones, numeric/count history, spending, and unknown legacy fields are preserved. Invalid JSON or an unsupported data version stops startup with an error; it does not replace the household with an empty board. Repair the source and restart to retry. A completed migration never imports the old JSON again, even if that file changes. New installations start empty; browser-only households can import once through `/api/import`, which refuses to overwrite an existing household.
+
+Keep a backup of the data directory before upgrading. For later backups, stop the container and copy the whole data directory so SQLite and its WAL files remain consistent. The original JSON backup represents the upgrade moment only; reverting to Python would lose subsequent Node changes unless those changes are exported first. Restoring an old JSON file beside an existing database does not restore the active household.
+
+`LEGACY_STATE_WRITES=false` disables the compatibility `PUT /api/state` endpoint once every device uses the new client. It is enabled by default for a gradual upgrade. Legacy whole-state writes retain their old merge behavior and can overwrite edits to other fields; they do not provide the command API's concurrency guarantees. Neither mode supplies authentication yet.
 
 ## Contributing
 

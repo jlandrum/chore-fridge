@@ -30,9 +30,9 @@ fi
 cd "$ROOT"
 
 echo "Copying app to ${HOST}:${REMOTE} (leaving data/ untouched)"
-tar czf - \
-  Dockerfile docker-compose.yml server.py package.json package-lock.json \
-  index.html vite.config.js src public .dockerignore \
+tar --exclude=node_modules --exclude=dist -czf - \
+  Dockerfile docker-compose.yml package.json package-lock.json \
+  apps packages .dockerignore \
 | ssh "$HOST" "cd '$REMOTE' && tar xzpf -"
 
 echo "Configuring the private LAN bind address"
