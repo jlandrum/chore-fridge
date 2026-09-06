@@ -1,22 +1,23 @@
 import { $pin, setPin } from "../stores/family.js";
-import { $ui, setUI } from "../stores/navigation.js";
+import { $ui, setUI, unlockParent } from "../stores/navigation.js";
 import { defineScreen } from "../components/screen.jsox";
 import { Btn, showToast } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
 
 function submitPin() {
   if ($ui.get().pinMode === "set") {
+    if (!$ui.get().parentUnlocked) return;
     if ($ui.get().pinBuf.length !== 4) {
       showToast("Need 4 digits");
       return;
     }
     setPin($ui.get().pinBuf);
-    setUI({ pinBuf: "", view: "parent" });
+    unlockParent();
     showToast("PIN saved");
     return;
   }
   if ($ui.get().pinBuf === $pin.get()) {
-    setUI({ pinBuf: "", view: "parent" });
+    unlockParent();
   } else {
     setUI({ pinBuf: "" });
     showToast("Nope");

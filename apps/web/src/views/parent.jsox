@@ -1,7 +1,7 @@
 import { COLORS, KID_EMOJIS, $kids, saveKid, removeKid } from "../stores/family.js";
 import { $balances, starsFor, goldFor } from "../stores/balances.js";
 import { $rewards, saveReward, removeReward } from "../stores/rewards.js";
-import { $ui, setUI } from "../stores/navigation.js";
+import { $ui, setUI, lockParent } from "../stores/navigation.js";
 import { eraseBoard } from "../stores/setup.js";
 import { uid } from "@chore-fridge/domain/records";
 import { updateList } from "../components/list.js";
@@ -248,7 +248,7 @@ function HelpTab() {
         [" this app has no server authentication. Do not expose port 8080 to the internet; allow access only from devices on a trusted home network."]
       }
       <p> {
-        ["Forgot the PIN? In Parent → Display you can change it while already unlocked. If you are locked out, clear this site’s data in the fridge browser (that wipes chores too)."]
+        ["Use Lock parent when you are finished. Returning to the board keeps settings unlocked on this page until you lock them or reload. Change the PIN in Parent settings → Display while unlocked."]
       }
     }
   }
@@ -271,6 +271,7 @@ defineScreen("fridge-parent", (root) => {
   }
   [bar] {
     [createViewButton()]
+    [Btn("Lock parent", "", lockParent)]
     <button> {
       .type = "button"
       ["Board"]

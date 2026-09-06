@@ -93,6 +93,10 @@ The script writes only `CHORE_FRIDGE_BIND_ADDRESS` to the remote `.env`; private
 
 The Node server lets all devices on the permitted local network share one board. Without the state server, the application falls back to browser storage and each device has its own independent data.
 
+## Parent controls
+
+Use **Unlock parent** to enter the PIN and open settings. Returning to **Board** keeps this page unlocked; use **Parent settings** to reopen it or **Lock parent** to relock. Reloading starts locked, and a PIN change relocks other open pages when synchronized. Without a PIN, Unlock parent opens settings directly. This is a local interface lock, not server authentication.
+
 ## Display options
 
 Use **View** from setup, the board, the parent lock, or parent settings to adjust this device's display:
