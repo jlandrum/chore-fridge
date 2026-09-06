@@ -1,12 +1,11 @@
 import { defineScreen } from "./screen.jsox";
 import { updateList } from "./list.js";
 import { choresForKid, isDone, isCounted, choreKind, countFor, maxCount, starsFor, goldFor, toggleChore, bumpChore } from "../state.js";
-import { paint } from "../bus.js";
 import { Star, burst, showToast } from "../ui.jsox";
 
 function afterBump(kid, result) {
   if (result.skipped) return;
-  paint();
+
   if (result.all) {
     burst();
     showToast(kid.name + " finished everything!");

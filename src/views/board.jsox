@@ -3,6 +3,9 @@ import { updateList } from "../components/list.js";
 import { defineScreen } from "../components/screen.jsox";
 import {
   state,
+  $household,
+  $clock,
+  setUI,
   ui,
   starsFor,
   goldFor,
@@ -11,7 +14,6 @@ import {
   prettyDate,
   redeemReward,
 } from "../state.js";
-import { paint } from "../bus.js";
 import { showToast, burst, openModal, closeModal, Btn, Star } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
 
@@ -36,7 +38,7 @@ function askWho(reward) {
             return;
           }
           closeModal();
-          paint();
+
           burst();
           showToast((result.kid ? result.kid.name : "You") + " redeemed " + reward.title + "!");
         }
@@ -106,13 +108,11 @@ defineScreen("fridge-board", (root) => {
           ["Parent"]
           .onclick = () => {
             if (state.pin) {
-              ui.pinMode = "enter";
-              ui.pinBuf = "";
-              ui.view = "pin";
+              setUI({ pinMode: "enter", pinBuf: "", view: "pin" });
             } else {
-              ui.view = "parent";
+              setUI({ view: "parent" });
             }
-            paint();
+
           }
         }
       }
@@ -157,4 +157,4 @@ defineScreen("fridge-board", (root) => {
   }
 
   return sync;
-});
+}, [$household, $clock]);

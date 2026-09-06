@@ -1,3 +1,5 @@
+import { atom } from "nanostores";
+
 export const VIEW_KEY = "chore-fridge-view";
 export const ZOOM_MIN = 50;
 export const ZOOM_MAX = 150;
@@ -31,7 +33,7 @@ const THEME_COLORS = {
   cyberpunk: { light: "#c8b8e8", dark: "#0b0714" },
 };
 
-let prefs = null;
+export const $view = atom(null);
 let watching = false;
 
 function clampZoom(n) {
@@ -63,7 +65,7 @@ function defaultAppearance() {
 }
 
 export function getView() {
-  if (prefs) return prefs;
+  if ($view.get()) return $view.get();
   const stored = readJson(VIEW_KEY);
   const appearance =
     stored && APPEARANCES[stored.appearance]
@@ -71,11 +73,12 @@ export function getView() {
       : stored && APPEARANCES[stored.theme]
         ? stored.theme
         : defaultAppearance();
-  prefs = {
+  const prefs = {
     appearance,
     look: stored && LOOKS[stored.look] ? stored.look : "classic",
     zoom: stored && stored.zoom != null ? clampZoom(stored.zoom) : 100,
   };
+  $view.set(prefs);
   return prefs;
 }
 
@@ -145,28 +148,24 @@ export function applyZoom() {
 export function applyView() {
   applyTheme();
   applyZoom();
-  window.dispatchEvent(new Event("fridge-view-change"));
 }
 
 export function setTheme(theme) {
-  getView().appearance = APPEARANCES[theme] ? theme : "system";
+  $view.set({ ...getView(), appearance: APPEARANCES[theme] ? theme : "system" });
   save();
   applyTheme();
-  window.dispatchEvent(new Event("fridge-view-change"));
 }
 
 export function setLook(look) {
-  getView().look = LOOKS[look] ? look : "classic";
+  $view.set({ ...getView(), look: LOOKS[look] ? look : "classic" });
   save();
   applyTheme();
-  window.dispatchEvent(new Event("fridge-view-change"));
 }
 
 export function setZoom(zoom) {
-  getView().zoom = clampZoom(zoom);
+  $view.set({ ...getView(), zoom: clampZoom(zoom) });
   save();
   applyZoom();
-  window.dispatchEvent(new Event("fridge-view-change"));
 }
 
 export function watchView() {
@@ -180,7 +179,7 @@ export function watchView() {
   }
   window.addEventListener("storage", (event) => {
     if (event.key !== VIEW_KEY) return;
-    prefs = null;
+    $view.set(null);
     applyView();
   });
 }

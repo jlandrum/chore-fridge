@@ -9,7 +9,7 @@ export function updateList(container, items, tag, model = (item) => item) {
       node.dataset.key = item.id;
     }
     node.model = model(item, index);
-    if (node.update) node.update();
+    if (node.syncDOM) node.syncDOM();
     if (container.children[index] !== node) container.insertBefore(node, container.children[index] || null);
   });
   for (const node of existing.values()) node.remove();

@@ -1,23 +1,38 @@
+import { atom, map, computed, batch } from "nanostores";
+
 export const STORAGE_KEY = "chore-fridge-v2";
 
 export const COLORS = ["#e85d4c", "#2a9d8f", "#e9b44c", "#6c63c0", "#4a7c59", "#d9480f"];
 export const KID_EMOJIS = ["🐻", "🦁", "🐸", "🦊", "🐼", "🐰", "🦄", "🐲", "🐯", "🐮", "🐙", "⭐"];
 
-export const ui = {
+export const $ui = map({
   view: "board",
   parentTab: "kids",
   pinBuf: "",
   pinMode: "enter",
-};
+});
 
-export const setup = {
+export const $setup = map({
   step: 0,
   familyName: "Our Family",
   kids: [],
   picked: {},
-};
+});
 
-export let state = defaultState();
+export const $household = atom(defaultState());
+export const $clock = atom(Date.now());
+// Read-only live bindings keep domain rules and JSOX expressions concise.
+// All writes go through actions below; Nano Stores owns each current snapshot.
+export let state = $household.get();
+export let ui = $ui.get();
+export let setup = $setup.get();
+$household.listen((value) => { state = value; });
+$ui.listen((value) => { ui = value; });
+$setup.listen((value) => { setup = value; });
+
+export function setUI(patch) { $ui.set({ ...$ui.get(), ...patch }); }
+export function setSetup(patch) { $setup.set({ ...$setup.get(), ...patch }); }
+export function tick() { $clock.set(Date.now()); }
 export let serverMode = false;
 
 let saveTimer = null;
@@ -72,14 +87,23 @@ export function datesInWeek(d = new Date()) {
 export function loadLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) state = Object.assign(defaultState(), JSON.parse(raw));
+    if (raw) replaceState(Object.assign(defaultState(), JSON.parse(raw)));
   } catch {}
 }
 
-export function persist() {
-  state.updatedAt = Date.now();
+export function updateHousehold(change) {
+  // Household state is JSON data. Copy before mutation so previous snapshots
+  // and computed-store inputs remain stable throughout a transaction.
+  const next = JSON.parse(JSON.stringify($household.get()));
+  change(next);
+  next.updatedAt = Date.now();
+  persist(next);
+  $household.set(next);
+}
+
+function persist(next) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {}
   if (!window.fetch) return;
   dirty = true;
@@ -137,7 +161,7 @@ function pushServer() {
     });
 }
 
-export function pullServer(onChange) {
+export function pullServer() {
   if (!window.fetch || dirty) return;
   fetch("/api/state")
     .then((r) => {
@@ -152,21 +176,18 @@ export function pullServer(onChange) {
         const counts = mergeCounts(state.counts, data.counts);
         const remoteAt = Number(data.updatedAt) || 0;
         const localAt = Number(state.updatedAt) || 0;
-        if (remoteAt > localAt) {
-          state = Object.assign(defaultState(), data);
-        } else if (remoteAt < localAt) {
+        if (remoteAt < localAt) {
           pushServer();
           return;
         }
-        state.completions = comps;
-        state.counts = counts;
-        const next = JSON.stringify(state);
+        const merged = { ...(remoteAt > localAt ? Object.assign(defaultState(), data) : state), completions: comps, counts };
+        const next = JSON.stringify(merged);
         if (next !== lastServer) {
           lastServer = next;
           try {
             localStorage.setItem(STORAGE_KEY, next);
           } catch {}
-          if (onChange) onChange();
+          replaceState(merged);
         }
       } else if (state.setupDone) {
         pushServer();
@@ -187,16 +208,16 @@ function parseCk(key) {
   return { day: parts[0], choreId: parts[1], kidId: parts[2] };
 }
 
-export function timesEarned(chore, kidId) {
+export function timesEarned(chore, kidId, household = state) {
   const days = {};
-  const counts = state.counts || {};
+  const counts = household.counts || {};
   for (const key of Object.keys(counts)) {
     const parsed = parseCk(key);
     if (!parsed || parsed.choreId !== chore.id || parsed.kidId !== kidId) continue;
     const n = countRec(counts[key]).n;
     if (n) days[parsed.day] = n;
   }
-  const comps = state.completions || {};
+  const comps = household.completions || {};
   for (const key of Object.keys(comps)) {
     const parsed = parseCk(key);
     if (!parsed || parsed.choreId !== chore.id || parsed.kidId !== kidId) continue;
@@ -303,32 +324,29 @@ export function oneOffChores() {
   return state.chores.filter((c) => isOnce(c) && appliesToday(c));
 }
 
-export function starsFor(kidId) {
-  let earned = 0;
-  for (const chore of state.chores) {
-    if (!(chore.kidIds || []).includes(kidId)) continue;
-    earned += (chore.points || 0) * timesEarned(chore, kidId);
+export const $balances = computed($household, (household) => {
+  const balances = {};
+  for (const kid of household.kids) {
+    let stars = 0;
+    let gold = 0;
+    for (const chore of household.chores) {
+      if (!(chore.kidIds || []).includes(kid.id)) continue;
+      const count = timesEarned(chore, kid.id, household);
+      stars += (chore.points || 0) * count;
+      if (chore.gold) gold += count;
+    }
+    balances[kid.id] = {
+      stars: Math.max(0, stars - (household.spent[kid.id] || 0)),
+      gold: Math.max(0, gold - (household.goldSpent[kid.id] || 0)),
+    };
   }
-  return Math.max(0, earned - (state.spent[kidId] || 0));
-}
+  return balances;
+});
 
-export function goldFor(kidId) {
-  let earned = 0;
-  for (const chore of state.chores) {
-    if (!chore.gold) continue;
-    if (!(chore.kidIds || []).includes(kidId)) continue;
-    earned += timesEarned(chore, kidId);
-  }
-  return Math.max(0, earned - (state.goldSpent[kidId] || 0));
-}
-
-export function familyStars() {
-  return state.kids.reduce((n, kid) => n + starsFor(kid.id), 0);
-}
-
-export function familyGold() {
-  return state.kids.reduce((n, kid) => n + goldFor(kid.id), 0);
-}
+export function starsFor(kidId) { return $balances.get()[kidId]?.stars || 0; }
+export function goldFor(kidId) { return $balances.get()[kidId]?.gold || 0; }
+export function familyStars() { return Object.values($balances.get()).reduce((sum, value) => sum + value.stars, 0); }
+export function familyGold() { return Object.values($balances.get()).reduce((sum, value) => sum + value.gold, 0); }
 
 export function byId(list, id) {
   return list.find((item) => item.id === id) || null;
@@ -347,14 +365,11 @@ export function prettyDate() {
 }
 
 export function resetSetup() {
-  setup.step = 0;
-  setup.familyName = "Our Family";
-  setup.kids = [];
-  setup.picked = {};
+  setSetup({ step: 0, familyName: "Our Family", kids: [], picked: {} });
 }
 
 export function replaceState(next) {
-  state = next;
+  $household.set(next);
 }
 
 export function bumpChore(choreId, kidId, delta) {
@@ -367,9 +382,10 @@ export function bumpChore(choreId, kidId, delta) {
   const cur = countFor(chore, kidId);
   const next = Math.max(0, Math.min(maxCount(chore), cur + delta));
   if (next === cur) return { skipped: true };
-  if (!state.counts) state.counts = {};
-  state.counts[key] = { n: next, t: Date.now() };
-  persist();
+  updateHousehold((draft) => {
+    if (!draft.counts) draft.counts = {};
+    draft.counts[key] = { n: next, t: Date.now() };
+  });
   const chores = choresForKid(kidId);
   const all = chores.length && chores.every((c) => isDone(c, kidId));
   if (navigator.vibrate) navigator.vibrate(12);
@@ -386,23 +402,24 @@ export function toggleChore(choreId, kidId) {
     lastTap = 0;
     return bumpChore(choreId, kidId, 1);
   }
-  if (isOnce(chore)) {
-    const suffix = ":" + chore.id + ":" + kidId;
-    const existing = Object.keys(state.completions).find(
-      (key) => key.includes(suffix) && Number(state.completions[key]) > 0
-    );
-    if (existing) state.completions[existing] = -Date.now();
-    else state.completions[ck(choreId, kidId)] = Date.now();
-  } else if (isWeekly(chore)) {
-    const hit = datesInWeek().find((day) => Number(state.completions[ck(choreId, kidId, day)] || 0) > 0);
-    if (hit) state.completions[ck(choreId, kidId, hit)] = -Date.now();
-    else state.completions[ck(choreId, kidId)] = Date.now();
-  } else {
-    const key = ck(choreId, kidId);
-    if (Number(state.completions[key] || 0) > 0) state.completions[key] = -Date.now();
-    else state.completions[key] = Date.now();
-  }
-  persist();
+  updateHousehold((draft) => {
+    if (isOnce(chore)) {
+      const suffix = ":" + chore.id + ":" + kidId;
+      const existing = Object.keys(draft.completions).find(
+        (key) => key.includes(suffix) && Number(draft.completions[key]) > 0
+      );
+      if (existing) draft.completions[existing] = -Date.now();
+      else draft.completions[ck(choreId, kidId)] = Date.now();
+    } else if (isWeekly(chore)) {
+      const hit = datesInWeek().find((day) => Number(draft.completions[ck(choreId, kidId, day)] || 0) > 0);
+      if (hit) draft.completions[ck(choreId, kidId, hit)] = -Date.now();
+      else draft.completions[ck(choreId, kidId)] = Date.now();
+    } else {
+      const key = ck(choreId, kidId);
+      if (Number(draft.completions[key] || 0) > 0) draft.completions[key] = -Date.now();
+      else draft.completions[key] = Date.now();
+    }
+  });
   const chores = choresForKid(kidId);
   const all = chores.length && chores.every((c) => isDone(c, kidId));
   if (navigator.vibrate) navigator.vibrate(12);
@@ -413,14 +430,17 @@ export function finishSetup(pin) {
   pin = String(pin || "").replace(/\D/g, "").slice(0, 4);
   if (pin.length && pin.length !== 4) return { error: "PIN needs 4 digits" };
   if (!setup.kids.length) return { error: "Add at least one kid" };
-  state.familyName = setup.familyName || "Our Family";
-  state.kids = setup.kids;
-  state.chores = [];
-  state.rewards = [];
-  state.pin = pin;
-  state.setupDone = true;
-  persist();
-  ui.view = "board";
+  batch(() => {
+    setUI({ view: "board" });
+    updateHousehold((draft) => {
+      draft.familyName = setup.familyName || "Our Family";
+      draft.kids = setup.kids.map((kid) => ({ ...kid }));
+      draft.chores = [];
+      draft.rewards = [];
+      draft.pin = pin;
+      draft.setupDone = true;
+    });
+  });
   return { ok: true };
 }
 
@@ -441,16 +461,16 @@ export function saveChore(payload) {
     maxCount: maxC,
     gold: !!payload.gold,
   };
-  const i = state.chores.findIndex((c) => c.id === chore.id);
-  if (i >= 0) state.chores[i] = chore;
-  else state.chores.push(chore);
-  persist();
+  updateHousehold((draft) => {
+    const i = draft.chores.findIndex((c) => c.id === chore.id);
+    if (i >= 0) draft.chores[i] = chore;
+    else draft.chores.push(chore);
+  });
   return chore;
 }
 
 export function removeChore(id) {
-  state.chores = state.chores.filter((c) => c.id !== id);
-  persist();
+  updateHousehold((draft) => { draft.chores = draft.chores.filter((c) => c.id !== id); });
 }
 
 export function redeemReward(rewardId, kidId) {
@@ -458,11 +478,47 @@ export function redeemReward(rewardId, kidId) {
   if (!reward) return { error: "Missing reward" };
   if (reward.gold) {
     if (goldFor(kidId) < reward.cost) return { error: "Not enough gold stars yet" };
-    state.goldSpent[kidId] = (state.goldSpent[kidId] || 0) + reward.cost;
+    updateHousehold((draft) => { draft.goldSpent[kidId] = (draft.goldSpent[kidId] || 0) + reward.cost; });
   } else {
     if (starsFor(kidId) < reward.cost) return { error: "Not enough stars yet" };
-    state.spent[kidId] = (state.spent[kidId] || 0) + reward.cost;
+    updateHousehold((draft) => { draft.spent[kidId] = (draft.spent[kidId] || 0) + reward.cost; });
   }
-  persist();
   return { ok: true, reward, kid: byId(state.kids, kidId) };
+}
+
+export function saveKid(kid) {
+  updateHousehold((draft) => {
+    const index = draft.kids.findIndex((item) => item.id === kid.id);
+    if (index < 0) draft.kids.push({ ...kid, id: kid.id || uid() });
+    else draft.kids[index] = { ...kid };
+  });
+}
+
+export function removeKid(id) {
+  updateHousehold((draft) => { draft.kids = draft.kids.filter((kid) => kid.id !== id); });
+}
+
+export function saveReward(reward) {
+  updateHousehold((draft) => {
+    const index = draft.rewards.findIndex((item) => item.id === reward.id);
+    if (index < 0) draft.rewards.push({ ...reward, id: reward.id || uid() });
+    else draft.rewards[index] = { ...reward };
+  });
+}
+
+export function removeReward(id) {
+  updateHousehold((draft) => { draft.rewards = draft.rewards.filter((reward) => reward.id !== id); });
+}
+
+export function setPin(pin) { updateHousehold((draft) => { draft.pin = pin; }); }
+
+export function eraseBoard() {
+  batch(() => {
+    resetSetup();
+    setUI({ view: "board", pinBuf: "" });
+    const next = defaultState();
+    next.updatedAt = Date.now();
+    persist(next);
+    replaceState(next);
+  });
 }

@@ -111,17 +111,21 @@ npm run build
 
 The generated `dist/` directory is excluded from Git.
 
-Run component regression tests with `npm test`. These compile the actual JSOX modules and exercise household flows in an isolated DOM without accessing household data. GitHub Actions runs a clean dependency install, component tests, production build, and Python syntax check for pull requests and pushes to `main`.
+Run component and server integration tests with `npm test`. These compile the actual JSOX modules and exercise household flows in an isolated DOM and against the existing Python server with temporary test data, without accessing household data. GitHub Actions runs a clean dependency install, component tests, production build, and Python syntax check for pull requests and pushes to `main`.
 
 ## Frontend structure
 
-- `src/app.jsox`: the `<chore-fridge>` element owns screen selection, refresh subscriptions, and polling timers. Disconnecting it cleans up subscriptions and timers.
+- `src/app.jsox`: the `<chore-fridge>` element subscribes to screen selection and owns polling timers. Disconnecting it cleans up its subscription and timers.
 - `src/views/`: setup, board, PIN, and parent screen components, plus task forms and view controls.
 - `src/components/`: reusable choice groups, kid/chore components, and keyed list updates that preserve element identity.
-- `src/state.js`: household state, chore/reward rules, persistence, and server synchronization.
-- `src/view.js`: browser-local appearance and zoom preferences.
+- `src/state.js`: Nano Stores for household state, navigation/setup, and computed balances; explicit actions for changes, persistence, and server synchronization.
+- `src/view.js`: a separate Nano Store for browser-local appearance and zoom preferences.
 
-Screens build their controls on first connection and expose an `update()` function. The small `defineScreen` helper preserves those controls across reconnections. Components use light DOM and native buttons; no virtual DOM or reactive rendering library is required.
+JSOX constructs and manipulates DOM directly. There is no paint/render cycle, virtual DOM, or app-wide refresh bus. Components build their controls on first connection and use store subscriptions to synchronize existing nodes. The `defineScreen` helper preserves those controls across reconnections and removes subscriptions on disconnect. Parent tabs retain their DOM, and keyed lists retain item controls while records change.
+
+Nano Stores owns the current snapshots. Use actions such as `saveKid`, `saveChore`, `redeemReward`, `setUI`, and `setSetup`; treat exported `state`, `ui`, and `setup` bindings as read-only views of the stores. Household actions copy data before modifying it, so previous snapshots remain stable. Remote loads update the household store without scheduling another save. UI and display changes never enter the shared household payload.
+
+The direct-DOM convention is also recorded in `AGENTS.md` for future changes.
 
 Shared boards currently poll `/api/state` every five seconds while the board is open and server connectivity has been established. This rewrite preserves that protocol; server-sent events and RxJS are not implemented.
 

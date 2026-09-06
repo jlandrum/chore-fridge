@@ -1,11 +1,16 @@
 import { defineComponent } from "@js-ox/web-components";
 
-// Build each screen once; reconnecting preserves its controls and local state.
-export function defineScreen(name, mount) {
+// Each component builds its DOM once and subscribes only to relevant stores.
+export function defineScreen(name, mount, stores = []) {
   [defineComponent(name)] {
     .connected = function () {
-      if (!this.update) this.update = mount(this);
-      if (!this.hidden) this.update();
+      if (!this.syncDOM) this.syncDOM = mount(this);
+      const sync = () => { if (!this.hidden) this.syncDOM(); };
+      this.unsubscribers = stores.map((store) => store.listen(sync));
+      sync();
+    }
+    .disconnected = function () {
+      for (const unsubscribe of this.unsubscribers || []) unsubscribe();
     }
     .register()
   }

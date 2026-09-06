@@ -1,6 +1,5 @@
 import { defineScreen } from "../components/screen.jsox";
-import { state, ui, persist } from "../state.js";
-import { paint } from "../bus.js";
+import { state, ui, $ui, setUI, setPin } from "../state.js";
 import { Btn, showToast } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
 
@@ -10,34 +9,27 @@ function submitPin() {
       showToast("Need 4 digits");
       return;
     }
-    state.pin = ui.pinBuf;
-    persist();
-    ui.pinBuf = "";
-    ui.view = "parent";
+    setPin(ui.pinBuf);
+    setUI({ pinBuf: "", view: "parent" });
     showToast("PIN saved");
-    paint();
     return;
   }
   if (ui.pinBuf === state.pin) {
-    ui.pinBuf = "";
-    ui.view = "parent";
-    paint();
+    setUI({ pinBuf: "", view: "parent" });
   } else {
-    ui.pinBuf = "";
+    setUI({ pinBuf: "" });
     showToast("Nope");
-    paint();
   }
 }
 
 function onKey(k) {
-  if (k === "←") ui.pinBuf = ui.pinBuf.slice(0, -1);
+  if (k === "←") setUI({ pinBuf: ui.pinBuf.slice(0, -1) });
   else if (k === "OK") {
     submitPin();
     return;
-  } else if (ui.pinBuf.length < 4) ui.pinBuf += String(k);
+  } else if (ui.pinBuf.length < 4) setUI({ pinBuf: ui.pinBuf + String(k) });
 
   if (ui.pinBuf.length === 4 && k !== "OK" && k !== "←") submitPin();
-  else paint();
 }
 
 defineScreen("fridge-pin", (root) => {
@@ -72,9 +64,7 @@ defineScreen("fridge-pin", (root) => {
       .className = "row"
       .style.marginTop = "18px"
       [Btn("Back to board", "btn ghost wide", () => {
-        ui.view = "board";
-        ui.pinBuf = "";
-        paint();
+        setUI({ view: "board", pinBuf: "" });
       })]
     }
   }
@@ -87,4 +77,4 @@ defineScreen("fridge-pin", (root) => {
   }
 
   return sync;
-});
+}, [$ui]);

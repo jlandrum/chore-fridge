@@ -9,7 +9,6 @@ for (const key of ['window', 'document', 'HTMLElement', 'customElements', 'local
 window.fetch = null; // Component tests never contact household storage.
 globalThis.confirm = () => true;
 const store = await import('../src/state.js');
-const { paint } = await import('../src/bus.js');
 const view = await import('../src/view.js');
 const { modal, toastEl, confettiEl, showToast } = await import('../src/ui.jsox');
 await import('../src/app.jsox');
@@ -68,7 +67,6 @@ test('onboarding, PIN, task editing, completion, rewards, themes, and reconnect'
   row.querySelector('button').click();
   assert.equal(store.starsFor(store.state.kids[0].id), 5);
   assert.match(row.querySelector('button').className, /done/);
-  paint();
   assert.equal(active().querySelector('fridge-kid'), column);
   assert.equal(column.querySelector('fridge-chore'), row);
   await pauseTap();
@@ -76,13 +74,11 @@ test('onboarding, PIN, task editing, completion, rewards, themes, and reconnect'
   assert.equal(store.starsFor(store.state.kids[0].id), 0);
   await pauseTap();
   row.querySelector('button').click();
-  store.state.rewards.push({ id:'reward', title:'Treat', emoji:'🎁', cost:5, gold:false });
-  paint();
+  store.saveReward({ id:'reward', title:'Treat', emoji:'🎁', cost:5, gold:false });
   active().querySelector('.reward').click();
   modal.querySelector('.choice').click();
   assert.equal(store.starsFor(store.state.kids[0].id), 0);
-  store.state.rewards[0].title = 'Updated treat';
-  paint();
+  store.saveReward({ ...store.state.rewards[0], title:'Updated treat' });
   assert.match(active().querySelector('.reward').textContent, /Updated treat/);
   click('View');
   click('Dark', modal);
@@ -106,9 +102,8 @@ test('onboarding, PIN, task editing, completion, rewards, themes, and reconnect'
 test('counted chores, multiple assignments, keyed reorder/removal, and empty board', async () => {
   const first = store.state.kids[0];
   const second = { id:'second', name:'Sam', emoji:'🐸', color:'#2a9d8f' };
-  store.state.kids.push(second);
+  store.saveKid(second);
   const chore = store.saveChore({ title:'Practice', kidIds:[first.id, second.id], points:2, minCount:2, maxCount:3, gold:true });
-  paint();
   const board = active().querySelector('.board');
   const columns = [...board.children];
   const row = columns[0].querySelector(`[data-key="${chore.id}"]`);
@@ -124,21 +119,16 @@ test('counted chores, multiple assignments, keyed reorder/removal, and empty boa
   row.querySelector('.mark').click();
   assert.equal(store.countFor(chore, first.id), 1);
   assert.equal(store.goldFor(first.id), 1);
-  store.state.kids.reverse();
-  paint();
+  store.updateHousehold((draft) => { draft.kids.reverse(); });
   assert.equal(board.children[0], columns[1]);
   assert.equal(board.children[1], columns[0]);
-  store.state.kids = [first];
-  paint();
+  store.updateHousehold((draft) => { draft.kids = [first]; });
   assert.equal(board.children.length, 1);
   assert.equal(board.children[0], columns[0]);
   store.removeChore(chore.id);
-  paint();
   assert.equal(row.isConnected, false);
-  store.state.kids = [];
-  paint();
+  store.updateHousehold((draft) => { draft.kids = []; });
   assert.match(board.textContent, /No kids yet/);
-  paint();
   assert.equal(board.children.length, 1);
 });
 
@@ -159,4 +149,33 @@ test('multiple view controls stay synchronized and removed controls unsubscribe'
   assert.equal(one.querySelectorAll('.zoom-row').length, 1);
   one.remove();
   two.remove();
+});
+
+test('store snapshots and computed balances stay consistent without a refresh call', () => {
+  const kid = { id:'reactive', name:'Riley', emoji:'🐻', color:'#e85d4c' };
+  const before = store.$household.get();
+  store.saveKid(kid);
+  assert.equal(before.kids.length, 0);
+  assert.equal(store.$household.get().kids.length, 1);
+  assert.match(active().textContent, /Riley/);
+  store.setUI({ view:'parent', parentTab:'kids' });
+  const settings = active().querySelector('fridge-kids-settings');
+  const row = settings.querySelector('fridge-kid-settings');
+  const edit = row.querySelector('button');
+  store.saveKid({ ...kid, name:'Renamed Riley' });
+  assert.equal(settings.querySelector('fridge-kid-settings'), row);
+  assert.equal(row.querySelector('button'), edit);
+  assert.match(row.textContent, /Renamed Riley/);
+  store.setUI({ parentTab:'display' });
+  const display = active().querySelector('fridge-view-controls');
+  store.saveKid({ ...kid, name:'Riley' });
+  assert.equal(active().querySelector('fridge-view-controls'), display);
+  store.setUI({ parentTab:'kids' });
+  assert.equal(active().querySelector('fridge-kids-settings'), settings);
+  app.remove();
+  store.saveKid({ ...kid, name:'While disconnected' });
+  assert.doesNotMatch(row.textContent, /While disconnected/);
+  document.body.append(app);
+  assert.match(row.textContent, /While disconnected/);
+  store.setUI({ view:'board' });
 });

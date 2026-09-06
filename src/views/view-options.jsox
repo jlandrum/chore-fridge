@@ -1,6 +1,6 @@
 import { defineComponent } from "@js-ox/web-components";
 import { Choices } from "../components/choices.jsox";
-import { getView, setTheme, setLook, setZoom, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "../view.js";
+import { $view, getView, setTheme, setLook, setZoom, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "../view.js";
 import { Btn, openModal, closeModal } from "../ui.jsox";
 
 const appearances = ["light", "dark", "system"].map((value) => ({
@@ -48,11 +48,10 @@ const looks = [
         plus.disabled = current.zoom >= ZOOM_MAX;
       };
     }
-    window.addEventListener("fridge-view-change", this.update);
-    this.update();
+    this.unsubscribe = $view.subscribe(this.update);
   }
   .disconnected = function () {
-    window.removeEventListener("fridge-view-change", this.update);
+    this.unsubscribe();
   }
   .register()
 }

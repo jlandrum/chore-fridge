@@ -1,3 +1,4 @@
+import { updateList } from "../components/list.js";
 import { Choices } from "../components/choices.jsox";
 import { defineScreen } from "../components/screen.jsox";
 import {
@@ -8,12 +9,15 @@ import {
   starsFor,
   goldFor,
   uid,
-  persist,
-  defaultState,
-  replaceState,
-  resetSetup,
+  $household,
+  $ui,
+  setUI,
+  saveKid,
+  removeKid,
+  saveReward,
+  removeReward,
+  eraseBoard,
 } from "../state.js";
-import { paint } from "../bus.js";
 import { Btn, showToast, openModal, closeModal, Star } from "../ui.jsox";
 import { TaskLists } from "./tasks.jsox";
 import { ViewControls, createViewButton } from "./view-options.jsox";
@@ -57,16 +61,8 @@ function kidForm(existing) {
             showToast("Need a name");
             return;
           }
-          if (existing) {
-            existing.name = name;
-            existing.emoji = emoji;
-            existing.color = color;
-          } else {
-            state.kids.push({ id: uid(), name, emoji, color });
-          }
-          persist();
+          saveKid({ id: existing?.id, name, emoji, color });
           closeModal();
-          paint();
         })]
       }
     }
@@ -139,64 +135,43 @@ function rewardForm(existing) {
             cost: Math.max(1, parseInt(costInput.value, 10) || 1),
             gold,
           };
-          if (existing) {
-            const i = state.rewards.findIndex((r) => r.id === existing.id);
-            state.rewards[i] = payload;
-          } else {
-            state.rewards.push(payload);
-          }
-          persist();
+          saveReward(payload);
           closeModal();
-          paint();
         })]
       }
     }
   );
 }
 
-function KidsTab() {
-  const list = <div> { .className = "list" }
-  for (const kid of state.kids) {
-    const gold = goldFor(kid.id);
-    const grow = <div> { .className = "grow" }
-    grow.append(kid.emoji + " " + kid.name + " · ");
-    grow.append(Star(false));
-    grow.append(" " + starsFor(kid.id));
-    if (gold) {
-      grow.append(" · ");
-      grow.append(Star(true));
-      grow.append(" " + gold);
-    }
-    [list] {
-      <div> {
-        .className = "item"
-        [grow]
-        <button> {
-          .type = "button"
-          .className = "tiny"
-          ["Edit"]
-          .onclick = () => kidForm(kid)
-        }
-        <button> {
-          .type = "button"
-          .className = "tiny"
-          ["Remove"]
-          .onclick = () => {
-            if (!confirm("Remove this kid?")) return;
-            state.kids = state.kids.filter((k) => k.id !== kid.id);
-            persist();
-            paint();
-          }
-        }
-      }
-    }
+defineScreen("fridge-kid-settings", (root) => {
+  const text = <div> { .className = "grow" }
+  [root] {
+    .className = "item"
+    [text]
+    [Btn("Edit", "tiny", () => kidForm(root.model))]
+    [Btn("Remove", "tiny", () => {
+      if (confirm("Remove this kid?")) removeKid(root.model.id);
+    })]
   }
-  return <div> {
+  return () => {
+    const kid = root.model;
+    const gold = goldFor(kid.id);
+    text.replaceChildren(kid.emoji + " " + kid.name + " · ", Star(false), " " + starsFor(kid.id));
+    if (gold) text.append(" · ", Star(true), " " + gold);
+  };
+});
+
+defineScreen("fridge-kids-settings", (root) => {
+  const list = <div> { .className = "list" }
+  [root] {
     <h2> { ["Kids"] }
     [list]
     [Btn("Add kid", "btn", () => kidForm(null))]
   }
-}
+  return () => updateList(list, state.kids, "fridge-kid-settings");
+}, [$household]);
+
+function KidsTab() { return <fridge-kids-settings> }
 
 function ChoresTab() {
   return <div> {
@@ -209,43 +184,31 @@ function ChoresTab() {
   }
 }
 
-function RewardsTab() {
-  const list = <div> { .className = "list" }
-  for (const reward of state.rewards) {
-    [list] {
-      <div> {
-        .className = "item"
-        <div> {
-          .className = "grow"
-          [reward.emoji + " " + reward.title + " · "]
-          [Star(!!reward.gold)]
-          [" " + reward.cost]
-        }
-        <button> {
-          .type = "button"
-          .className = "tiny"
-          ["Edit"]
-          .onclick = () => rewardForm(reward)
-        }
-        <button> {
-          .type = "button"
-          .className = "tiny"
-          ["Remove"]
-          .onclick = () => {
-            state.rewards = state.rewards.filter((r) => r.id !== reward.id);
-            persist();
-            paint();
-          }
-        }
-      }
-    }
+defineScreen("fridge-reward-settings", (root) => {
+  const text = <div> { .className = "grow" }
+  [root] {
+    .className = "item"
+    [text]
+    [Btn("Edit", "tiny", () => rewardForm(root.model))]
+    [Btn("Remove", "tiny", () => removeReward(root.model.id))]
   }
-  return <div> {
+  return () => {
+    const reward = root.model;
+    text.replaceChildren(reward.emoji + " " + reward.title + " · ", Star(!!reward.gold), " " + reward.cost);
+  };
+});
+
+defineScreen("fridge-rewards-settings", (root) => {
+  const list = <div> { .className = "list" }
+  [root] {
     <h2> { ["Rewards"] }
     [list]
     [Btn("Add reward", "btn", () => rewardForm(null))]
   }
-}
+  return () => updateList(list, state.rewards, "fridge-reward-settings");
+}, [$household]);
+
+function RewardsTab() { return <fridge-rewards-settings> }
 
 function DisplayTab() {
   return <div> {
@@ -259,20 +222,13 @@ function DisplayTab() {
       .className = "row"
       .style.marginTop = "16px"
       [Btn("Change PIN", "btn ghost", () => {
-        ui.pinMode = "set";
-        ui.pinBuf = "";
-        ui.view = "pin";
-        paint();
+        setUI({ pinMode: "set", pinBuf: "", view: "pin" });
       })]
     }
     <p> { .className = "lead"; .style.marginTop = "28px"; ["Danger"] }
     [Btn("Erase board and start over", "btn danger", () => {
       if (!confirm("Erase everyone and every chore?")) return;
-      replaceState(defaultState());
-      resetSetup();
-      persist();
-      ui.view = "board";
-      paint();
+      eraseBoard();
     })]
   }
 }
@@ -318,8 +274,7 @@ defineScreen("fridge-parent", (root) => {
       .type = "button"
       [tab.charAt(0).toUpperCase() + tab.slice(1)]
       .onclick = () => {
-        ui.parentTab = tab;
-        paint();
+        setUI({ parentTab: tab });
       }
     }
     tabBtns[tab] = btn;
@@ -331,8 +286,7 @@ defineScreen("fridge-parent", (root) => {
       .type = "button"
       ["Board"]
       .onclick = () => {
-        ui.view = "board";
-        paint();
+        setUI({ view: "board" });
       }
     }
   }
@@ -343,19 +297,16 @@ defineScreen("fridge-parent", (root) => {
     [body]
   }
 
+  const factories = { kids: KidsTab, chores: ChoresTab, rewards: RewardsTab, display: DisplayTab, help: HelpTab };
+  const pages = new Map();
+  let currentTab;
   function sync() {
-    for (const tab of tabs) {
-      tabBtns[tab].className = ui.parentTab === tab ? "on" : "";
-    }
-    let page;
-    if (ui.parentTab === "kids") page = KidsTab();
-    else if (ui.parentTab === "chores") page = ChoresTab();
-    else if (ui.parentTab === "rewards") page = RewardsTab();
-    else if (ui.parentTab === "display") page = DisplayTab();
-    else page = HelpTab();
-    body.replaceChildren();
-    [body] { [page] }
+    if (currentTab === ui.parentTab) return;
+    currentTab = ui.parentTab;
+    for (const tab of tabs) tabBtns[tab].className = currentTab === tab ? "on" : "";
+    if (!pages.has(currentTab)) pages.set(currentTab, (factories[currentTab] || HelpTab)());
+    body.replaceChildren(pages.get(currentTab));
   }
 
   return sync;
-});
+}, [$ui]);

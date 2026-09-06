@@ -1,11 +1,15 @@
 import { defineComponent } from "@js-ox/web-components";
-import { state, ui, pullServer, serverMode } from "./state.js";
+import { computed } from "nanostores";
+import { $household, $ui, ui, pullServer, serverMode, tick } from "./state.js";
 import { applyTheme } from "./view.js";
-import { subscribe, paint } from "./bus.js";
 import "./views/setup.jsox";
 import "./views/board.jsox";
 import "./views/pin.jsox";
 import "./views/parent.jsox";
+
+const $screen = computed([$household, $ui], (household, navigation) =>
+  household.setupDone ? navigation.view : "setup"
+);
 
 [defineComponent("chore-fridge")] {
   .connected = function () {
@@ -18,24 +22,18 @@ import "./views/parent.jsox";
         <fridge-parent> { .hidden = true }
       }
     }
-    const update = () => {
-      applyTheme();
-      const current = state.setupDone ? ui.view : "setup";
+    this.unsubscribe = $screen.subscribe((current) => {
       for (const screen of this.children) {
         screen.hidden = screen.localName !== "fridge-" + current;
-        if (!screen.hidden) screen.update();
+        if (!screen.hidden) screen.syncDOM();
       }
-    };
-    this.unsubscribe = subscribe(update);
-    update();
-    pullServer(paint);
+    });
+    pullServer();
     this.pollTimer = setInterval(() => {
       applyTheme();
-      if (serverMode && ui.view === "board") pullServer(paint);
+      if (serverMode && ui.view === "board") pullServer();
     }, 5000);
-    this.dayTimer = setInterval(() => {
-      if (ui.view === "board" && state.setupDone) paint();
-    }, 60000);
+    this.dayTimer = setInterval(tick, 60000);
   }
   .disconnected = function () {
     this.unsubscribe();

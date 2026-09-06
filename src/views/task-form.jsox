@@ -1,6 +1,5 @@
 import { Choices } from "../components/choices.jsox";
 import { state, saveChore, isOnce, isWeekly } from "../state.js";
-import { paint } from "../bus.js";
 import { Btn, showToast, openModal, closeModal } from "../ui.jsox";
 
 export function openTaskForm(opts = {}) {
@@ -130,7 +129,6 @@ export function openTaskForm(opts = {}) {
           gold,
         });
         closeModal();
-        paint();
       })]
     }
   }

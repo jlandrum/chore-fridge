@@ -37,7 +37,7 @@ test('rewritten client reads and saves using the existing Python server contract
     const kid = { id:'kid', name:'Test Kid', emoji:'🐻', color:'#e85d4c' };
     const initial = { ...client.defaultState(), setupDone:true, kids:[kid], familyName:'Existing household', updatedAt:1 };
     assert.equal((await fetch('/api/state', { method:'PUT', body:JSON.stringify(initial) })).status, 204);
-    client.pullServer(() => {});
+    client.pullServer();
     await until(() => client.state.familyName === initial.familyName);
     assert.equal(client.serverMode, true);
     const chore = client.saveChore({ title:'Test task', points:5, kidIds:[kid.id], repeat:'daily', minCount:1, maxCount:1 });
@@ -53,7 +53,7 @@ test('rewritten client reads and saves using the existing Python server contract
     secondDevice.updatedAt = Date.now() + 1000;
     assert.equal((await fetch('/api/state', { method:'PUT', body:JSON.stringify(secondDevice) })).status, 204);
     await until(async () => {
-      client.pullServer(() => {});
+      client.pullServer();
       return client.state.familyName === secondDevice.familyName;
     });
     assert.equal(client.starsFor(kid.id), 5);

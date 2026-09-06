@@ -1,6 +1,5 @@
 import { defineScreen } from "../components/screen.jsox";
-import { setup, COLORS, KID_EMOJIS, uid, finishSetup } from "../state.js";
-import { paint } from "../bus.js";
+import { $setup, setSetup, setup, COLORS, KID_EMOJIS, uid, finishSetup } from "../state.js";
 import { Btn, showToast } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
 
@@ -32,8 +31,7 @@ defineScreen("fridge-setup", (root) => {
       const content = <div> {
         .className = "row"
         [Btn("Set up the family", "btn wide", () => {
-          setup.step = 1;
-          paint();
+          setSetup({ step: 1 });
         })]
       }
       page("Chore Fridge", "A giant chore board for the kitchen. You add the kids, then add daily, weekly, and one-off tasks. Nothing is pre-filled.", content);
@@ -53,9 +51,7 @@ defineScreen("fridge-setup", (root) => {
         <div> {
           .className = "row"
           [Btn("Next", "btn wide", () => {
-            setup.familyName = nameInput.value.trim() || "Our Family";
-            setup.step = 2;
-            paint();
+            setSetup({ familyName: nameInput.value.trim() || "Our Family", step: 2 });
           })]
         }
       }
@@ -78,8 +74,7 @@ defineScreen("fridge-setup", (root) => {
               .className = "tiny"
               ["Remove"]
               .onclick = () => {
-                setup.kids.splice(i, 1);
-                paint();
+                setSetup({ kids: setup.kids.filter((_, index) => index !== i) });
               }
             }
           }
@@ -100,13 +95,12 @@ defineScreen("fridge-setup", (root) => {
               showToast("Type a name first");
               return;
             }
-            setup.kids.push({
+            setSetup({ kids: [...setup.kids, {
               id: uid(),
               name,
               emoji: KID_EMOJIS[setup.kids.length % KID_EMOJIS.length],
               color: COLORS[setup.kids.length % COLORS.length],
-            });
-            paint();
+            }] });
           })]
           <button> {
             .type = "button"
@@ -115,8 +109,7 @@ defineScreen("fridge-setup", (root) => {
             ["Next"]
             .onclick = () => {
               if (!setup.kids.length) return;
-              setup.step = 3;
-              paint();
+              setSetup({ step: 3 });
             }
           }
         }
@@ -142,7 +135,7 @@ defineScreen("fridge-setup", (root) => {
             showToast(result.error);
             return;
           }
-          paint();
+
         })]
       }
     }
@@ -150,4 +143,4 @@ defineScreen("fridge-setup", (root) => {
   }
 
   return sync;
-});
+}, [$setup]);

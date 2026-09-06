@@ -1,84 +1,71 @@
-import { state, dailyChores, weeklyChores, oneOffChores, removeChore, choreKind, isCounted, minCount, maxCount } from "../state.js";
-import { paint } from "../bus.js";
+import { state, $household, dailyChores, weeklyChores, oneOffChores, removeChore, choreKind, isCounted, minCount, maxCount } from "../state.js";
+import { defineScreen } from "../components/screen.jsox";
+import { updateList } from "../components/list.js";
 import { Btn, showToast, Star } from "../ui.jsox";
 import { openTaskForm } from "./task-form.jsox";
 
 function kidNames(chore) {
-  return (chore.kidIds || [])
-    .map((id) => {
-      const kid = state.kids.find((k) => k.id === id);
-      return kid ? kid.emoji + " " + kid.name : "";
-    })
-    .filter(Boolean)
-    .join(" · ");
+  return (chore.kidIds || []).map((id) => {
+    const kid = state.kids.find((item) => item.id === id);
+    return kid ? kid.emoji + " " + kid.name : "";
+  }).filter(Boolean).join(" · ");
 }
 
-function TaskRow(chore) {
+defineScreen("fridge-task-summary", (root) => {
+  const title = <div> {}
   const sub = <div> { .className = "sub" }
-  sub.append(kidNames(chore) || "Nobody assigned");
-  if (chore.gold) {
-    sub.append(" · ");
-    sub.append(Star(true));
-    sub.append(" gold");
-  }
-  if (isCounted(chore)) sub.append(" · " + minCount(chore) + "–" + maxCount(chore) + " / day");
-  return <div> {
+  [root] {
     .className = "item"
-    <div> {
-      .className = "grow"
-      <div> { [chore.title] }
-      [sub]
-    }
-    <button> {
-      .type = "button"
-      .className = "tiny"
-      ["Edit"]
-      .onclick = () => openTaskForm({ existing: chore })
-    }
-    <button> {
-      .type = "button"
-      .className = "tiny"
-      ["Remove"]
-      .onclick = () => {
-        const kind = "this " + choreKind(chore).toLowerCase() + " task";
-        if (!confirm("Remove " + kind + "?")) return;
-        removeChore(chore.id);
-        paint();
-        showToast("Removed");
+    <div> { .className = "grow"; [title]; [sub] }
+    [Btn("Edit", "tiny", () => openTaskForm({ existing: root.model }))]
+    [Btn("Remove", "tiny", () => {
+      const chore = root.model;
+      if (!confirm("Remove this " + choreKind(chore).toLowerCase() + " task?")) return;
+      removeChore(chore.id);
+      showToast("Removed");
+    })]
+  }
+  return () => {
+    const chore = root.model;
+    title.textContent = chore.title;
+    sub.replaceChildren(kidNames(chore) || "Nobody assigned");
+    if (chore.gold) sub.append(" · ", Star(true), " gold");
+    if (isCounted(chore)) sub.append(" · " + minCount(chore) + "–" + maxCount(chore) + " / day");
+  };
+});
+
+defineScreen("fridge-task-lists", (root) => {
+  const sections = [
+    ["Every day", "These come back each morning until you remove them.", dailyChores, "daily"],
+    ["Once a week", "Shows all week. Check it off any day; it stays done until next week.", weeklyChores, "weekly"],
+    ["One-off", "Add a new one whenever you need it. It stays until it’s done, then it drops off.", oneOffChores, "once"],
+  ].map(([title, hint, chores, repeat]) => {
+    const list = <div> { .className = "list" }
+    const empty = <div> { .className = "empty-line"; ["None yet."] }
+    [root] {
+      <section> {
+        .className = "task-section"
+        <div> {
+          .className = "section-head"
+          <div> {
+            <h2> { [title] }
+            <p> { .className = "lead tight"; [hint] }
+          }
+          [Btn("Add", "btn", () => openTaskForm({ repeat }))]
+        }
+        [list]
+        [empty]
       }
     }
-  }
-}
+    return { list, empty, chores };
+  });
+  return () => {
+    for (const { list, empty, chores } of sections) {
+      const items = chores();
+      updateList(list, items, "fridge-task-summary");
+      empty.hidden = !!items.length;
+    }
+  };
+}, [$household]);
 
-function Section(title, hint, chores, repeat) {
-  const list = <div> { .className = "list" }
-  if (!chores.length) {
-    [list] {
-      <div> { .className = "empty-line"; ["None yet."] }
-    }
-  } else {
-    for (const chore of chores) {
-      [list] { [TaskRow(chore)] }
-    }
-  }
-  return <section> {
-    .className = "task-section"
-    <div> {
-      .className = "section-head"
-      <div> {
-        <h2> { [title] }
-        <p> { .className = "lead tight"; [hint] }
-      }
-      [Btn("Add", "btn", () => openTaskForm({ repeat }))]
-    }
-    [list]
-  }
-}
-
-export function TaskLists() {
-  return <div> {
-    [Section("Every day", "These come back each morning until you remove them.", dailyChores(), "daily")]
-    [Section("Once a week", "Shows all week. Check it off any day; it stays done until next week.", weeklyChores(), "weekly")]
-    [Section("One-off", "Add a new one whenever you need it. It stays until it’s done, then it drops off.", oneOffChores(), "once")]
-  }
-}
+export function TaskLists() { return <fridge-task-lists> }

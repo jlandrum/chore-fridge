@@ -17,6 +17,7 @@
     "vite": "^6.3.5"
   },
   "dependencies": {
-    "@js-ox/web-components": "^0.1.1"
+    "@js-ox/web-components": "^0.1.1",
+    "nanostores": "^1.5.3"
   }
 }
