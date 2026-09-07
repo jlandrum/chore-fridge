@@ -93,6 +93,12 @@ The script writes only `CHORE_FRIDGE_BIND_ADDRESS` to the remote `.env`; private
 
 The Node server lets all devices on the permitted local network share one board. Without the state server, the application falls back to browser storage and each device has its own independent data.
 
+## Parent controls
+
+Use **Unlock Parent Mode** to enter the PIN and unlock this page. Unlocking keeps you on the board. Open **Settings** separately, and use **Lock Parent Mode** when finished. Reloading starts locked, and a PIN change relocks other open pages when synchronized. Without a PIN, unlocking takes effect immediately.
+
+In **Settings → General**, enable **Require Parent Mode** to block completion, undo, and count changes while locked. A blocked tap displays “Unlock Parent Mode to change task completion.” The matching **Reward permissions** toggle requires Parent Mode for redemptions and displays “Unlock Parent Mode to redeem rewards.” Task and reward restrictions are independent and default to off. Both preferences are shared across household devices; the unlocked state is local to each page. This remains a browser interface control, not server authentication.
+
 ## Display options
 
 Use **View** from setup, the board, the parent lock, or parent settings to adjust this device's display:

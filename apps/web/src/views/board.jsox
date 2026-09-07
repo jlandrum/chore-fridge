@@ -1,8 +1,8 @@
-import { $familyName, $pin, $kids } from "../stores/family.js";
+import { $familyName, $kids } from "../stores/family.js";
 import { $chores } from "../stores/chores.js";
 import { $balances, starsFor, goldFor, familyStars, familyGold } from "../stores/balances.js";
-import { $rewards, redeemReward } from "../stores/rewards.js";
-import { setUI } from "../stores/navigation.js";
+import { $rewards, redeemReward, redemptionError } from "../stores/rewards.js";
+import { $ui, openParent, lockParent, openSettings } from "../stores/navigation.js";
 import { $clock } from "../stores/clock.js";
 import { prettyDate } from "@chore-fridge/domain/dates";
 import "../components/kid.jsox";
@@ -12,6 +12,8 @@ import { showToast, burst, openModal, closeModal, Btn, Star } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
 
 function askWho(reward) {
+  const error = redemptionError();
+  if (error) { showToast(error); return; }
   const choices = <div> { .className = "row" }
   for (const kid of $kids.get()) {
     const have = reward.gold ? goldFor(kid.id) : starsFor(kid.id);
@@ -77,10 +79,12 @@ defineScreen("fridge-board", (root) => {
   }
   const boardEl = <section> { .className = "board" }
   const dockEl = <nav> { .className = "dock" }
+  const parentButton = Btn("Unlock Parent Mode", "pill", () => $ui.get().parentUnlocked ? lockParent() : openParent());
+  const settingsButton = Btn("Settings", "pill", openSettings);
   const emptyBoard = <div> {
     .className = "panel"
     <h2> { ["No kids yet"] }
-    <p> { .className = "lead"; ["Open Parent to add your family."] }
+    <p> { .className = "lead"; ["Unlock Parent Mode and open Settings to add your family."] }
   }
   [root] {
     .className = "screen"
@@ -96,19 +100,8 @@ defineScreen("fridge-board", (root) => {
         [starsEl]
         [goldEl]
         [createViewButton()]
-        <button> {
-          .type = "button"
-          .className = "pill"
-          ["Parent"]
-          .onclick = () => {
-            if ($pin.get()) {
-              setUI({ pinMode: "enter", pinBuf: "", view: "pin" });
-            } else {
-              setUI({ view: "parent" });
-            }
-
-          }
-        }
+        [parentButton]
+        [settingsButton]
       }
     }
     [boardEl]
@@ -137,6 +130,11 @@ defineScreen("fridge-board", (root) => {
   }
 
   return [
+    [[$ui], () => {
+      const unlocked = $ui.get().parentUnlocked;
+      parentButton.textContent = unlocked ? "Lock Parent Mode" : "Unlock Parent Mode";
+      settingsButton.hidden = !unlocked;
+    }],
     [[$familyName], () => { titleEl.textContent = $familyName.get(); }],
     [[$clock], () => { dateEl.textContent = prettyDate(); }],
     [[$balances, $chores, $rewards], () => {

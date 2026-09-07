@@ -1,7 +1,8 @@
 import { todayKey } from "@chore-fridge/domain/dates";
 import { atom } from "nanostores";
 import { commit } from "./changes.js";
-import { $kids } from "./family.js";
+import { $ui } from "./navigation.js";
+import { $kids, $requireParentModeForRedemptions } from "./family.js";
 import { $spent, $goldSpent, starsFor, goldFor } from "./balances.js";
 import { uid, upsert } from "@chore-fridge/domain/records";
 
@@ -17,6 +18,8 @@ export function removeReward(id) {
 }
 
 export function redeemReward(rewardId, kidId) {
+  const error = redemptionError();
+  if (error) return {error};
   const reward = $rewards.get().find((item) => item.id === rewardId);
   if (!reward) return { error: "Missing reward" };
   const available = reward.gold ? goldFor(kidId) : starsFor(kidId);
@@ -24,4 +27,9 @@ export function redeemReward(rewardId, kidId) {
   const spending = reward.gold ? $goldSpent : $spent;
   commit(() => spending.set({ ...spending.get(), [kidId]: (spending.get()[kidId] || 0) + reward.cost }), { type:"reward.redeem", payload:{rewardId,kidId,day:todayKey()} });
   return { ok: true, reward, kid: $kids.get().find((kid) => kid.id === kidId) || null };
+}
+
+export function redemptionError() {
+  return $requireParentModeForRedemptions.get() && !$ui.get().parentUnlocked
+    ? "Unlock Parent Mode to redeem rewards." : null;
 }

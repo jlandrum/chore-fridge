@@ -1,3 +1,5 @@
+import { $requireParentModeForCompletion } from "./family.js";
+import { $ui } from "./navigation.js";
 import * as rules from "@chore-fridge/domain/chores";
 import { ck, isCounted, maxCount, isOnce, isWeekly } from "@chore-fridge/domain/chores";
 import { atom } from "nanostores";
@@ -23,6 +25,7 @@ export function weeklyChores(...args) { return rules.weeklyChores(snapshot(), ..
 export function oneOffChores(...args) { return rules.oneOffChores(snapshot(), ...args); }
 
 export function bumpChore(choreId, kidId, delta) {
+  if (completionLocked()) return {error:"Unlock Parent Mode to change task completion."};
   const now = Date.now();
   if (now - lastTap < 280) return { skipped: true };
   lastTap = now;
@@ -40,6 +43,8 @@ export function bumpChore(choreId, kidId, delta) {
 }
 
 export function toggleChore(choreId, kidId) {
+  const task = $chores.get().find(item => item.id === choreId);
+  if (task && completionLocked()) return {error:"Unlock Parent Mode to change task completion."};
   const now = Date.now();
   if (now - lastTap < 280) return { skipped: true };
   lastTap = now;
@@ -112,4 +117,8 @@ export function restoreChore(id) {
     $archivedChores.set($archivedChores.get().filter(chore => chore.id !== id));
     $chores.set([...$chores.get(),{...chore,archived:false}]);
   }, {type:"chore.restore",payload:{id}});
+}
+
+function completionLocked() {
+  return $requireParentModeForCompletion.get() && !$ui.get().parentUnlocked;
 }

@@ -15,7 +15,7 @@ export function finishSetup(pin) {
   if (pin.length && pin.length !== 4) return { error: "PIN needs 4 digits" };
   if (!setup.kids.length) return { error: "Add at least one kid" };
   commit(() => {
-    setUI({ view: "board" });
+    setUI({ view: "board", parentUnlocked:false });
     $familyName.set(setup.familyName || "Our Family");
     $kids.set(setup.kids.map((kid) => ({ ...kid })));
     $chores.set([]);
@@ -29,7 +29,7 @@ export function finishSetup(pin) {
 export function eraseBoard() {
   batch(() => {
     $setup.set({ step: 0, familyName: "Our Family", kids: [] });
-    setUI({ view: "board", pinBuf: "" });
+    setUI({ view: "board", pinBuf: "", parentUnlocked:false });
     resetHousehold();
   });
 }
