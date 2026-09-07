@@ -8,7 +8,7 @@ const appearances = ["light", "dark", "system"].map((value) => ({
   value, label: value.charAt(0).toUpperCase() + value.slice(1),
 }));
 const looks = [
-  ["classic", "Classic"], ["business", "Business"], ["crayon", "Crayon"],
+  ["classic", "Classic (V1)"], ["business", "Business"], ["crayon", "Crayon"],
   ["contrast", "High contrast"], ["lego", "Lego"], ["cyberpunk", "Cyberpunk"],
 ].map(([value, label]) => ({ value, label, className: "look-" + value }));
 

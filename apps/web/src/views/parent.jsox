@@ -1,7 +1,7 @@
 import { COLORS, KID_EMOJIS, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions } from "../stores/family.js";
 import { $balances, starsFor, goldFor } from "../stores/balances.js";
 import { $rewards, saveReward, removeReward } from "../stores/rewards.js";
-import { $ui, setUI, lockParent } from "../stores/navigation.js";
+import { $ui, setUI, lockParent, closeSettings } from "../stores/navigation.js";
 import { eraseBoard } from "../stores/setup.js";
 import { uid } from "@chore-fridge/domain/records";
 import { updateList } from "../components/list.js";
@@ -9,7 +9,8 @@ import { Choices } from "../components/choices.jsox";
 import { defineScreen } from "../components/screen.jsox";
 import { Btn, showToast, openModal, closeModal, Star } from "../ui.jsox";
 import { TaskLists } from "./tasks.jsox";
-import { ViewControls, createViewButton } from "./view-options.jsox";
+import { ViewControls } from "./view-options.jsox";
+import { Tabs } from "../components/tabs.jsox";
 
 function kidForm(existing) {
   let emoji = existing ? existing.emoji : "🐻";
@@ -303,45 +304,51 @@ function HelpTab() {
 }
 
 defineScreen("fridge-parent", (root) => {
-  const tabs = ["general", "kids", "chores", "rewards", "display", "help"];
-  const tabBtns = {};
-  const bar = <div> { .className = "tabs" }
-  for (const tab of tabs) {
-    const btn = <button> {
-      .type = "button"
-      [tab.charAt(0).toUpperCase() + tab.slice(1)]
-      .onclick = () => {
-        setUI({ parentTab: tab });
-      }
-    }
-    tabBtns[tab] = btn;
-    [bar] { [btn] }
-  }
-  [bar] {
-    [createViewButton()]
-    [Btn("Lock Parent Mode", "", lockParent)]
-    <button> {
-      .type = "button"
-      ["Board"]
-      .onclick = () => {
-        setUI({ view: "board" });
-      }
-    }
-  }
-  const body = <div> {}
+  const tabOptions = ["general", "kids", "chores", "rewards", "display", "help"].map(tab => ({
+    value: tab,
+    label: tab.charAt(0).toUpperCase() + tab.slice(1),
+  }));
+  const dismissSettings = () => {
+    const settingsButton = root.parentElement?.querySelector("fridge-board .settings-button");
+    closeSettings();
+    queueMicrotask(() => settingsButton?.focus());
+  };
+  const tabs = Tabs(tabOptions, $ui.get().parentTab, tab => setUI({parentTab: tab}), {id:"settings-tabs", controls:"settings-panel"});
+  const body = <div> { .id = "settings-panel"; .className = "settings-body"; .setAttribute("role", "tabpanel") }
+  const close = Btn("Close", "btn ghost settings-close", dismissSettings);
   [root] {
-    .className = "panel"
-    [bar]
-    [body]
+    .className = "settings-modal"
+    .setAttribute("role", "dialog")
+    .setAttribute("aria-modal", "true")
+    .setAttribute("aria-labelledby", "settings-title")
+    .onclick = event => { if (event.target === root) dismissSettings(); }
+    .onkeydown = event => { if (event.key === "Escape") dismissSettings(); }
+    <section> {
+      .className = "panel settings-panel"
+      <header> {
+        .className = "settings-header"
+        <h1> { .id = "settings-title"; ["Settings"] }
+        <div> {
+          .className = "row"
+          [Btn("Lock Parent Mode", "btn ghost", lockParent)]
+          [close]
+        }
+      }
+      [tabs]
+      [body]
+    }
   }
 
   const factories = { general: () => <fridge-general-settings>, kids: KidsTab, chores: ChoresTab, rewards: RewardsTab, display: DisplayTab, help: HelpTab };
   const pages = new Map();
   let currentTab;
   function sync() {
-    if (currentTab === $ui.get().parentTab) return;
-    currentTab = $ui.get().parentTab;
-    for (const tab of tabs) tabBtns[tab].className = currentTab === tab ? "on" : "";
+    const selected = $ui.get().parentTab;
+    tabs.value = selected;
+    tabs.update();
+    body.setAttribute("aria-labelledby", "settings-tabs-" + selected);
+    if (currentTab === selected) return;
+    currentTab = selected;
     if (!pages.has(currentTab)) pages.set(currentTab, (factories[currentTab] || HelpTab)());
     body.replaceChildren(pages.get(currentTab));
   }

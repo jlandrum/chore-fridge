@@ -101,10 +101,10 @@ In **Settings → General**, enable **Require Parent Mode** to block completion,
 
 ## Display options
 
-Use **View** from setup, the board, the parent lock, or parent settings to adjust this device's display:
+Use **View** from setup or the board, or open **Settings → Display**, to adjust this device's display:
 
 - Appearance: Light, Dark, or System (follows the device's color preference).
-- Theme: Classic, Business, Crayon, High contrast, Lego, or Cyberpunk.
+- Theme: Classic (V1), Business, Crayon, High contrast, Lego, or Cyberpunk.
 - Zoom: 50–150% in 10% steps.
 
 Changes apply immediately and are remembered in this browser. Display preferences are independent of the shared household state, so each fridge, tablet, or computer can use its own settings. Existing explicit bright/dim preferences are migrated from browser storage; automatic appearance now follows the system instead of dimming after 8 p.m.

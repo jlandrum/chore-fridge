@@ -80,7 +80,7 @@ defineScreen("fridge-board", (root) => {
   const boardEl = <section> { .className = "board" }
   const dockEl = <nav> { .className = "dock" }
   const parentButton = Btn("Unlock Parent Mode", "pill", () => $ui.get().parentUnlocked ? lockParent() : openParent());
-  const settingsButton = Btn("Settings", "pill", openSettings);
+  const settingsButton = Btn("Settings", "pill settings-button", openSettings);
   const emptyBoard = <div> {
     .className = "panel"
     <h2> { ["No kids yet"] }

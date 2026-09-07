@@ -20,7 +20,7 @@ await import('../apps/web/src/app.jsox');
 document.body.append(modal, toastEl, confettiEl);
 const app = document.createElement('chore-fridge');
 document.body.append(app);
-const active = () => [...app.children].find(node => !node.hidden);
+const active = () => [...app.children].filter(node => !node.hidden).at(-1);
 function click(label, scope = active()) {
   const button = [...scope.querySelectorAll('button')].find(node => node.textContent.trim() === label);
   assert.ok(button, `Button exists: ${label}`);
@@ -68,7 +68,7 @@ test('onboarding, PIN, task editing, completion, rewards, themes, and reconnect'
   click('Save', modal);
   assert.equal(chores.$chores.get()[0].repeat, 'weekly');
   assert.equal(chores.$chores.get()[0].title, 'Wash dishes');
-  click('Board');
+  click('Close');
   const column = active().querySelector('fridge-kid');
   const row = column.querySelector('fridge-chore');
   row.querySelector('button').click();
@@ -231,7 +231,26 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.equal(active().localName,'fridge-board');
   click('Settings');
   assert.equal(active().localName,'fridge-parent');
-  click('Board');
+  assert.equal(active().getAttribute('role'),'dialog');
+  assert.equal(active().getAttribute('aria-modal'),'true');
+  const boardScreen = [...app.children].find(node => node.localName === 'fridge-board');
+  assert.equal(boardScreen.hidden,false);
+  assert.equal(boardScreen.inert,true);
+  const tabs = active().querySelector('fridge-tabs');
+  assert.equal(tabs.getAttribute('role'),'tablist');
+  assert.equal(tabs.querySelectorAll('[role="tab"]').length,6);
+  assert.equal(tabs.querySelector('[role="tab"]').getAttribute('aria-controls'),'settings-panel');
+  assert.equal(tabs.querySelector('[aria-selected="true"]').textContent.toLowerCase(),navigation.$ui.get().parentTab);
+  click('Display');
+  tabs.querySelector('[aria-selected="true"]').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+  assert.equal(tabs.querySelector('[aria-selected="true"]').textContent,'Help');
+  click('Display');
+  assert.ok(active().querySelector('.settings-body fridge-view-controls'));
+  assert.equal(active().querySelector('button.look-classic').textContent.trim(),'Classic (V1)');
+  assert.equal(modal.hidden,true);
+  assert.equal([...active().querySelectorAll('button')].some(button => button.textContent.trim() === 'View'),false);
+  click('Close');
+  assert.equal(boardScreen.inert,false);
   assert.equal(navigation.$ui.get().parentUnlocked,true);
   click('Settings');
   assert.equal(active().localName,'fridge-parent');
@@ -256,7 +275,7 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.equal(active().localName,'fridge-board');
   click('Settings');
   assert.equal(active().localName,'fridge-parent');
-  click('Board');
+  click('Close');
   click('Lock Parent Mode');
   assert.equal(navigation.$ui.get().parentUnlocked,false);
 });
@@ -279,7 +298,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
   assert.equal(active().querySelector('.setting-status').textContent,'On');
   assert.equal(family.$requireParentModeForCompletion.get(),true);
   assert.equal(sync.serializeHousehold().requireParentModeForCompletion,true);
-  click('Board');
+  click('Close');
   click('Lock Parent Mode');
   const revision = changes.$revision.get();
   for (const row of active().querySelectorAll('fridge-chore')) {
@@ -321,7 +340,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
   const control = active().querySelector('fridge-general-settings input');
   control.checked = false;
   control.dispatchEvent(new Event('change',{bubbles:true}));
-  click('Board');
+  click('Close');
   click('Lock Parent Mode');
   await pauseTap();
   counted.querySelector('button').click();
@@ -340,7 +359,7 @@ test('redemption toggle independently blocks spending while locked and shows a m
   assert.equal(toggle.getAttribute('aria-checked'),'true');
   assert.equal(family.$requireParentModeForCompletion.get(),true);
   assert.equal(family.$requireParentModeForRedemptions.get(),true);
-  click('Board');
+  click('Close');
   click('Lock Parent Mode');
   const revision = changes.$revision.get();
   active().querySelector('.reward').click();
@@ -357,7 +376,7 @@ test('redemption toggle independently blocks spending while locked and shows a m
   click('General');
   active().querySelector('input[aria-label="Require Parent Mode for redemptions"]').click();
   assert.equal(family.$requireParentModeForCompletion.get(),true);
-  click('Board');
+  click('Close');
   click('Lock Parent Mode');
   assert.equal(rewards.redeemReward('stars','reward-kid').ok,true);
   assert.equal(balances.starsFor('reward-kid'),8);

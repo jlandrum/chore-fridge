@@ -34,3 +34,7 @@ $setupDone.listen(done => { if (!done) lockParent(); });
 export function openSettings() {
   if ($ui.get().parentUnlocked) setUI({view:"parent"});
 }
+
+export function closeSettings() {
+  if ($ui.get().view === "parent") setUI({view:"board"});
+}
