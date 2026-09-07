@@ -97,7 +97,7 @@ The Node server lets all devices on the permitted local network share one board.
 
 Use **Unlock Parent Mode** to enter the PIN and unlock this page. Unlocking keeps you on the board. Open **Settings** separately, and use **Lock Parent Mode** when finished. Reloading starts locked, and a PIN change relocks other open pages when synchronized. Without a PIN, unlocking takes effect immediately.
 
-In **Settings → General**, enable **Require Parent Mode** to block completion, undo, and count changes while locked. A blocked tap displays “Unlock Parent Mode to change task completion.” The preference is shared across household devices; the unlocked state is local to each page. This remains a browser interface control, not server authentication.
+In **Settings → General**, enable **Require Parent Mode** to block completion, undo, and count changes while locked. A blocked tap displays “Unlock Parent Mode to change task completion.” The matching **Reward permissions** toggle requires Parent Mode for redemptions and displays “Unlock Parent Mode to redeem rewards.” Task and reward restrictions are independent and default to off. Both preferences are shared across household devices; the unlocked state is local to each page. This remains a browser interface control, not server authentication.
 
 ## Display options
 

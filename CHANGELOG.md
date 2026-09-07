@@ -16,7 +16,7 @@ User-facing changes and upgrade notes are recorded here. Move the Unreleased ent
 
 ### Changed
 
-- Parent Mode now uses explicit Unlock Parent Mode and Lock Parent Mode controls. Unlocking stays on the board; Settings opens separately. Reloads start locked. Settings → General uses a themed toggle to require Parent Mode for completion, undo, and count changes, with an explanation shown on blocked taps.
+- Parent Mode now uses explicit Unlock Parent Mode and Lock Parent Mode controls. Unlocking stays on the board; Settings opens separately. Reloads start locked. Settings → General uses a themed toggle to require Parent Mode for completion, undo, and count changes, with an explanation shown on blocked taps. A separate matching toggle can require Parent Mode for reward redemptions.
 
 - Rebuilt the interface with JSOX 0.2, native web components, and independent Nano Stores that update existing DOM directly.
 - Replaced the Python runtime with a Node/Fastify server and npm workspaces for the web app, server, shared domain rules, and API contracts.

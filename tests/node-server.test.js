@@ -158,3 +158,24 @@ test('parent completion preference is validated, persisted and included in daily
     assert.equal((await app.inject('/api/board')).json().requireParentModeForCompletion,false);
   } finally { await app.close(); }
 });
+
+test('redemption preference persists independently from task permissions', async t => {
+  const options = files(t);
+  let app = await createApp(options);
+  app.storage.importLegacy(seed());
+  assert.equal((await app.inject('/api/board')).json().requireParentModeForRedemptions,false);
+  assert.equal((await command(app,'both-settings','settings.update',{requireParentModeForCompletion:true,requireParentModeForRedemptions:true})).statusCode,200);
+  assert.equal((await command(app,'no-settings','settings.update',{})).statusCode,400);
+  assert.equal((await command(app,'invalid-redeem-setting','settings.update',{requireParentModeForRedemptions:'yes'})).statusCode,400);
+  await app.close();
+  app = await createApp(options);
+  try {
+    const before = (await app.inject('/api/board')).json();
+    assert.equal(before.requireParentModeForCompletion,true);
+    assert.equal(before.requireParentModeForRedemptions,true);
+    await command(app,'change-one-setting','settings.update',{requireParentModeForCompletion:false});
+    assert.equal((await app.inject('/api/board')).json().requireParentModeForRedemptions,true);
+    await command(app,'change-other-setting','settings.update',{requireParentModeForRedemptions:false});
+    assert.equal((await app.inject('/api/board')).json().requireParentModeForCompletion,false);
+  } finally { await app.close(); }
+});

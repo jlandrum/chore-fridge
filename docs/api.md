@@ -31,7 +31,7 @@ Supported commands:
 | `reward.save` | `id`, `title`, `cost`; optional `emoji`, `gold` |
 | `reward.remove` | `id` |
 | `reward.redeem` | `rewardId`, `kidId`; optional calendar `day` |
-| `settings.update` | `requireParentModeForCompletion` (boolean) |
+| `settings.update` | One or both booleans: `requireParentModeForCompletion`, `requireParentModeForRedemptions` |
 | `pin.set` | `pin` (empty or four digits) |
 | `household.reset` | empty object |
 
@@ -80,3 +80,5 @@ Existing balances migrate once as opening credits and opening spending debits. K
 The normal board payload does not grow with the number of past journal entries or task versions. Server-side household snapshots and the explicit legacy/export and revision-history APIs still contain full historical projections; this change bounds regular network responses, not every internal storage operation.
 
 The shared `requireParentModeForCompletion` preference defaults to false and is included in daily board responses. When enabled, the browser blocks completion, undo, and count changes until its local Parent Mode is unlocked and displays a message. This setting does not introduce API authentication or server-side parent sessions.
+
+`requireParentModeForRedemptions` independently gates browser reward redemption while Parent Mode is locked, for both stars and gold. It defaults to false and is included in daily responses. `settings.update` is a partial update: omitted preferences are preserved; an empty payload is rejected. The gate is checked before opening the reward picker and again before spending so a lock change cannot allow a stale dialog to redeem.

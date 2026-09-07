@@ -15,7 +15,7 @@ export const payloadSchemas = {
   'reward.save':rewardSchema, 'reward.remove':object({id}),
   'reward.redeem':object({rewardId:id,kidId:id,day},['rewardId','kidId']),
   'pin.set':object({pin}),
-  'settings.update':object({requireParentModeForCompletion:{type:'boolean'}}),
+  'settings.update':{...object({requireParentModeForCompletion:{type:'boolean'},requireParentModeForRedemptions:{type:'boolean'}},[]),minProperties:1},
   'setup.finish':object({familyName:text,kids:{type:'array',minItems:1,items:kidSchema},pin}),
   'household.reset':object({}),
 };
@@ -26,7 +26,7 @@ export const commandSchema = {
 export const stateSchema = {
   type:'object', required:['version'], additionalProperties:true,
   properties:{
-    version:{type:'integer',const:1}, requireParentModeForCompletion:{type:'boolean'}, familyName:{type:'string'},pin:{type:'string'},setupDone:{type:'boolean'},
+    version:{type:'integer',const:1}, requireParentModeForCompletion:{type:'boolean'},requireParentModeForRedemptions:{type:'boolean'}, familyName:{type:'string'},pin:{type:'string'},setupDone:{type:'boolean'},
     updatedAt:{type:'number'}, nightMode:{type:'string'},
     kids:{type:'array',items:{type:'object',required:['id','name'],properties:{id:{type:'string'},name:{type:'string'}}}},
     chores:{type:'array',items:{type:'object',required:['id','title','kidIds'],properties:{id:{type:'string'},title:{type:'string'},kidIds:{type:'array',items:{type:'string'}}}}},

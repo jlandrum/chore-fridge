@@ -327,3 +327,38 @@ test('completion setting blocks normal and counted tasks while locked and displa
   counted.querySelector('button').click();
   assert.equal(chores.countFor(chores.$chores.get()[1],'gated-kid'),1);
 });
+
+test('redemption toggle independently blocks spending while locked and shows a message', async () => {
+  const sync = await import('../apps/web/src/stores/sync.js');
+  const changes = await import('../apps/web/src/stores/changes.js');
+  sync.applySnapshot({...sync.defaultState(),setupDone:true,requireParentModeForCompletion:true,kids:[{id:'reward-kid',name:'Alex'}],chores:[{id:'earned',title:'Task',points:10,gold:true,kidIds:['reward-kid'],repeat:'daily'}],completions:{'2026-09-06:earned:reward-kid':1},rewards:[{id:'stars',title:'Star reward',emoji:'⭐',cost:2},{id:'gold',title:'Gold reward',emoji:'⭐',cost:1,gold:true}]});
+  navigation.unlockParent();
+  click('Settings');
+  click('General');
+  const toggle = active().querySelector('input[aria-label="Require Parent Mode for redemptions"]');
+  toggle.click();
+  assert.equal(toggle.getAttribute('aria-checked'),'true');
+  assert.equal(family.$requireParentModeForCompletion.get(),true);
+  assert.equal(family.$requireParentModeForRedemptions.get(),true);
+  click('Board');
+  click('Lock Parent Mode');
+  const revision = changes.$revision.get();
+  active().querySelector('.reward').click();
+  assert.equal(toastEl.textContent,'Unlock Parent Mode to redeem rewards.');
+  assert.equal(modal.hidden,true);
+  for (const id of ['stars','gold']) assert.match(rewards.redeemReward(id,'reward-kid').error,/Unlock Parent Mode/);
+  assert.equal(changes.$revision.get(),revision);
+  assert.equal(balances.starsFor('reward-kid'),10);
+  assert.equal(balances.goldFor('reward-kid'),1);
+  click('Unlock Parent Mode');
+  assert.equal(rewards.redeemReward('gold','reward-kid').ok,true);
+  assert.equal(balances.goldFor('reward-kid'),0);
+  click('Settings');
+  click('General');
+  active().querySelector('input[aria-label="Require Parent Mode for redemptions"]').click();
+  assert.equal(family.$requireParentModeForCompletion.get(),true);
+  click('Board');
+  click('Lock Parent Mode');
+  assert.equal(rewards.redeemReward('stars','reward-kid').ok,true);
+  assert.equal(balances.starsFor('reward-kid'),8);
+});

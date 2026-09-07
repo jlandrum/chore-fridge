@@ -43,7 +43,11 @@ export function applyCommand(current, command, now = Date.now()) {
       state.rewards = upsert(state.rewards, {emoji:'🎁',gold:false,...p,title:p.title.trim()});
       break;
     case 'reward.remove': state.rewards = state.rewards.filter(reward => reward.id !== p.id); break;
-    case 'settings.update': state.requireParentModeForCompletion = p.requireParentModeForCompletion; break;
+    case 'settings.update':
+      for (const key of ['requireParentModeForCompletion','requireParentModeForRedemptions']) {
+        if (key in p) state[key] = p[key];
+      }
+      break;
     case 'pin.set': state.pin = p.pin; break;
     case 'setup.finish':
       requireValue(!state.setupDone, 'Household is already set up');

@@ -1,7 +1,7 @@
 import { $familyName, $kids } from "../stores/family.js";
 import { $chores } from "../stores/chores.js";
 import { $balances, starsFor, goldFor, familyStars, familyGold } from "../stores/balances.js";
-import { $rewards, redeemReward } from "../stores/rewards.js";
+import { $rewards, redeemReward, redemptionError } from "../stores/rewards.js";
 import { $ui, openParent, lockParent, openSettings } from "../stores/navigation.js";
 import { $clock } from "../stores/clock.js";
 import { prettyDate } from "@chore-fridge/domain/dates";
@@ -12,6 +12,8 @@ import { showToast, burst, openModal, closeModal, Btn, Star } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
 
 function askWho(reward) {
+  const error = redemptionError();
+  if (error) { showToast(error); return; }
   const choices = <div> { .className = "row" }
   for (const kid of $kids.get()) {
     const have = reward.gold ? goldFor(kid.id) : starsFor(kid.id);
