@@ -274,6 +274,9 @@ test('completion setting blocks normal and counted tasks while locked and displa
   const checkbox = active().querySelector('fridge-general-settings input');
   checkbox.checked = true;
   checkbox.dispatchEvent(new Event('change',{bubbles:true}));
+  assert.equal(checkbox.getAttribute('role'),'switch');
+  assert.equal(checkbox.getAttribute('aria-checked'),'true');
+  assert.equal(active().querySelector('.setting-status').textContent,'On');
   assert.equal(family.$requireParentModeForCompletion.get(),true);
   assert.equal(sync.serializeHousehold().requireParentModeForCompletion,true);
   click('Board');
@@ -281,7 +284,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
   const revision = changes.$revision.get();
   for (const row of active().querySelectorAll('fridge-chore')) {
     row.querySelector('button').click();
-    assert.equal(toastEl.textContent,'Unlock Parent Mode to complete tasks.');
+    assert.equal(toastEl.textContent,'Unlock Parent Mode to change task completion.');
   }
   assert.deepEqual(chores.$completions.get(),{});
   assert.deepEqual(chores.$counts.get(),{});
@@ -295,6 +298,24 @@ test('completion setting blocks normal and counted tasks while locked and displa
   const counted = [...active().querySelectorAll('fridge-chore')].find(row => row.textContent.includes('Counted task'));
   counted.querySelector('button').click();
   assert.equal(chores.countFor(chores.$chores.get()[1],'gated-kid'),1);
+  click('Lock Parent Mode');
+  const lockedRevision = changes.$revision.get();
+  const creditsBefore = balances.starsFor('gated-kid');
+  plain.querySelector('button').click();
+  assert.equal(toastEl.textContent,'Unlock Parent Mode to change task completion.');
+  counted.querySelector('.mark').click();
+  assert.equal(toastEl.textContent,'Unlock Parent Mode to change task completion.');
+  assert.equal(chores.isDone(chores.$chores.get()[0],'gated-kid'),true);
+  assert.equal(chores.countFor(chores.$chores.get()[1],'gated-kid'),1);
+  assert.equal(balances.starsFor('gated-kid'),creditsBefore);
+  assert.equal(changes.$revision.get(),lockedRevision);
+  click('Unlock Parent Mode');
+  await pauseTap();
+  plain.querySelector('button').click();
+  assert.equal(chores.isDone(chores.$chores.get()[0],'gated-kid'),false);
+  await pauseTap();
+  counted.querySelector('.mark').click();
+  assert.equal(chores.countFor(chores.$chores.get()[1],'gated-kid'),0);
   click('Settings');
   click('General');
   const control = active().querySelector('fridge-general-settings input');
@@ -304,5 +325,5 @@ test('completion setting blocks normal and counted tasks while locked and displa
   click('Lock Parent Mode');
   await pauseTap();
   counted.querySelector('button').click();
-  assert.equal(chores.countFor(chores.$chores.get()[1],'gated-kid'),2);
+  assert.equal(chores.countFor(chores.$chores.get()[1],'gated-kid'),1);
 });

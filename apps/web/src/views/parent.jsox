@@ -202,21 +202,40 @@ function RewardsTab() { return <fridge-rewards-settings> }
 defineScreen("fridge-general-settings", (root) => {
   const required = <input> {
     .type = "checkbox"
+    .setAttribute("role", "switch")
+    .setAttribute("aria-label", "Require Parent Mode for task changes")
     .onchange = () => setRequireParentModeForCompletion(required.checked)
   }
+  const status = <span> { .className = "setting-status"; .setAttribute("aria-hidden", "true") }
   [root] {
+    .className = "general-settings"
     <h2> { ["General"] }
-    <label> {
-      .className = "row"
-      [required]
-      ["Require Parent Mode to complete tasks"]
-    }
-    <p> {
-      .className = "lead"
-      ["When enabled, tasks can only be completed while Parent Mode is unlocked on this device."]
+    <p> { .className = "lead"; ["Manage how your household uses the board."] }
+    <section> {
+      .className = "settings-group"
+      <h3> { ["Task permissions"] }
+      <label> {
+        .className = "setting-toggle"
+        [required]
+        <span> {
+          .className = "setting-copy"
+          <strong> { .className = "setting-title"; ["Require Parent Mode"] }
+          <span> { .className = "setting-description"; ["Unlock Parent Mode to complete or undo tasks and change counts."] }
+        }
+        <span> {
+          .className = "setting-control"
+          [status]
+          <span> { .className = "switch-track"; .setAttribute("aria-hidden", "true") }
+        }
+      }
     }
   }
-  return () => { required.checked = $requireParentModeForCompletion.get(); };
+  return () => {
+    const enabled = $requireParentModeForCompletion.get();
+    required.checked = enabled;
+    required.setAttribute("aria-checked", String(enabled));
+    status.textContent = enabled ? "On" : "Off";
+  };
 }, [$requireParentModeForCompletion]);
 
 function DisplayTab() {

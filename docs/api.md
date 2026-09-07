@@ -79,4 +79,4 @@ Existing balances migrate once as opening credits and opening spending debits. K
 
 The normal board payload does not grow with the number of past journal entries or task versions. Server-side household snapshots and the explicit legacy/export and revision-history APIs still contain full historical projections; this change bounds regular network responses, not every internal storage operation.
 
-The shared `requireParentModeForCompletion` preference defaults to false and is included in daily board responses. When enabled, the browser blocks completion/count increases until its local Parent Mode is unlocked and displays a message. This setting does not introduce API authentication or server-side parent sessions.
+The shared `requireParentModeForCompletion` preference defaults to false and is included in daily board responses. When enabled, the browser blocks completion, undo, and count changes until its local Parent Mode is unlocked and displays a message. This setting does not introduce API authentication or server-side parent sessions.

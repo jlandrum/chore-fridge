@@ -25,7 +25,7 @@ export function weeklyChores(...args) { return rules.weeklyChores(snapshot(), ..
 export function oneOffChores(...args) { return rules.oneOffChores(snapshot(), ...args); }
 
 export function bumpChore(choreId, kidId, delta) {
-  if (delta > 0 && completionLocked()) return {error:"Unlock Parent Mode to complete tasks."};
+  if (completionLocked()) return {error:"Unlock Parent Mode to change task completion."};
   const now = Date.now();
   if (now - lastTap < 280) return { skipped: true };
   lastTap = now;
@@ -44,7 +44,7 @@ export function bumpChore(choreId, kidId, delta) {
 
 export function toggleChore(choreId, kidId) {
   const task = $chores.get().find(item => item.id === choreId);
-  if (task && (isCounted(task) || !isDone(task,kidId)) && completionLocked()) return {error:"Unlock Parent Mode to complete tasks."};
+  if (task && completionLocked()) return {error:"Unlock Parent Mode to change task completion."};
   const now = Date.now();
   if (now - lastTap < 280) return { skipped: true };
   lastTap = now;
