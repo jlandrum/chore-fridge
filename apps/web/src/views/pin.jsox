@@ -2,7 +2,6 @@ import { $pin, setPin } from "../stores/family.js";
 import { $ui, setUI, unlockParent, openSettings } from "../stores/navigation.js";
 import { defineScreen } from "../components/screen.jsox";
 import { Btn, showToast } from "../ui.jsox";
-import { createViewButton } from "./view-options.jsox";
 
 function submitPin() {
   if ($ui.get().pinMode === "set") {
@@ -54,21 +53,25 @@ defineScreen("fridge-pin", (root) => {
       }
     }
   }
-  const viewBtn = createViewButton();
-  viewBtn.className = "pill view-corner";
+  const dismiss = () => setUI({ view: "board", pinBuf: "" });
   [root] {
-    .className = "panel has-view"
-    [viewBtn]
-    <h2> { ["Parent Mode"] }
-    [lead]
-    [dotsRow]
-    [pad]
+    .className = "pin-screen"
+    .tabIndex = -1
+    .setAttribute("role", "dialog")
+    .setAttribute("aria-modal", "true")
+    .setAttribute("aria-labelledby", "pin-title")
+    .onclick = event => { if (event.target === root) dismiss(); }
+    .onkeydown = event => { if (event.key === "Escape") dismiss(); }
     <div> {
-      .className = "row"
-      .style.marginTop = "18px"
-      [Btn("Back to board", "btn ghost wide", () => {
-        setUI({ view: "board", pinBuf: "" });
-      })]
+      .className = "pin-stack"
+      <h2> { .id = "pin-title"; ["Parent Mode"] }
+      [lead]
+      [dotsRow]
+      [pad]
+      <div> {
+        .className = "row"
+        [Btn("Back to board", "btn ghost wide pin-back", dismiss)]
+      }
     }
   }
 

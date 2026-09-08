@@ -1,0 +1,93 @@
+.look-crayon .look-swatch {
+  background: linear-gradient(90deg, #f25f4c, #f6c945, #2bb673, #4c8dff);
+}
+
+html[data-look="crayon"] {
+  --track: rgba(74, 34, 8, .18);
+  --bg: #f4d56a;
+  --paper: #fff6d8;
+  --paper-edge: #e2b84a;
+  --ink: #4a2208;
+  --muted: #9a5a28;
+  --line: #4a2208;
+  --ok: #1f9d55;
+  --ok-soft: #c8f0c8;
+  --stamp: #e23d28;
+  --star: #2a62d4;
+  --gold: #f0b429;
+  --shadow: 4px 5px 0 #4a2208;
+  --radius: 26px;
+  --card-radius: 18px;
+  --panel-radius: 32px;
+  --stripe-h: 14px;
+  --font: "Chalkboard SE", "Comic Sans MS", "Comic Sans", "Marker Felt", sans-serif;
+  --letter: 0.01em;
+  --pill-bg: #fff;
+  --pill-shadow: 3px 3px 0 #4a2208;
+  --stars-fg: #2a62d4;
+  --stars-bg: #cfe0ff;
+  --gold-pill-fg: #7a4a00;
+  --gold-pill-bg: #ffe08a;
+  --chore-bg: #fff8e4;
+  --chore-shadow: 3px 4px 0 #4a2208;
+  --chore-done-shadow: 3px 4px 0 #1f9d55;
+  --mark-bg: #fff;
+  --btn-bg: #e23d28;
+  --btn-fg: #fff;
+  --choice-bg: #fff8e4;
+  --choice-on-bg: #ffe08a;
+  --well-bg: #ffe9b0;
+  --tab-on-bg: #e23d28;
+  --tab-on-fg: #fff;
+  --border: 3px solid #4a2208;
+  --body-bg:
+    repeating-linear-gradient(12deg, transparent 0 22px, rgba(226, 61, 40, .1) 22px 24px),
+    repeating-linear-gradient(-18deg, transparent 0 30px, rgba(42, 98, 212, .1) 30px 32px),
+    #f4d56a;
+
+  &.night {
+    --track: rgba(244, 213, 106, .28);
+    --bg: #3a2412;
+    --paper: #4a321c;
+    --paper-edge: #2a1808;
+    --ink: #fff3d6;
+    --muted: #e0b888;
+    --line: #f4d56a;
+    --ok: #5ee08a;
+    --ok-soft: #1f4a2e;
+    --stamp: #ff6b57;
+    --star: #8cb4ff;
+    --gold: #ffd45a;
+    --shadow: 4px 5px 0 #1a0e06;
+    --pill-bg: #5a3c22;
+    --pill-shadow: 3px 3px 0 #1a0e06;
+    --stars-fg: #8cb4ff;
+    --stars-bg: #243a66;
+    --gold-pill-fg: #ffd45a;
+    --gold-pill-bg: #6a4a10;
+    --chore-bg: #5a3c22;
+    --chore-shadow: 3px 4px 0 #1a0e06;
+    --chore-done-shadow: 3px 4px 0 #5ee08a;
+    --mark-bg: #3a2412;
+    --btn-bg: #ff6b57;
+    --btn-fg: #1a0e06;
+    --choice-bg: #5a3c22;
+    --choice-on-bg: #6a4a10;
+    --well-bg: #3a2412;
+    --tab-on-bg: #ffd45a;
+    --tab-on-fg: #3a2412;
+    --border: 3px solid #f4d56a;
+    --body-bg:
+      repeating-linear-gradient(12deg, transparent 0 22px, rgba(255, 107, 87, .12) 22px 24px),
+      #3a2412;
+  }
+
+  .kid { border-radius: 28px 18px 26px 16px; }
+  .chore { border-radius: 16px 22px 14px 20px; }
+  .panel,
+  .sheet,
+  .pin-stack { border-radius: 34px 22px 30px 18px; }
+  .pill { border-radius: 40px 28px 36px 24px; }
+  .btn { border-radius: 22px 14px 20px 16px; }
+  .choice { border-radius: 18px 12px 16px 14px; }
+}

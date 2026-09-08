@@ -15,7 +15,7 @@ export const payloadSchemas = {
   'reward.save':rewardSchema, 'reward.remove':object({id}),
   'reward.redeem':object({rewardId:id,kidId:id,day},['rewardId','kidId']),
   'pin.set':object({pin}),
-  'settings.update':{...object({requireParentModeForCompletion:{type:'boolean'},requireParentModeForRedemptions:{type:'boolean'}},[]),minProperties:1},
+  'settings.update':{...object({familyName:text,requireParentModeForCompletion:{type:'boolean'},requireParentModeForRedemptions:{type:'boolean'}},[]),minProperties:1},
   'setup.finish':object({familyName:text,kids:{type:'array',minItems:1,items:kidSchema},pin}),
   'household.reset':object({}),
 };

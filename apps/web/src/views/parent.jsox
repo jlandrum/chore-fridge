@@ -1,28 +1,38 @@
-import { COLORS, KID_EMOJIS, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions } from "../stores/family.js";
+import { COLORS, $familyName, setFamilyName, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions } from "../stores/family.js";
 import { $balances, starsFor, goldFor } from "../stores/balances.js";
 import { $rewards, saveReward, removeReward } from "../stores/rewards.js";
-import { $ui, setUI, lockParent } from "../stores/navigation.js";
+import { $ui, setUI, lockParent, closeSettings } from "../stores/navigation.js";
 import { eraseBoard } from "../stores/setup.js";
 import { uid } from "@chore-fridge/domain/records";
 import { updateList } from "../components/list.js";
 import { Choices } from "../components/choices.jsox";
+import { EmojiField } from "../components/emoji-field.jsox";
 import { defineScreen } from "../components/screen.jsox";
 import { Btn, showToast, openModal, closeModal, Star } from "../ui.jsox";
 import { TaskLists } from "./tasks.jsox";
-import { ViewControls, createViewButton } from "./view-options.jsox";
+import { openTaskForm } from "./task-form.jsox";
+import { ViewControls } from "./view-options.jsox";
+import { Tabs } from "../components/tabs.jsox";
+
+function settingsIntro(title, lead, action) {
+  return <div> {
+    .className = "settings-intro"
+    <div> {
+      .className = "settings-intro-head"
+      <h2> { [title] }
+      [action]
+    }
+    <p> { .className = "lead"; [lead] }
+  }
+}
 
 function kidForm(existing) {
-  let emoji = existing ? existing.emoji : "🐻";
   let color = existing ? existing.color : COLORS[$kids.get().length % COLORS.length];
   const nameInput = <input> {
     .value = existing ? existing.name : ""
     .autocomplete = "off"
   }
-
-  const emojiRow = Choices(
-    KID_EMOJIS.map((value) => ({ value, label: value })),
-    emoji, (value) => { emoji = value; }
-  );
+  const emoji = EmojiField(existing ? existing.emoji : "🐻", "🐻");
   const colorRow = Choices(
     COLORS.map((value) => ({ value, label: "●", color: value })),
     color, (value) => { color = value; }
@@ -32,13 +42,19 @@ function kidForm(existing) {
     <div> {
       <h3> { [existing ? "Edit kid" : "Add kid"] }
       <div> {
-        .className = "field"
-        <label> { ["Name"] }
-        [nameInput]
+        .className = "row identity-row"
+        <div> {
+          .className = "field task-title"
+          <label> { ["Name"] }
+          [nameInput]
+        }
+        <div> {
+          .className = "field task-emoji"
+          <label> { ["Emoji"] }
+          [emoji.trigger]
+        }
       }
-      <p> { .className = "lead"; ["Avatar"] }
-      [emojiRow]
-      <p> { .className = "lead"; ["Color"] }
+      <p> { .className = "view-label form-label"; ["Color"] }
       [colorRow]
       <div> {
         .className = "row"
@@ -50,7 +66,7 @@ function kidForm(existing) {
             showToast("Need a name");
             return;
           }
-          saveKid({ id: existing?.id, name, emoji, color });
+          saveKid({ id: existing?.id, name, emoji: emoji.value, color });
           closeModal();
         })]
       }
@@ -63,13 +79,7 @@ function rewardForm(existing) {
     .value = existing ? existing.title : ""
     .autocomplete = "off"
   }
-  const emojiInput = <input> {
-    .value = existing ? existing.emoji : ""
-    .placeholder = "🎁"
-    .title = "Type or paste any emoji"
-    .autocomplete = "off"
-    .spellcheck = false
-  }
+  const emoji = EmojiField(existing ? existing.emoji : "🎁", "🎁");
   const costInput = <input> {
     .value = existing ? String(existing.cost) : "20"
     .autocomplete = "off"
@@ -88,14 +98,17 @@ function rewardForm(existing) {
     <div> {
       <h3> { [existing ? "Edit reward" : "Add reward"] }
       <div> {
-        .className = "field"
-        <label> { ["Reward"] }
-        [titleInput]
-      }
-      <div> {
-        .className = "field"
-        <label> { ["Emoji"] }
-        [emojiInput]
+        .className = "row identity-row"
+        <div> {
+          .className = "field task-title"
+          <label> { ["Reward"] }
+          [titleInput]
+        }
+        <div> {
+          .className = "field task-emoji"
+          <label> { ["Emoji"] }
+          [emoji.trigger]
+        }
       }
       <div> {
         .className = "field"
@@ -120,7 +133,7 @@ function rewardForm(existing) {
           const payload = {
             id: existing ? existing.id : uid(),
             title,
-            emoji: emojiInput.value.trim() || "🎁",
+            emoji: emoji.value,
             cost: Math.max(1, parseInt(costInput.value, 10) || 1),
             gold,
           };
@@ -153,9 +166,9 @@ defineScreen("fridge-kid-settings", (root) => {
 defineScreen("fridge-kids-settings", (root) => {
   const list = <div> { .className = "list" }
   [root] {
-    <h2> { ["Kids"] }
+    .className = "settings-page"
+    [settingsIntro("Kids", "Manage the people who use this household board.", Btn("Add kid", "btn", () => kidForm(null)))]
     [list]
-    [Btn("Add kid", "btn", () => kidForm(null))]
   }
   return () => updateList(list, $kids.get(), "fridge-kid-settings");
 }, [$kids, $balances]);
@@ -164,11 +177,8 @@ function KidsTab() { return <fridge-kids-settings> }
 
 function ChoresTab() {
   return <div> {
-    <h2> { ["Tasks"] }
-    <p> {
-      .className = "lead"
-      ["Daily tasks reset each morning. Weekly ones reset each Monday. One-offs stay until they’re done."]
-    }
+    .className = "settings-page"
+    [settingsIntro("Chores", "Manage every chore in one list. Its frequency appears beside its name.", Btn("Add", "btn", () => openTaskForm({repeat:"daily"})))]
     [TaskLists()]
   }
 }
@@ -190,16 +200,16 @@ defineScreen("fridge-reward-settings", (root) => {
 defineScreen("fridge-rewards-settings", (root) => {
   const list = <div> { .className = "list" }
   [root] {
-    <h2> { ["Rewards"] }
+    .className = "settings-page"
+    [settingsIntro("Rewards", "Create rewards kids can redeem with the credit they earn.", Btn("Add reward", "btn", () => rewardForm(null)))]
     [list]
-    [Btn("Add reward", "btn", () => rewardForm(null))]
   }
   return () => updateList(list, $rewards.get(), "fridge-reward-settings");
 }, [$rewards]);
 
 function RewardsTab() { return <fridge-rewards-settings> }
 
-function permissionToggle(heading, label, description, store, change) {
+function permissionToggle(title, label, description, store, change) {
   const required = <input> {
     .type = "checkbox"
     .setAttribute("role", "switch")
@@ -207,22 +217,18 @@ function permissionToggle(heading, label, description, store, change) {
     .onchange = () => change(required.checked)
   }
   const status = <span> { .className = "setting-status"; .setAttribute("aria-hidden", "true") }
-  const node = <section> {
-    .className = "settings-group"
-    <h3> { [heading] }
-    <label> {
-      .className = "setting-toggle"
-      [required]
-      <span> {
-        .className = "setting-copy"
-        <strong> { .className = "setting-title"; ["Require Parent Mode"] }
-        <span> { .className = "setting-description"; [description] }
-      }
-      <span> {
-        .className = "setting-control"
-        [status]
-        <span> { .className = "switch-track"; .setAttribute("aria-hidden", "true") }
-      }
+  const node = <label> {
+    .className = "setting-toggle"
+    [required]
+    <span> {
+      .className = "setting-copy"
+      <strong> { .className = "setting-title"; [title] }
+      <span> { .className = "setting-description"; [description] }
+    }
+    <span> {
+      .className = "setting-control"
+      [status]
+      <span> { .className = "switch-track"; .setAttribute("aria-hidden", "true") }
     }
   }
   return {node, sync() {
@@ -233,48 +239,119 @@ function permissionToggle(heading, label, description, store, change) {
   }};
 }
 
+function householdNameSetting() {
+  const input = <input> {
+    .id = "household-name"
+    .type = "text"
+    .maxlength = 300
+    .autocomplete = "organization"
+    .setAttribute("aria-label", "Household name")
+  }
+  const save = () => {
+    const result = setFamilyName(input.value);
+    if (result.error) { showToast(result.error); input.focus(); }
+    else showToast("Household name saved.");
+  };
+  const node = <section> {
+    .className = "settings-group"
+    <h3> { ["Household"] }
+    <form> {
+      .className = "setting-form"
+      .onsubmit = event => { event.preventDefault(); save(); }
+      <label> { .className = "setting-title"; .htmlFor = "household-name"; ["Household name"] }
+      <span> { .className = "setting-description"; ["Shown at the top of the board on every device."] }
+      <span> { .className = "setting-input"; [input]; [Btn("Save", "btn", save)] }
+    }
+  }
+  return {node, sync() {
+    if (document.activeElement !== input) input.value = $familyName.get();
+  }};
+}
+
+function settingsAction(heading, title, description, button) {
+  return <section> {
+    .className = "settings-group"
+    <h3> { [heading] }
+    <div> {
+      .className = "setting-action"
+      <span> {
+        .className = "setting-copy"
+        <strong> { .className = "setting-title"; [title] }
+        <span> { .className = "setting-description"; [description] }
+      }
+      [button]
+    }
+  }
+}
+
 defineScreen("fridge-general-settings", (root) => {
   const permissions = [
-    permissionToggle("Task permissions", "Require Parent Mode for task changes", "Unlock Parent Mode to complete or undo tasks and change counts.", $requireParentModeForCompletion, setRequireParentModeForCompletion),
-    permissionToggle("Reward permissions", "Require Parent Mode for redemptions", "Unlock Parent Mode to redeem rewards with stars or gold.", $requireParentModeForRedemptions, setRequireParentModeForRedemptions),
+    permissionToggle("Task changes", "Require Parent Mode for task changes", "Require Parent Mode to complete or undo tasks and change counts.", $requireParentModeForCompletion, setRequireParentModeForCompletion),
+    permissionToggle("Reward redemptions", "Require Parent Mode for redemptions", "Require Parent Mode to redeem rewards with stars or gold.", $requireParentModeForRedemptions, setRequireParentModeForRedemptions),
   ];
+  const permissionList = <div> { .className = "settings-stack" }
+  permissions.forEach(permission => permissionList.append(permission.node));
+  const householdName = householdNameSetting();
   [root] {
-    .className = "general-settings"
-    <h2> { ["General"] }
-    <p> { .className = "lead"; ["Manage how your household uses the board."] }
+    .className = "general-settings settings-page"
+    <div> {
+      .className = "settings-intro"
+      <h2> { ["General"] }
+      <p> { .className = "lead"; ["Manage how your household uses the board."] }
+    }
   }
-  permissions.forEach(permission => root.append(permission.node));
-  return () => permissions.forEach(permission => permission.sync());
-}, [$requireParentModeForCompletion, $requireParentModeForRedemptions]);
+  root.append(
+    <section> {
+      .className = "settings-group"
+      <h3> { ["Permissions"] }
+      [permissionList]
+    },
+    householdName.node,
+    settingsAction(
+      "Parent Mode",
+      "Parent PIN",
+      "Change the four-digit PIN used to unlock Parent Mode on this household.",
+      Btn("Change PIN", "btn ghost", () => setUI({pinMode:"set",pinBuf:"",view:"pin"}))
+    ),
+    settingsAction(
+      "Danger zone",
+      "Erase household",
+      "Remove everyone, every task, every reward, and all household history.",
+      Btn("Erase board and start over", "btn danger", () => {
+        if (!confirm("Erase everyone and every chore?")) return;
+        eraseBoard();
+      })
+    )
+  );
+  return () => {
+    permissions.forEach(permission => permission.sync());
+    householdName.sync();
+  };
+}, [$familyName, $requireParentModeForCompletion, $requireParentModeForRedemptions]);
 
 function DisplayTab() {
   return <div> {
-    <h2> { ["Display"] }
-    <p> {
-      .className = "lead"
-      ["Fridge screens are often dim, portrait, and a little laggy. These keep the board readable on this device."]
+    .className = "settings-page"
+    <div> {
+      .className = "settings-intro"
+      <h2> { ["Display"] }
+      <p> { .className = "lead"; ["Adjust how the board looks and scales on this device."] }
     }
     [ViewControls()]
-    <div> {
-      .className = "row"
-      .style.marginTop = "16px"
-      [Btn("Change PIN", "btn ghost", () => {
-        setUI({ pinMode: "set", pinBuf: "", view: "pin" });
-      })]
-    }
-    <p> { .className = "lead"; .style.marginTop = "28px"; ["Danger"] }
-    [Btn("Erase board and start over", "btn danger", () => {
-      if (!confirm("Erase everyone and every chore?")) return;
-      eraseBoard();
-    })]
   }
 }
 
 function HelpTab() {
   return <div> {
-    <h2> { ["Put this on the fridge"] }
+    .className = "settings-page"
+    <div> {
+      .className = "settings-intro"
+      <h2> { ["Help"] }
+      <p> { .className = "lead"; ["Install Chore Fridge on a shared screen and keep the household service private."] }
+    }
     <div> {
       .className = "help"
+      <h3> { .className = "settings-label"; ["Put this on the fridge"] }
       <p> {
         <b> { ["Samsung Family Hub:"] }
         [" open the Internet app, type this page’s address, tap the star to bookmark, then tap the home-plus icon to pin it on a Family Hub board."]
@@ -296,52 +373,61 @@ function HelpTab() {
         [" this app has no server authentication. Do not expose port 8080 to the internet; allow access only from devices on a trusted home network."]
       }
       <p> {
-        ["Use Lock Parent Mode when you are finished. Returning to the board keeps settings unlocked on this page until you lock them or reload. Change the PIN in Settings → Display while unlocked."]
+        ["Use Lock Parent Mode when you are finished. Returning to the board keeps settings unlocked on this page until you lock them or reload. Change the PIN in Settings → General while unlocked."]
       }
     }
   }
 }
 
 defineScreen("fridge-parent", (root) => {
-  const tabs = ["general", "kids", "chores", "rewards", "display", "help"];
-  const tabBtns = {};
-  const bar = <div> { .className = "tabs" }
-  for (const tab of tabs) {
-    const btn = <button> {
-      .type = "button"
-      [tab.charAt(0).toUpperCase() + tab.slice(1)]
-      .onclick = () => {
-        setUI({ parentTab: tab });
-      }
-    }
-    tabBtns[tab] = btn;
-    [bar] { [btn] }
-  }
-  [bar] {
-    [createViewButton()]
-    [Btn("Lock Parent Mode", "", lockParent)]
-    <button> {
-      .type = "button"
-      ["Board"]
-      .onclick = () => {
-        setUI({ view: "board" });
-      }
-    }
-  }
-  const body = <div> {}
+  const tabOptions = ["general", "kids", "chores", "rewards", "display", "help"].map(tab => ({
+    value: tab,
+    label: tab.charAt(0).toUpperCase() + tab.slice(1),
+  }));
+  const dismissSettings = () => {
+    const settingsButton = root.parentElement?.querySelector("fridge-board .settings-button");
+    closeSettings();
+    queueMicrotask(() => settingsButton?.focus());
+  };
+  const tabs = Tabs(tabOptions, $ui.get().parentTab, tab => setUI({parentTab: tab}), {id:"settings-tabs", controls:"settings-panel", className:"tabs settings-nav"});
+  const body = <div> { .id = "settings-panel"; .className = "settings-body"; .setAttribute("role", "tabpanel") }
+  const close = Btn("Close", "btn ghost settings-close", dismissSettings);
   [root] {
-    .className = "panel"
-    [bar]
-    [body]
+    .className = "settings-modal"
+    .setAttribute("role", "dialog")
+    .setAttribute("aria-modal", "true")
+    .setAttribute("aria-labelledby", "settings-title")
+    .onclick = event => { if (event.target === root) dismissSettings(); }
+    .onkeydown = event => { if (event.key === "Escape") dismissSettings(); }
+    <section> {
+      .className = "panel settings-panel"
+      <header> {
+        .className = "settings-header"
+        <h1> { .id = "settings-title"; ["Settings"] }
+        <div> {
+          .className = "row"
+          [Btn("Lock Parent Mode", "btn ghost", lockParent)]
+          [close]
+        }
+      }
+      <div> {
+        .className = "settings-layout"
+        [tabs]
+        [body]
+      }
+    }
   }
 
   const factories = { general: () => <fridge-general-settings>, kids: KidsTab, chores: ChoresTab, rewards: RewardsTab, display: DisplayTab, help: HelpTab };
   const pages = new Map();
   let currentTab;
   function sync() {
-    if (currentTab === $ui.get().parentTab) return;
-    currentTab = $ui.get().parentTab;
-    for (const tab of tabs) tabBtns[tab].className = currentTab === tab ? "on" : "";
+    const selected = $ui.get().parentTab;
+    tabs.value = selected;
+    tabs.update();
+    body.setAttribute("aria-labelledby", "settings-tabs-" + selected);
+    if (currentTab === selected) return;
+    currentTab = selected;
     if (!pages.has(currentTab)) pages.set(currentTab, (factories[currentTab] || HelpTab)());
     body.replaceChildren(pages.get(currentTab));
   }

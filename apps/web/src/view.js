@@ -12,6 +12,7 @@ export const APPEARANCES = {
 };
 
 export const LOOKS = {
+  modern: true,
   classic: true,
   business: true,
   crayon: true,
@@ -25,6 +26,7 @@ const ZOOM_OK =
   typeof document !== "undefined" && "zoom" in document.documentElement.style;
 
 const THEME_COLORS = {
+  modern: { light: "#f3f6f8", dark: "#101b23" },
   classic: { light: "#cfd8de", dark: "#2b3338" },
   business: { light: "#d5dee8", dark: "#1a2330" },
   crayon: { light: "#f2d48a", dark: "#3a2412" },
@@ -74,6 +76,7 @@ export function getView() {
         ? stored.theme
         : defaultAppearance();
   const prefs = {
+    modernColor: /^#[0-9a-f]{6}$/i.test(stored?.modernColor || "") ? stored.modernColor : "#146879",
     appearance,
     look: stored && LOOKS[stored.look] ? stored.look : "classic",
     zoom: stored && stored.zoom != null ? clampZoom(stored.zoom) : 100,
@@ -106,6 +109,7 @@ export function applyTheme() {
   const html = document.documentElement;
   html.classList.toggle("night", on);
   html.setAttribute("data-look", look);
+  writePalette(html, "modern", view.modernColor || "#146879", on);
   if (document.body) {
     document.body.classList.toggle("night", on);
     document.body.setAttribute("data-look", look);
@@ -115,6 +119,32 @@ export function applyTheme() {
     const colors = THEME_COLORS[look] || THEME_COLORS.classic;
     meta.setAttribute("content", on ? colors.dark : colors.light);
   }
+}
+
+export function paletteFromHex(hex, dark) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex || "")) hex = "#146879";
+  const [r, g, b] = [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255);
+  const high = Math.max(r, g, b), low = Math.min(r, g, b), delta = high - low;
+  const lit = (high + low) / 2;
+  const sat = !delta ? 0 : delta / (1 - Math.abs(2 * lit - 1));
+  const hue = !delta ? 0 : high === r ? ((g - b) / delta + 6) % 6 : high === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+  const accentLit = dark ? Math.min(0.84, Math.max(0.52, 1 - lit)) : Math.min(0.52, Math.max(0.14, lit));
+  return {
+    hue: String(Math.round(hue * 60)),
+    surfaceSat: Math.round(sat * 40) + "%",
+    accentSat: Math.round(sat * 100) + "%",
+    accentLit: Math.round(accentLit * 100) + "%",
+    onAccent: accentLit > 0.45 ? "#142028" : "#ffffff",
+  };
+}
+
+export function writePalette(el, prefix, hex, dark) {
+  const t = paletteFromHex(hex, dark);
+  el.style.setProperty("--" + prefix + "-hue", t.hue);
+  el.style.setProperty("--" + prefix + "-surface-sat", t.surfaceSat);
+  el.style.setProperty("--" + prefix + "-accent-sat", t.accentSat);
+  el.style.setProperty("--" + prefix + "-accent-lit", t.accentLit);
+  el.style.setProperty("--" + prefix + "-on-accent", t.onAccent);
 }
 
 function clearFallbackZoom(body) {
@@ -158,6 +188,13 @@ export function setTheme(theme) {
 
 export function setLook(look) {
   $view.set({ ...getView(), look: LOOKS[look] ? look : "classic" });
+  save();
+  applyTheme();
+}
+
+export function setModernColor(modernColor) {
+  if (!/^#[0-9a-f]{6}$/i.test(modernColor)) return;
+  $view.set({...getView(), modernColor});
   save();
   applyTheme();
 }

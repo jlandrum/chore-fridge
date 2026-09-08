@@ -20,7 +20,7 @@ await import('../apps/web/src/app.jsox');
 document.body.append(modal, toastEl, confettiEl);
 const app = document.createElement('chore-fridge');
 document.body.append(app);
-const active = () => [...app.children].find(node => !node.hidden);
+const active = () => [...app.children].filter(node => !node.hidden).at(-1);
 function click(label, scope = active()) {
   const button = [...scope.querySelectorAll('button')].find(node => node.textContent.trim() === label);
   assert.ok(button, `Button exists: ${label}`);
@@ -62,13 +62,14 @@ test('onboarding, PIN, task editing, completion, rewards, themes, and reconnect'
   assert.equal(active().localName, 'fridge-parent');
   click('Chores');
   click('Add');
+  assert.ok(modal.querySelector('.emoji-trigger'), 'Task emoji picker trigger');
   field('Task', 'Wash dishes');
   click('📅 Once a week', modal);
   assert.equal(modal.querySelector('fridge-choices').value, 'weekly');
   click('Save', modal);
   assert.equal(chores.$chores.get()[0].repeat, 'weekly');
   assert.equal(chores.$chores.get()[0].title, 'Wash dishes');
-  click('Board');
+  click('Close');
   const column = active().querySelector('fridge-kid');
   const row = column.querySelector('fridge-chore');
   row.querySelector('button').click();
@@ -143,6 +144,18 @@ test('multiple view controls stay synchronized and removed controls unsubscribe'
   const one = document.createElement('fridge-view-controls');
   const two = document.createElement('fridge-view-controls');
   document.body.append(one, two);
+  view.setLook('modern');
+  const tint = one.querySelector('.look-modern-split input[type="color"]');
+  assert.ok(one.querySelector('.look-modern-split.on'));
+  tint.value = '#8033cc';
+  tint.dispatchEvent(new Event('input',{bubbles:true}));
+  assert.equal(two.querySelector('input[type="color"]').value,'#8033cc');
+  assert.equal(JSON.parse(localStorage.getItem(view.VIEW_KEY)).modernColor,'#8033cc');
+  assert.equal(document.documentElement.style.getPropertyValue('--modern-hue'),'270');
+  assert.equal(document.documentElement.style.getPropertyValue('--modern-accent-sat'),'60%');
+  view.setLook('classic');
+  assert.equal(tint.closest('.look-modern-split').hidden,false);
+  assert.equal(one.querySelector('.look-modern-split.on'),null);
   view.setTheme('light');
   click('Dark', one);
   const selected = two.querySelector('button[aria-pressed="true"]');
@@ -202,16 +215,24 @@ test('reward and PIN edits do not touch existing chore DOM', () => {
 test('archive and restore controls retain earned credit on a versioned board', async () => {
   const { applySnapshot, defaultState } = await import('../apps/web/src/stores/sync.js');
   const { initializeTaskHistory } = await import('@chore-fridge/domain/task-history');
-  applySnapshot(initializeTaskHistory({...defaultState(),setupDone:true,kids:[{id:'history-kid',name:'Alex'}],chores:[{id:'history-task',title:'Keep my credit',kidIds:['history-kid'],points:2,repeat:'daily'}],completions:{'2026-09-07:history-task:history-kid':1}}));
+  applySnapshot(initializeTaskHistory({...defaultState(),setupDone:true,kids:[{id:'history-kid',name:'Alex'}],chores:[
+    {id:'first-task',title:'First inserted',kidIds:['history-kid'],points:1,repeat:'weekly'},
+    {id:'history-task',title:'Keep my credit',kidIds:['history-kid'],points:2,repeat:'daily'},
+    {id:'last-task',title:'Last inserted',kidIds:['history-kid'],points:1,repeat:'once'},
+  ],completions:{'2026-09-07:history-task:history-kid':1}}));
   navigation.unlockParent();
   navigation.setUI({view:'parent',parentTab:'chores'});
-  click('Archive',active().querySelector('fridge-task-summary'));
-  assert.equal(chores.$chores.get().length,0);
+  const rows = [...active().querySelectorAll('fridge-task-summary')];
+  assert.deepEqual(rows.map(row => row.querySelector('.grow > div').textContent),[
+    'First inserted · Weekly','Keep my credit · Daily','Last inserted · Once',
+  ]);
+  click('Archive',rows[1]);
+  assert.equal(chores.$chores.get().length,2);
   assert.equal(balances.starsFor('history-kid'),2);
   const row = active().querySelector('fridge-archived-task');
   assert.match(row.textContent,/Keep my credit/);
   click('Restore',row);
-  assert.equal(chores.$chores.get()[0].taskId,'history-task');
+  assert.equal(chores.$chores.get().at(-1).taskId,'history-task');
   assert.equal(chores.$archivedChores.get().length,0);
   assert.equal(balances.starsFor('history-kid'),2);
 });
@@ -231,7 +252,47 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.equal(active().localName,'fridge-board');
   click('Settings');
   assert.equal(active().localName,'fridge-parent');
-  click('Board');
+  assert.equal(active().getAttribute('role'),'dialog');
+  assert.equal(active().getAttribute('aria-modal'),'true');
+  const boardScreen = [...app.children].find(node => node.localName === 'fridge-board');
+  assert.equal(boardScreen.hidden,false);
+  assert.equal(boardScreen.inert,true);
+  const tabs = active().querySelector('fridge-tabs');
+  assert.equal(tabs.getAttribute('role'),'tablist');
+  assert.equal(tabs.querySelectorAll('[role="tab"]').length,6);
+  assert.equal(tabs.querySelector('[role="tab"]').getAttribute('aria-controls'),'settings-panel');
+  assert.equal(tabs.querySelector('[aria-selected="true"]').textContent.toLowerCase(),navigation.$ui.get().parentTab);
+  for (const page of ['General','Kids','Chores','Rewards','Display','Help']) {
+    click(page);
+    assert.ok(active().querySelector('.settings-body .lead'),`${page} has a subtitle`);
+  }
+  click('Display');
+  tabs.querySelector('[aria-selected="true"]').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+  assert.equal(tabs.querySelector('[aria-selected="true"]').textContent,'Help');
+  click('Display');
+  assert.ok(active().querySelector('.settings-body fridge-view-controls'));
+  assert.equal(active().querySelector('button.look-classic').textContent.trim(),'Classic (V1)');
+  const modern = active().querySelector('.look-modern-split');
+  assert.ok(modern);
+  assert.ok(modern.querySelector('button.look-modern'));
+  assert.ok(modern.querySelector('input[type="color"][aria-label="Modern theme color"]'));
+  assert.equal(active().querySelectorAll('.modern-color').length,0);
+  assert.equal([...active().querySelectorAll('button')].some(button => button.textContent.trim() === 'Change PIN'),false);
+  assert.equal([...active().querySelectorAll('button')].some(button => button.textContent.trim() === 'Erase board and start over'),false);
+  assert.equal(modal.hidden,true);
+  assert.equal([...active().querySelectorAll('button')].some(button => button.textContent.trim() === 'View'),false);
+  click('General');
+  assert.equal([...active().querySelectorAll('.settings-group > h3')].filter(heading => heading.textContent === 'Permissions').length,1);
+  assert.equal(active().querySelectorAll('.settings-stack .setting-toggle').length,2);
+  const nameInput = active().querySelector('input[aria-label="Household name"]');
+  nameInput.value = 'The Test House';
+  click('Save');
+  assert.equal(family.$familyName.get(),'The Test House');
+  assert.ok([...active().querySelectorAll('button')].find(button => button.textContent.trim() === 'Change PIN'));
+  assert.ok([...active().querySelectorAll('button')].find(button => button.textContent.trim() === 'Erase board and start over'));
+  click('Close');
+  assert.match(active().textContent,/The Test House/);
+  assert.equal(boardScreen.inert,false);
   assert.equal(navigation.$ui.get().parentUnlocked,true);
   click('Settings');
   assert.equal(active().localName,'fridge-parent');
@@ -256,7 +317,7 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.equal(active().localName,'fridge-board');
   click('Settings');
   assert.equal(active().localName,'fridge-parent');
-  click('Board');
+  click('Close');
   click('Lock Parent Mode');
   assert.equal(navigation.$ui.get().parentUnlocked,false);
 });
@@ -279,7 +340,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
   assert.equal(active().querySelector('.setting-status').textContent,'On');
   assert.equal(family.$requireParentModeForCompletion.get(),true);
   assert.equal(sync.serializeHousehold().requireParentModeForCompletion,true);
-  click('Board');
+  click('Close');
   click('Lock Parent Mode');
   const revision = changes.$revision.get();
   for (const row of active().querySelectorAll('fridge-chore')) {
@@ -321,7 +382,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
   const control = active().querySelector('fridge-general-settings input');
   control.checked = false;
   control.dispatchEvent(new Event('change',{bubbles:true}));
-  click('Board');
+  click('Close');
   click('Lock Parent Mode');
   await pauseTap();
   counted.querySelector('button').click();
@@ -340,7 +401,7 @@ test('redemption toggle independently blocks spending while locked and shows a m
   assert.equal(toggle.getAttribute('aria-checked'),'true');
   assert.equal(family.$requireParentModeForCompletion.get(),true);
   assert.equal(family.$requireParentModeForRedemptions.get(),true);
-  click('Board');
+  click('Close');
   click('Lock Parent Mode');
   const revision = changes.$revision.get();
   active().querySelector('.reward').click();
@@ -357,7 +418,7 @@ test('redemption toggle independently blocks spending while locked and shows a m
   click('General');
   active().querySelector('input[aria-label="Require Parent Mode for redemptions"]').click();
   assert.equal(family.$requireParentModeForCompletion.get(),true);
-  click('Board');
+  click('Close');
   click('Lock Parent Mode');
   assert.equal(rewards.redeemReward('stars','reward-kid').ok,true);
   assert.equal(balances.starsFor('reward-kid'),8);

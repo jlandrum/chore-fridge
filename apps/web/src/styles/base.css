@@ -1,0 +1,83 @@
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+
+html, body {
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+body { background: var(--body-bg); }
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+#app {
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 18px 12px;
+  max-width: 1600px;
+  margin: 0 auto;
+  min-width: 0;
+  overflow: hidden;
+
+  > * {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+  }
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+chore-fridge, fridge-setup, fridge-pin, fridge-parent, fridge-kid,
+fridge-view-controls, fridge-general-settings, fridge-kids-settings,
+fridge-rewards-settings, fridge-task-lists { display: block; }
+fridge-chore { display: contents; }
+
+@media (max-width: 700px) {
+  html, body {
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #app {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    padding: 12px 10px 24px;
+
+    > * {
+      flex: none;
+      min-height: 0;
+    }
+  }
+
+  .screen { overflow: visible; }
+}

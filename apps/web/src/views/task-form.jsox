@@ -1,7 +1,8 @@
 import { $kids } from "../stores/family.js";
-import { isOnce, isWeekly, minCount, maxCount, saveChore } from "../stores/chores.js";
+import { isOnce, isWeekly, saveChore } from "../stores/chores.js";
 
 import { Choices } from "../components/choices.jsox";
+import { EmojiField } from "../components/emoji-field.jsox";
 import { Btn, showToast, openModal, closeModal } from "../ui.jsox";
 
 export function openTaskForm(opts = {}) {
@@ -23,16 +24,11 @@ export function openTaskForm(opts = {}) {
     .placeholder = "What needs doing?"
     .autocomplete = "off"
   }
-  const emojiInput = <input> {
-    .value = existing && existing.emoji ? existing.emoji : ""
-    .placeholder = "😀"
-    .title = "Type or paste any emoji"
-    .autocomplete = "off"
-    .spellcheck = false
-  }
+  const emoji = EmojiField(existing && existing.emoji, "😀");
   const pointsInput = <input> {
     .value = existing ? String(existing.points || 0) : "5"
     .autocomplete = "off"
+    .inputMode = "numeric"
   }
   const minInput = <input> {
     .value = existing ? String(existing.minCount || 1) : "1"
@@ -45,69 +41,105 @@ export function openTaskForm(opts = {}) {
     .inputMode = "numeric"
   }
   let gold = !!(existing && existing.gold);
-  const goldBtn = <button> {
-    .type = "button"
-    .className = gold ? "choice on" : "choice"
-    ["Gold star task"]
-    .onclick = () => {
-      gold = !gold;
-      goldBtn.className = gold ? "choice on" : "choice";
+  const goldInput = <input> {
+    .type = "checkbox"
+    .checked = gold
+    .setAttribute("role", "switch")
+    .setAttribute("aria-label", "Gold star task")
+    .setAttribute("aria-checked", String(gold))
+    .onchange = () => {
+      gold = goldInput.checked;
+      goldInput.setAttribute("aria-checked", String(gold));
+      goldStatus.textContent = gold ? "On" : "Off";
     }
+  }
+  const goldStatus = <span> {
+    .className = "setting-status"
+    .setAttribute("aria-hidden", "true")
+    [gold ? "On" : "Off"]
   }
 
   const repeats = Choices([
     { value: "daily", label: "🔁 Every day" },
     { value: "weekly", label: "📅 Once a week" },
     { value: "once", label: "📌 Just once" },
-  ], repeat, (value) => { repeat = value; });
+  ], repeat, (value) => { repeat = value; }, { className: "row task-repeat" });
   const who = Choices(
     $kids.get().map((kid) => ({ value: kid.id, label: kid.emoji + " " + kid.name })),
     kidIds, (value) => { kidIds = value; }, { multiple: true }
   );
 
   const sheet = <div> {
+    .className = "task-form"
     <h3> { [existing ? "Edit task" : "Add a task"] }
     <div> {
-      .className = "field"
-      <label> { ["Task"] }
-      [titleInput]
-    }
-    <div> {
-      .className = "field"
-      <label> { ["Emoji"] }
-      [emojiInput]
-    }
-    <p> { .className = "lead"; ["How often?"] }
-    [repeats]
-    <p> { .className = "lead"; ["Who"] }
-    [who]
-    <div> {
-      .className = "field"
-      <label> { ["Stars each time"] }
-      [pointsInput]
-    }
-    <p> { .className = "lead"; ["Times per day (1 and 1 means a normal check-off). Min 2 max 4 = need 2, can do 4."] }
-    <div> {
-      .className = "row"
+      .className = "task-form-fields"
       <div> {
-        .className = "field"
-        <label> { ["Min"] }
-        [minInput]
+        .className = "row identity-row"
+        <div> {
+          .className = "field task-title"
+          <label> { ["Task"] }
+          [titleInput]
+        }
+        <div> {
+          .className = "field task-emoji"
+          <label> { ["Emoji"] }
+          [emoji.trigger]
+        }
+      }
+      <div> {
+        .className = "task-section"
+        <p> { .className = "view-label"; ["How often"] }
+        [repeats]
+      }
+      <div> {
+        .className = "task-section"
+        <p> { .className = "view-label"; ["Who"] }
+        [who]
       }
       <div> {
         .className = "field"
-        <label> { ["Max"] }
-        [maxInput]
+        <label> { ["Stars each time"] }
+        [pointsInput]
+      }
+      <div> {
+        .className = "field"
+        <label> { ["Times per day"] }
+        <div> {
+          .className = "task-counts"
+          <div> {
+            .className = "field"
+            <label> { ["At least"] }
+            [minInput]
+          }
+          <div> {
+            .className = "field"
+            <label> { ["Up to"] }
+            [maxInput]
+          }
+        }
+        <p> { .className = "field-hint"; ["Both 1 is a single check-off. Raise the second number if they can do it more than once."] }
+      }
+      <div> {
+        .className = "settings-stack"
+        <label> {
+          .className = "setting-toggle"
+          [goldInput]
+          <span> {
+            .className = "setting-copy"
+            <strong> { .className = "setting-title"; ["Gold star task"] }
+            <span> { .className = "setting-description"; ["Gold border, and they earn a gold star each time."] }
+          }
+          <span> {
+            .className = "setting-control"
+            [goldStatus]
+            <span> { .className = "switch-track"; .setAttribute("aria-hidden", "true") }
+          }
+        }
       }
     }
-    <p> { .className = "lead"; ["Gold star tasks get a gold border and earn a gold star each time."] }
     <div> {
-      .className = "row"
-      [goldBtn]
-    }
-    <div> {
-      .className = "row"
-      .style.marginTop = "16px"
+      .className = "row task-form-actions"
       [Btn("Cancel", "btn ghost wide", closeModal)]
       [Btn("Save", "btn wide", () => {
         const title = titleInput.value.trim();
@@ -122,7 +154,7 @@ export function openTaskForm(opts = {}) {
         saveChore({
           id: existing ? existing.id : undefined,
           title,
-          emoji: emojiInput.value.trim(),
+          emoji: emoji.value,
           repeat,
           kidIds,
           points: parseInt(pointsInput.value, 10) || 0,
@@ -135,4 +167,5 @@ export function openTaskForm(opts = {}) {
     }
   }
   openModal(sheet);
+  if (!existing) titleInput.focus();
 }

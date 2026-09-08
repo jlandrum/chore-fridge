@@ -1,0 +1,240 @@
+.modal {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: rgba(20, 24, 28, .45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 20;
+
+  &[hidden] { display: none; }
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: 560px;
+  max-width: 100%;
+  max-height: 90%;
+  overflow: hidden;
+  background: var(--paper);
+  border-radius: var(--panel-radius);
+  border: var(--border);
+  padding: 22px;
+  box-shadow: var(--shadow);
+
+  h3 { margin: 0 0 12px; font-size: 28px; }
+
+  > * {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+}
+
+.sheet > .task-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.task-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 0;
+
+  h3 {
+    margin: 0 0 18px;
+    flex: 0 0 auto;
+  }
+
+  .field {
+    gap: 12px;
+    margin-bottom: 0;
+  }
+
+  .field > label,
+  .view-label {
+    line-height: 1.35;
+    padding-bottom: 2px;
+  }
+
+  .view-label {
+    margin: 0 0 12px;
+  }
+
+  .task-section { margin-bottom: 0; }
+
+  .choice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 64px;
+    min-width: 0;
+    font-size: 17px;
+    line-height: 1.25;
+    padding: 10px 12px;
+    white-space: normal;
+  }
+
+  .setting-toggle { min-height: 72px; }
+}
+
+.task-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding-bottom: 8px;
+  scroll-padding-bottom: 16px;
+}
+
+.task-form-actions {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  padding-top: 16px;
+  background: var(--paper);
+  z-index: 1;
+}
+
+.identity-row {
+  align-items: stretch;
+  flex-wrap: nowrap;
+
+  .task-title { flex: 1; min-width: 0; }
+  .task-emoji {
+    flex: 0 0 5.5rem;
+    width: 5.5rem;
+  }
+}
+
+.emoji-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 64px;
+  min-width: 64px;
+  padding: 0 8px;
+  border: var(--border);
+  border-radius: 14px;
+  background: var(--well-bg);
+  font-size: 28px;
+  line-height: 1;
+
+  &.on {
+    box-shadow: inset 0 0 0 3px var(--ink);
+  }
+}
+
+.emoji-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(20, 24, 28, .45);
+}
+
+.emoji-popover {
+  width: min(100%, 22rem);
+  max-height: 90%;
+  overflow: hidden;
+  background: var(--paper);
+  border-radius: var(--panel-radius);
+  border: var(--border);
+  box-shadow: var(--shadow);
+}
+
+emoji-picker {
+  display: block;
+  width: 100%;
+  height: min(22rem, 70vh);
+  --background: var(--paper);
+  --border-color: transparent;
+  --border-radius: var(--panel-radius);
+  --input-font-color: var(--ink);
+  --input-border-color: var(--line);
+  --input-placeholder-color: var(--muted);
+  --category-font-color: var(--ink);
+  --button-hover-background: var(--well-bg);
+  --button-active-background: var(--choice-on-bg);
+  --indicator-color: var(--star);
+  --outline-color: var(--ink);
+  --emoji-size: 1.7rem;
+  --num-columns: 7;
+}
+
+.task-repeat {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.task-counts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  .field { margin: 0; }
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--paper);
+  padding: 14px 22px;
+  border-radius: 999px;
+  font-size: 20px;
+  font-weight: 800;
+  z-index: 30;
+  white-space: nowrap;
+
+  &[hidden] { display: none; }
+}
+
+.confetti {
+  pointer-events: none;
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  overflow: hidden;
+  z-index: 15;
+
+  &[hidden] { display: none; }
+}
+
+.bit {
+  position: absolute;
+  top: -20px;
+  width: 12px;
+  height: 18px;
+  animation: fall 1.2s linear forwards;
+}
+
+@keyframes fall {
+  to { transform: translateY(110vh) rotate(280deg); opacity: .2; }
+}

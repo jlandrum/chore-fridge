@@ -99,12 +99,14 @@ Use **Unlock Parent Mode** to enter the PIN and unlock this page. Unlocking keep
 
 In **Settings → General**, enable **Require Parent Mode** to block completion, undo, and count changes while locked. A blocked tap displays “Unlock Parent Mode to change task completion.” The matching **Reward permissions** toggle requires Parent Mode for redemptions and displays “Unlock Parent Mode to redeem rewards.” Task and reward restrictions are independent and default to off. Both preferences are shared across household devices; the unlocked state is local to each page. This remains a browser interface control, not server authentication.
 
+The household name, Parent PIN, and destructive household reset controls also live in **Settings → General**. The Display tab contains only the same device-local appearance, theme, and zoom controls available from **View**.
+
 ## Display options
 
-Use **View** from setup, the board, the parent lock, or parent settings to adjust this device's display:
+Use **View** from setup or the board, or open **Settings → Display**, to adjust this device's display:
 
 - Appearance: Light, Dark, or System (follows the device's color preference).
-- Theme: Classic, Business, Crayon, High contrast, Lego, or Cyberpunk.
+- Theme: Modern (v2), Classic (V1), Business, Crayon, High contrast, Lego, or Cyberpunk.
 - Zoom: 50–150% in 10% steps.
 
 Changes apply immediately and are remembered in this browser. Display preferences are independent of the shared household state, so each fridge, tablet, or computer can use its own settings. Existing explicit bright/dim preferences are migrated from browser storage; automatic appearance now follows the system instead of dimming after 8 p.m.
@@ -154,6 +156,8 @@ See [API documentation](docs/api.md) for command examples and compatibility beha
 ## Task versions and history
 
 Tasks have a permanent `taskId` (also exposed as legacy `id`) and a `versionId` identifying immutable rules. Editing creates a version; archiving removes the task from the current board while preserving versions and earned credit. Parent task settings include an archived list with Restore, which creates another version under the same task ID.
+
+Active chores appear in insertion order in one settings list. Each row shows whether the chore is Daily, Weekly, or Once; frequency no longer divides the list into separate sections.
 
 The append-only SQLite ledger records credits, linked undo reversals, and spending debits. SQLite prevents journal rows from being updated or deleted. Entries reference the task and version and retain the points/gold earned at completion. A change from two to three stars does not revalue earlier work. Counted tasks can contain units earned under different versions; undo appends negative entries against the most recent units first. Current allocations are a derived projection, not the journal itself. Clients send the version they saw with completion commands, including delayed/offline submissions; archived tasks reject new completions.
 
