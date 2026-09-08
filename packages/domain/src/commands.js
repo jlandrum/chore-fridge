@@ -44,7 +44,7 @@ export function applyCommand(current, command, now = Date.now()) {
       break;
     case 'reward.remove': state.rewards = state.rewards.filter(reward => reward.id !== p.id); break;
     case 'settings.update':
-      for (const key of ['requireParentModeForCompletion','requireParentModeForRedemptions']) {
+      for (const key of ['requireParentModeForCompletion','requireParentModeForRedemptions','mcpEnabled']) {
         if (key in p) state[key] = p[key];
       }
       if ('familyName' in p) {

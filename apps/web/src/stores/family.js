@@ -7,6 +7,7 @@ export const KID_EMOJIS = ["🐻", "🦁", "🐸", "🦊", "🐼", "🐰", "🦄
 
 export const $requireParentModeForRedemptions = atom(false);
 export const $requireParentModeForCompletion = atom(false);
+export const $mcpEnabled = atom(false);
 export const $familyName = atom("Our Family");
 export const $pin = atom("");
 export const $setupDone = atom(false);
@@ -36,4 +37,8 @@ export function setRequireParentModeForCompletion(required) {
 
 export function setRequireParentModeForRedemptions(required) {
   commit(() => $requireParentModeForRedemptions.set(required), {type:"settings.update",payload:{requireParentModeForRedemptions:required}});
+}
+
+export function setMcpEnabled(enabled) {
+  commit(() => $mcpEnabled.set(enabled), {type:"settings.update",payload:{mcpEnabled:enabled}});
 }

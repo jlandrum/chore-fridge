@@ -267,7 +267,8 @@
   }
 }
 
-.setting-form {
+.setting-form,
+.setting-details {
   display: grid;
   gap: 8px;
   padding: 16px 20px;
@@ -276,6 +277,24 @@
   background: var(--well-bg);
 
   @media (max-width: 560px) { padding: 16px; }
+}
+
+.setting-details {
+  gap: 12px;
+
+  pre {
+    margin: 0;
+    padding: 12px 14px;
+    overflow-x: auto;
+    border-radius: 12px;
+    background: var(--paper);
+    font-size: 14px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .btn { justify-self: start; }
 }
 
 .setting-input {

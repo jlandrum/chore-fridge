@@ -4,7 +4,7 @@ import { defaultState } from "@chore-fridge/domain/state";
 export { defaultState } from "@chore-fridge/domain/state";
 import { atom, batch } from "nanostores";
 import { $revision, $lastChange, commit } from "./changes.js";
-import { $familyName, $pin, $setupDone, $kids, $requireParentModeForCompletion, $requireParentModeForRedemptions } from "./family.js";
+import { $familyName, $pin, $setupDone, $kids, $requireParentModeForCompletion, $requireParentModeForRedemptions, $mcpEnabled } from "./family.js";
 import { $chores, $completions, $counts, $archivedChores, $pastOnce } from "./chores.js";
 import { $rewards } from "./rewards.js";
 import { $spent, $goldSpent, $creditProjection, $balanceCarry } from "./balances.js";
@@ -15,6 +15,7 @@ export const $serverMode = atom(false);
 const fields = {
   requireParentModeForRedemptions:$requireParentModeForRedemptions,
   requireParentModeForCompletion:$requireParentModeForCompletion,
+  mcpEnabled: $mcpEnabled,
   familyName: $familyName, pin: $pin, setupDone: $setupDone, kids: $kids,
   chores: $chores, archivedChores: $archivedChores, completions: $completions, counts: $counts,
   rewards: $rewards, spent: $spent, goldSpent: $goldSpent, creditProjection: $creditProjection, balanceCarry:$balanceCarry, pastOnce:$pastOnce,

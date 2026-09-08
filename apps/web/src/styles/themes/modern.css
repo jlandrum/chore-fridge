@@ -113,7 +113,7 @@ html[data-look="modern"] {
   }
   .btn.ghost { box-shadow: none; border: 1px solid var(--line); }
   .btn.danger { background: var(--paper); color: var(--stamp); border: 1px solid var(--stamp); }
-  .setting-form, .setting-action, .settings-stack { border-width: 1px; }
+  .setting-form, .setting-action, .setting-details, .settings-stack { border-width: 1px; }
   .setting-toggle { border-bottom-width: 1px; }
   .item { border: 1px solid var(--line); border-radius: 12px; }
   .chore { border-radius: 12px; }

@@ -3,6 +3,7 @@ export function defaultState() {
     version: 1,
     requireParentModeForCompletion: false,
     requireParentModeForRedemptions: false,
+    mcpEnabled: false,
     pin: "",
     familyName: "Our Family",
     nightMode: "auto",

@@ -1,4 +1,5 @@
-import { COLORS, $familyName, setFamilyName, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions } from "../stores/family.js";
+import { COLORS, $familyName, setFamilyName, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions, $mcpEnabled, setMcpEnabled } from "../stores/family.js";
+import { $serverMode } from "../stores/sync.js";
 import { $balances, starsFor, goldFor } from "../stores/balances.js";
 import { $rewards, saveReward, removeReward } from "../stores/rewards.js";
 import { $ui, setUI, lockParent, closeSettings } from "../stores/navigation.js";
@@ -341,6 +342,87 @@ function DisplayTab() {
   }
 }
 
+function mcpEndpoint() {
+  try { return new URL("/mcp", window.location.href).href; }
+  catch { return "/mcp"; }
+}
+
+function mcpClientConfig(url) {
+  return JSON.stringify({ mcpServers: { "chore-fridge": { url } } }, null, 2);
+}
+
+async function copyText(value) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(value);
+      showToast("Copied");
+      return;
+    }
+  } catch {}
+  showToast("Select the text to copy");
+}
+
+defineScreen("fridge-advanced-settings", (root) => {
+  const toggle = permissionToggle(
+    "MCP",
+    "Enable MCP",
+    "Let local MCP clients read the board and send household commands through this server.",
+    $mcpEnabled,
+    setMcpEnabled
+  );
+  const urlInput = <input> {
+    .readOnly = true
+    .setAttribute("aria-label", "MCP URL")
+  }
+  const config = <pre> {}
+  const warning = <p> { .className = "lead tight" }
+  const details = <section> {
+    .className = "settings-group mcp-connection"
+    <h3> { ["Connection"] }
+    <div> {
+      .className = "setting-details"
+      [warning]
+      <p> { .className = "setting-description"; ["Streamable HTTP. Point an MCP client at this URL on the trusted LAN."] }
+      <span> {
+        .className = "setting-input"
+        [urlInput]
+        [Btn("Copy URL", "btn", () => copyText(urlInput.value))]
+      }
+      <strong> { .className = "setting-title"; ["Client config"] }
+      [config]
+      [Btn("Copy config", "btn", () => copyText(config.textContent))]
+    }
+  }
+  [root] {
+    .className = "settings-page"
+    <div> {
+      .className = "settings-intro"
+      <h2> { ["Advanced"] }
+      <p> { .className = "lead"; ["Optional integrations for this household server."] }
+    }
+    <section> {
+      .className = "settings-group"
+      <h3> { ["Integrations"] }
+      <div> { .className = "settings-stack"; [toggle.node] }
+    }
+    [details]
+  }
+  return () => {
+    toggle.sync();
+    const enabled = $mcpEnabled.get();
+    const url = mcpEndpoint();
+    details.hidden = !enabled;
+    urlInput.value = url;
+    config.textContent = mcpClientConfig(url);
+    warning.hidden = $serverMode.get();
+    warning.textContent = $serverMode.get()
+      ? ""
+      : "This page is not connected to the household server, so clients cannot reach MCP until the Node service is running.";
+  };
+}, [$mcpEnabled, $serverMode]);
+
+function AdvancedTab() { return <fridge-advanced-settings> }
+
 function HelpTab() {
   return <div> {
     .className = "settings-page"
@@ -370,7 +452,7 @@ function HelpTab() {
       }
       <p> {
         <b> { ["Keep it private:"] }
-        [" this app has no server authentication. Do not expose port 8080 to the internet; allow access only from devices on a trusted home network."]
+        [" this app has no server authentication. Do not expose port 8080 to the internet; allow access only from devices on a trusted home network. Settings → Advanced can turn on MCP for local clients; it stays off until you enable it."]
       }
       <p> {
         ["Use Lock Parent Mode when you are finished. Returning to the board keeps settings unlocked on this page until you lock them or reload. Change the PIN in Settings → General while unlocked."]
@@ -380,7 +462,7 @@ function HelpTab() {
 }
 
 defineScreen("fridge-parent", (root) => {
-  const tabOptions = ["general", "kids", "chores", "rewards", "display", "help"].map(tab => ({
+  const tabOptions = ["general", "kids", "chores", "rewards", "display", "advanced", "help"].map(tab => ({
     value: tab,
     label: tab.charAt(0).toUpperCase() + tab.slice(1),
   }));
@@ -418,7 +500,7 @@ defineScreen("fridge-parent", (root) => {
     }
   }
 
-  const factories = { general: () => <fridge-general-settings>, kids: KidsTab, chores: ChoresTab, rewards: RewardsTab, display: DisplayTab, help: HelpTab };
+  const factories = { general: () => <fridge-general-settings>, kids: KidsTab, chores: ChoresTab, rewards: RewardsTab, display: DisplayTab, advanced: AdvancedTab, help: HelpTab };
   const pages = new Map();
   let currentTab;
   function sync() {

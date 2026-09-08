@@ -55,7 +55,7 @@ button {
 
 chore-fridge, fridge-setup, fridge-pin, fridge-parent, fridge-kid,
 fridge-view-controls, fridge-general-settings, fridge-kids-settings,
-fridge-rewards-settings, fridge-task-lists { display: block; }
+fridge-rewards-settings, fridge-task-lists, fridge-advanced-settings { display: block; }
 fridge-chore { display: contents; }
 
 @media (max-width: 700px) {

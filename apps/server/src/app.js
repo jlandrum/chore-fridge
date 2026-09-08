@@ -5,6 +5,7 @@ import staticFiles from '@fastify/static';
 import { existsSync } from 'node:fs';
 import { commandSchema } from '@chore-fridge/contracts/api';
 import { openStorage } from './storage.js';
+import { handleMcpRequest } from './mcp.js';
 
 export async function createApp(options) {
   const storage = openStorage(options);
@@ -14,7 +15,11 @@ export async function createApp(options) {
   app.addHook('onRequest',async (_request,reply) => { reply.header('Cache-Control','no-store'); });
   app.addHook('preClose',async () => { for (const stream of streams) stream.end(); });
   app.addHook('onClose',async () => { storage.close(); });
-  app.get('/api/capabilities',async () => ({version:2,commands:true,events:true,taskHistory:true,dayBoard:true,appendOnlyLedger:true,legacyStateWrites:options.legacyWrites !== false}));
+  app.get('/api/capabilities',async () => ({
+    version:2,commands:true,events:true,taskHistory:true,dayBoard:true,appendOnlyLedger:true,
+    mcp:true,mcpEnabled:!!storage.read().state?.mcpEnabled,mcpPath:'/mcp',
+    legacyStateWrites:options.legacyWrites !== false,
+  }));
   const requestedDay = request => {
     const day = request.query.day || todayKey();
     if (!validDay(day)) throw Object.assign(new Error('Invalid calendar day'),{statusCode:400});
@@ -57,6 +62,11 @@ export async function createApp(options) {
   app.get('/api/balances',async () => {
     const totals = storage.ledger.totals();
     return Object.fromEntries((storage.read().state?.kids || []).map(kid => [kid.id,{stars:Math.max(0,totals[kid.id]?.stars || 0),gold:Math.max(0,totals[kid.id]?.gold || 0)}]));
+  });
+  app.route({
+    method:['GET','POST','DELETE'],
+    url:'/mcp',
+    handler:(request,reply) => handleMcpRequest(storage,request,reply),
   });
   app.get('/api/events',(_request,reply) => {
     reply.hijack();
