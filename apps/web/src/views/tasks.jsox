@@ -1,7 +1,5 @@
 import { $kids } from "../stores/family.js";
-import { $chores, $completions, $counts, choreKind, minCount, maxCount, isCounted, dailyChores, weeklyChores, oneOffChores, removeChore, $archivedChores, restoreChore } from "../stores/chores.js";
-
-import { $clock } from "../stores/clock.js";
+import { $chores, choreKind, minCount, maxCount, isCounted, removeChore, $archivedChores, restoreChore } from "../stores/chores.js";
 import { defineScreen } from "../components/screen.jsox";
 import { updateList } from "../components/list.js";
 import { Btn, showToast, Star } from "../ui.jsox";
@@ -30,7 +28,7 @@ defineScreen("fridge-task-summary", (root) => {
   }
   return () => {
     const chore = root.model;
-    title.textContent = chore.title;
+    title.textContent = chore.title + " · " + choreKind(chore);
     sub.replaceChildren(kidNames(chore) || "Nobody assigned");
     if (chore.gold) sub.append(" · ", Star(true), " gold");
     if (isCounted(chore)) sub.append(" · " + minCount(chore) + "–" + maxCount(chore) + " / day");
@@ -48,47 +46,28 @@ defineScreen("fridge-archived-task", (root) => {
 });
 
 defineScreen("fridge-task-lists", (root) => {
-  const sections = [
-    ["Every day", "These come back each morning until you remove them.", dailyChores, "daily"],
-    ["Once a week", "Shows all week. Check it off any day; it stays done until next week.", weeklyChores, "weekly"],
-    ["One-off", "Add a new one whenever you need it. It stays until it’s done, then it drops off.", oneOffChores, "once"],
-  ].map(([title, hint, chores, repeat]) => {
-    const list = <div> { .className = "list" }
-    const empty = <div> { .className = "empty-line"; ["None yet."] }
-    [root] {
-      <section> {
-        .className = "task-section"
-        <div> {
-          .className = "section-head"
-          <div> {
-            <h2> { [title] }
-            <p> { .className = "lead tight"; [hint] }
-          }
-          [Btn("Add", "btn", () => openTaskForm({ repeat }))]
-        }
-        [list]
-        [empty]
-      }
-    }
-    return { list, empty, chores };
-  });
+  const list = <div> { .className = "list" }
+  const empty = <div> { .className = "empty-line"; ["No chores yet."] }
   const archivedList = <div> { .className = "list" }
   const archivedSection = <section> {
     .className = "task-section"
-    <h2> { ["Archived tasks"] }
+    <h3> { .className = "settings-label"; ["Archived chores"] }
     <p> { .className = "lead tight"; ["Past completions and earned credits are kept. Restore a task to use it again."] }
     [archivedList]
   }
-  root.append(archivedSection);
+  [root] {
+    <div> { .className = "task-actions"; [Btn("Add", "btn", () => openTaskForm({repeat:"daily"}))] }
+    [list]
+    [empty]
+    [archivedSection]
+  }
   return () => {
+    const chores = $chores.get();
+    updateList(list, chores, "fridge-task-summary");
+    empty.hidden = !!chores.length;
     archivedSection.hidden = !$archivedChores.get().length;
     updateList(archivedList,$archivedChores.get(),"fridge-archived-task");
-    for (const { list, empty, chores } of sections) {
-      const items = chores();
-      updateList(list, items, "fridge-task-summary");
-      empty.hidden = !!items.length;
-    }
   };
-}, [$kids, $chores, $archivedChores, $completions, $counts, $clock]);
+}, [$kids, $chores, $archivedChores]);
 
 export function TaskLists() { return <fridge-task-lists> }

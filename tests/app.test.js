@@ -202,16 +202,24 @@ test('reward and PIN edits do not touch existing chore DOM', () => {
 test('archive and restore controls retain earned credit on a versioned board', async () => {
   const { applySnapshot, defaultState } = await import('../apps/web/src/stores/sync.js');
   const { initializeTaskHistory } = await import('@chore-fridge/domain/task-history');
-  applySnapshot(initializeTaskHistory({...defaultState(),setupDone:true,kids:[{id:'history-kid',name:'Alex'}],chores:[{id:'history-task',title:'Keep my credit',kidIds:['history-kid'],points:2,repeat:'daily'}],completions:{'2026-09-07:history-task:history-kid':1}}));
+  applySnapshot(initializeTaskHistory({...defaultState(),setupDone:true,kids:[{id:'history-kid',name:'Alex'}],chores:[
+    {id:'first-task',title:'First inserted',kidIds:['history-kid'],points:1,repeat:'weekly'},
+    {id:'history-task',title:'Keep my credit',kidIds:['history-kid'],points:2,repeat:'daily'},
+    {id:'last-task',title:'Last inserted',kidIds:['history-kid'],points:1,repeat:'once'},
+  ],completions:{'2026-09-07:history-task:history-kid':1}}));
   navigation.unlockParent();
   navigation.setUI({view:'parent',parentTab:'chores'});
-  click('Archive',active().querySelector('fridge-task-summary'));
-  assert.equal(chores.$chores.get().length,0);
+  const rows = [...active().querySelectorAll('fridge-task-summary')];
+  assert.deepEqual(rows.map(row => row.querySelector('.grow > div').textContent),[
+    'First inserted · Weekly','Keep my credit · Daily','Last inserted · Once',
+  ]);
+  click('Archive',rows[1]);
+  assert.equal(chores.$chores.get().length,2);
   assert.equal(balances.starsFor('history-kid'),2);
   const row = active().querySelector('fridge-archived-task');
   assert.match(row.textContent,/Keep my credit/);
   click('Restore',row);
-  assert.equal(chores.$chores.get()[0].taskId,'history-task');
+  assert.equal(chores.$chores.get().at(-1).taskId,'history-task');
   assert.equal(chores.$archivedChores.get().length,0);
   assert.equal(balances.starsFor('history-kid'),2);
 });
@@ -241,6 +249,10 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.equal(tabs.querySelectorAll('[role="tab"]').length,6);
   assert.equal(tabs.querySelector('[role="tab"]').getAttribute('aria-controls'),'settings-panel');
   assert.equal(tabs.querySelector('[aria-selected="true"]').textContent.toLowerCase(),navigation.$ui.get().parentTab);
+  for (const page of ['General','Kids','Chores','Rewards','Display','Help']) {
+    click(page);
+    assert.ok(active().querySelector('.settings-body .lead'),`${page} has a subtitle`);
+  }
   click('Display');
   tabs.querySelector('[aria-selected="true"]').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
   assert.equal(tabs.querySelector('[aria-selected="true"]').textContent,'Help');

@@ -37,9 +37,9 @@ function kidForm(existing) {
         <label> { ["Name"] }
         [nameInput]
       }
-      <p> { .className = "lead"; ["Avatar"] }
+      <p> { .className = "view-label form-label"; ["Avatar"] }
       [emojiRow]
-      <p> { .className = "lead"; ["Color"] }
+      <p> { .className = "view-label form-label"; ["Color"] }
       [colorRow]
       <div> {
         .className = "row"
@@ -155,6 +155,7 @@ defineScreen("fridge-kids-settings", (root) => {
   const list = <div> { .className = "list" }
   [root] {
     <h2> { ["Kids"] }
+    <p> { .className = "lead"; ["Manage the people who use this household board."] }
     [list]
     [Btn("Add kid", "btn", () => kidForm(null))]
   }
@@ -165,10 +166,10 @@ function KidsTab() { return <fridge-kids-settings> }
 
 function ChoresTab() {
   return <div> {
-    <h2> { ["Tasks"] }
+    <h2> { ["Chores"] }
     <p> {
       .className = "lead"
-      ["Daily tasks reset each morning. Weekly ones reset each Monday. One-offs stay until they’re done."]
+      ["Manage every chore in one list. Its frequency appears beside its name."]
     }
     [TaskLists()]
   }
@@ -192,6 +193,7 @@ defineScreen("fridge-rewards-settings", (root) => {
   const list = <div> { .className = "list" }
   [root] {
     <h2> { ["Rewards"] }
+    <p> { .className = "lead"; ["Create rewards kids can redeem with the credit they earn."] }
     [list]
     [Btn("Add reward", "btn", () => rewardForm(null))]
   }
@@ -322,15 +324,18 @@ defineScreen("fridge-general-settings", (root) => {
 function DisplayTab() {
   return <div> {
     <h2> { ["Display"] }
+    <p> { .className = "lead"; ["Adjust how the board looks and scales on this device."] }
     [ViewControls()]
   }
 }
 
 function HelpTab() {
   return <div> {
-    <h2> { ["Put this on the fridge"] }
+    <h2> { ["Help"] }
+    <p> { .className = "lead"; ["Install Chore Fridge on a shared screen and keep the household service private."] }
     <div> {
       .className = "help"
+      <h3> { .className = "settings-label"; ["Put this on the fridge"] }
       <p> {
         <b> { ["Samsung Family Hub:"] }
         [" open the Internet app, type this page’s address, tap the star to bookmark, then tap the home-plus icon to pin it on a Family Hub board."]

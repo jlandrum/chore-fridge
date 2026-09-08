@@ -17,6 +17,7 @@ User-facing changes and upgrade notes are recorded here. Move the Unreleased ent
 ### Changed
 
 - Settings now opens as a fixed 90%-of-screen modal with accessible tab navigation, a scrollable content area, and an explicit Close button. General combines task and reward permissions and adds household-name editing, PIN management, and the household reset. The Display tab mirrors the View controls. The original theme is labeled Classic (V1).
+- Chore settings now use one insertion-ordered list with each chore's frequency shown beside its name. Every Settings page has a subtitle, and section labels use consistent uppercase styling.
 - Parent Mode now uses explicit Unlock Parent Mode and Lock Parent Mode controls. Unlocking stays on the board; Settings opens separately. Reloads start locked. Settings → General uses a themed toggle to require Parent Mode for completion, undo, and count changes, with an explanation shown on blocked taps. A separate matching toggle can require Parent Mode for reward redemptions.
 
 - Rebuilt the interface with JSOX 0.2, native web components, and independent Nano Stores that update existing DOM directly.

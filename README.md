@@ -157,6 +157,8 @@ See [API documentation](docs/api.md) for command examples and compatibility beha
 
 Tasks have a permanent `taskId` (also exposed as legacy `id`) and a `versionId` identifying immutable rules. Editing creates a version; archiving removes the task from the current board while preserving versions and earned credit. Parent task settings include an archived list with Restore, which creates another version under the same task ID.
 
+Active chores appear in insertion order in one settings list. Each row shows whether the chore is Daily, Weekly, or Once; frequency no longer divides the list into separate sections.
+
 The append-only SQLite ledger records credits, linked undo reversals, and spending debits. SQLite prevents journal rows from being updated or deleted. Entries reference the task and version and retain the points/gold earned at completion. A change from two to three stars does not revalue earlier work. Counted tasks can contain units earned under different versions; undo appends negative entries against the most recent units first. Current allocations are a derived projection, not the journal itself. Clients send the version they saw with completion commands, including delayed/offline submissions; archived tasks reject new completions.
 
 Each committed action also stores an immutable household snapshot in SQLite in the same transaction. The history API exposes those revisions for time travel; a date-browsing interface is still on the roadmap. Historical snapshots include prior spending, corrections, and archived definitions. Erasing the current board resets its state but does not purge recorded history.

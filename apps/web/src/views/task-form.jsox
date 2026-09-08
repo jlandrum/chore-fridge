@@ -77,9 +77,9 @@ export function openTaskForm(opts = {}) {
       <label> { ["Emoji"] }
       [emojiInput]
     }
-    <p> { .className = "lead"; ["How often?"] }
+    <p> { .className = "view-label form-label"; ["How often"] }
     [repeats]
-    <p> { .className = "lead"; ["Who"] }
+    <p> { .className = "view-label form-label"; ["Who"] }
     [who]
     <div> {
       .className = "field"
