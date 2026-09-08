@@ -21,6 +21,12 @@ export const LOOKS = {
   cyberpunk: true,
 };
 
+export const LAYOUTS = {
+  classic: true,
+  gallery: true,
+  slide: true,
+};
+
 const STATE_KEY = "chore-fridge-v2";
 const ZOOM_OK =
   typeof document !== "undefined" && "zoom" in document.documentElement.style;
@@ -79,6 +85,7 @@ export function getView() {
     modernColor: /^#[0-9a-f]{6}$/i.test(stored?.modernColor || "") ? stored.modernColor : "#146879",
     appearance,
     look: stored && LOOKS[stored.look] ? stored.look : "classic",
+    layout: stored && LAYOUTS[stored.layout] ? stored.layout : "classic",
     zoom: stored && stored.zoom != null ? clampZoom(stored.zoom) : 100,
   };
   $view.set(prefs);
@@ -109,6 +116,7 @@ export function applyTheme() {
   const html = document.documentElement;
   html.classList.toggle("night", on);
   html.setAttribute("data-look", look);
+  html.setAttribute("data-layout", LAYOUTS[view.layout] ? view.layout : "classic");
   writePalette(html, "modern", view.modernColor || "#146879", on);
   if (document.body) {
     document.body.classList.toggle("night", on);
@@ -203,6 +211,12 @@ export function setZoom(zoom) {
   $view.set({ ...getView(), zoom: clampZoom(zoom) });
   save();
   applyZoom();
+}
+
+export function setLayout(layout) {
+  $view.set({ ...getView(), layout: LAYOUTS[layout] ? layout : "classic" });
+  save();
+  applyTheme();
 }
 
 export function watchView() {

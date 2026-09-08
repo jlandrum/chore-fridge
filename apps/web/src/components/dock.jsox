@@ -1,0 +1,18 @@
+import { $rewards } from "../stores/rewards.js";
+import { defineScreen } from "./screen.jsox";
+import { RewardChip } from "./reward-chip.jsox";
+
+defineScreen("fridge-dock", (root) => {
+  [root] { .className = "dock" }
+  let key = "";
+  return () => {
+    const rewards = $rewards.get();
+    const next = JSON.stringify(rewards);
+    if (next === key) return;
+    key = next;
+    root.replaceChildren();
+    rewards.forEach((reward) => root.append(RewardChip(reward)));
+  };
+}, [$rewards]);
+
+export function Dock() { return <fridge-dock> }

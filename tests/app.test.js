@@ -167,8 +167,36 @@ test('multiple view controls stay synchronized and removed controls unsubscribe'
   document.body.append(one);
   assert.equal(one.querySelector('.zoom-val').textContent, '150%');
   assert.equal(one.querySelectorAll('.zoom-row').length, 1);
+  view.setLayout('gallery');
+  assert.equal(two.querySelector('.view-layouts button[aria-pressed="true"]').textContent.trim(), 'Gallery');
+  view.setLayout('classic');
   one.remove();
   two.remove();
+});
+
+test('board layouts switch between classic columns, gallery cards, and slide-to-shop', () => {
+  view.setLayout('classic');
+  assert.equal(document.documentElement.dataset.layout, 'classic');
+  assert.equal(active().querySelector('fridge-shop').hidden, true);
+  view.setLayout('gallery');
+  assert.equal(document.documentElement.dataset.layout, 'gallery');
+  const shop = active().querySelector('fridge-shop');
+  assert.equal(shop.hidden, false);
+  assert.match(shop.textContent, /The Shop/);
+  assert.equal(active().querySelector('.dock').hidden, true);
+  view.setLayout('slide');
+  const saying = active().querySelector('.shop-saying');
+  assert.ok(saying);
+  assert.ok(saying.textContent.trim().length > 0);
+  assert.equal(active().querySelector('.slide-go-shop').hidden, false);
+  active().querySelector('.slide-go-shop').click();
+  assert.equal(active().querySelector('.workspace').classList.contains('shop-open'), true);
+  assert.equal(active().querySelector('.slide-go-board').hidden, false);
+  active().querySelector('.slide-go-board').click();
+  assert.equal(active().querySelector('.workspace').classList.contains('shop-open'), false);
+  assert.equal(JSON.parse(localStorage.getItem(view.VIEW_KEY)).layout, 'slide');
+  view.setLayout('classic');
+  assert.equal(active().querySelector('fridge-shop').hidden, true);
 });
 
 test('store snapshots and computed balances stay consistent without a refresh call', () => {
@@ -288,6 +316,14 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   nameInput.value = 'The Test House';
   click('Save');
   assert.equal(family.$familyName.get(),'The Test House');
+  const sayingsInput = active().querySelector('textarea[aria-label="Shop sayings"]');
+  assert.ok(sayingsInput);
+  assert.match(sayingsInput.value,/Stars well earned/);
+  sayingsInput.value = '  Hello from the shop  \n\nSecond line\n';
+  click('Save sayings');
+  assert.deepEqual(family.$sayings.get(),['Hello from the shop','Second line']);
+  click('Restore defaults');
+  assert.ok(family.$sayings.get().includes('Stars well earned are stars well spent.'));
   assert.ok([...active().querySelectorAll('button')].find(button => button.textContent.trim() === 'Change PIN'));
   assert.ok([...active().querySelectorAll('button')].find(button => button.textContent.trim() === 'Erase board and start over'));
   click('Advanced');

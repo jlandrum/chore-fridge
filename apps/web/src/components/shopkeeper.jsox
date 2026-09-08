@@ -1,0 +1,29 @@
+import { $view, getView, LOOKS } from "../view.js";
+import { defineScreen } from "./screen.jsox";
+
+function srcFor(look) {
+  return "./shopkeepers/" + (LOOKS[look] ? look : "classic") + ".jpg";
+}
+
+defineScreen("fridge-shopkeeper", (root) => {
+  const img = <img> {
+    .className = "shopkeeper"
+    .alt = "Tanooki shopkeeper"
+  }
+  let failed = false;
+  img.onerror = () => {
+    if (failed) return;
+    failed = true;
+    img.src = srcFor("classic");
+  };
+  [root] { [img] }
+  return () => {
+    const src = srcFor(getView().look);
+    if (img.getAttribute("src") !== src) {
+      failed = false;
+      img.src = src;
+    }
+  };
+}, [$view]);
+
+export function Shopkeeper() { return <fridge-shopkeeper> }

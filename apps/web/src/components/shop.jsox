@@ -1,0 +1,37 @@
+import { $kids } from "../stores/family.js";
+import { $rewards } from "../stores/rewards.js";
+import { $balances } from "../stores/balances.js";
+import { $view } from "../view.js";
+import { defineScreen } from "./screen.jsox";
+import { RewardChip } from "./reward-chip.jsox";
+import { Saying } from "./saying.jsox";
+import { Shopkeeper } from "./shopkeeper.jsox";
+
+defineScreen("fridge-shop", (root) => {
+  const list = <div> { .className = "shop-list" }
+  const empty = <div> { .className = "empty"; ["Nothing in the shop yet."] }
+  [root] {
+    .className = "shop"
+    .setAttribute("role", "region")
+    .setAttribute("aria-label", "Shop")
+    <div> {
+      .className = "shop-head"
+      [Shopkeeper()]
+      <div> {
+        .className = "shop-copy"
+        <h2> { ["The Shop"] }
+        <p> { .className = "shop-lead"; ["Spend stars with the shopkeeper."] }
+      }
+      [Saying()]
+    }
+    [list]
+  }
+  return () => {
+    list.replaceChildren();
+    const rewards = $rewards.get();
+    if (!rewards.length) list.append(empty);
+    else rewards.forEach((reward) => list.append(RewardChip(reward)));
+  };
+}, [$rewards, $balances, $kids, $view]);
+
+export function Shop() { return <fridge-shop> }

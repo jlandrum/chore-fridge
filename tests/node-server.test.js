@@ -8,6 +8,7 @@ import { createApp } from '../apps/server/src/app.js';
 import { openStorage } from '../apps/server/src/storage.js';
 import { defaultState } from '@chore-fridge/domain/state';
 import { balancesFor } from '@chore-fridge/domain/balances';
+import { DEFAULT_SAYINGS } from '@chore-fridge/domain/sayings';
 
 const kid = {id:'kid',name:'Test Kid',emoji:'🐻',color:'#e85d4c'};
 const chore = {id:'task',title:'Test task',kidIds:['kid'],points:5,repeat:'daily',minCount:1,maxCount:1};
@@ -180,6 +181,27 @@ test('redemption preference persists independently from task permissions', async
     assert.equal((await app.inject('/api/board')).json().requireParentModeForRedemptions,true);
     await command(app,'change-other-setting','settings.update',{requireParentModeForRedemptions:false});
     assert.equal((await app.inject('/api/board')).json().requireParentModeForCompletion,false);
+  } finally { await app.close(); }
+});
+
+test('shop sayings are a household list on the board and settings API', async t => {
+  const options = files(t);
+  const app = await createApp(options);
+  app.storage.importLegacy(seed());
+  try {
+    assert.deepEqual((await app.inject('/api/sayings')).json(), DEFAULT_SAYINGS);
+    assert.deepEqual((await app.inject('/api/board')).json().sayings, DEFAULT_SAYINGS);
+    assert.equal((await command(app,'save-sayings','settings.update',{sayings:['  Hello shop  ','Second line']})).statusCode,200);
+    assert.deepEqual((await app.inject('/api/sayings')).json(), ['Hello shop','Second line']);
+    assert.deepEqual((await app.inject('/api/board')).json().sayings, ['Hello shop','Second line']);
+    assert.equal((await command(app,'keep-sayings','settings.update',{familyName:'Still Test family'})).statusCode,200);
+    assert.deepEqual((await app.inject('/api/sayings')).json(), ['Hello shop','Second line']);
+    assert.equal((await command(app,'clear-sayings','settings.update',{sayings:[]})).statusCode,200);
+    assert.deepEqual((await app.inject('/api/sayings')).json(), []);
+    assert.deepEqual((await app.inject('/api/board')).json().sayings, []);
+    assert.equal((await command(app,'too-long-saying','settings.update',{sayings:['x'.repeat(301)]})).statusCode,400);
+    assert.equal((await command(app,'too-many-sayings','settings.update',{sayings:Array.from({length:201},(_,i)=>'Saying '+i)})).statusCode,400);
+    assert.deepEqual((await app.inject('/api/sayings')).json(), []);
   } finally { await app.close(); }
 });
 

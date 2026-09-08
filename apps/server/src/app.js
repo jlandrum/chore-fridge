@@ -1,5 +1,6 @@
 import { dayView, validDay } from '@chore-fridge/domain/day-view';
 import { todayKey } from '@chore-fridge/domain/dates';
+import { householdSayings } from '@chore-fridge/domain/sayings';
 import Fastify from 'fastify';
 import staticFiles from '@fastify/static';
 import { existsSync } from 'node:fs';
@@ -52,6 +53,10 @@ export async function createApp(options) {
     return {revision,result,replayed};
   });
   for (const resource of ['kids','chores','rewards']) app.get('/api/'+resource,async () => storage.read().state?.[resource] || []);
+  app.get('/api/sayings',async () => {
+    const state = storage.read().state;
+    return state ? householdSayings(state.sayings) : [];
+  });
   app.get('/api/chores/archived',async () => storage.read().state?.archivedChores || []);
   app.get('/api/chores/:id/versions',async request => (storage.read().state?.taskVersions || []).filter(task => task.taskId === request.params.id));
   app.get('/api/history',{schema:{querystring:{type:'object',properties:{before:{type:'string',pattern:'^[0-9]{1,15}$'}}}}},async request => storage.history(request.query.before ? Number(request.query.before) : undefined));

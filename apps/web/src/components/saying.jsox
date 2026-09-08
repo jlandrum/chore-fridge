@@ -1,0 +1,15 @@
+import { todayKey } from "@chore-fridge/domain/dates";
+import { sayingForDay } from "@chore-fridge/domain/sayings";
+import { $clock } from "../stores/clock.js";
+import { $sayings } from "../stores/family.js";
+import { defineScreen } from "./screen.jsox";
+
+defineScreen("fridge-saying", (root) => {
+  const quote = <p> { .className = "shop-saying" }
+  [root] { [quote] }
+  return () => {
+    quote.textContent = sayingForDay(todayKey(new Date($clock.get())), $sayings.get());
+  };
+}, [$clock, $sayings]);
+
+export function Saying() { return <fridge-saying> }
