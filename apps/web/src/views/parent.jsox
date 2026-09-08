@@ -234,6 +234,22 @@ function permissionToggle(heading, label, description, store, change) {
   }};
 }
 
+function settingsAction(heading, title, description, button) {
+  return <section> {
+    .className = "settings-group"
+    <h3> { [heading] }
+    <div> {
+      .className = "setting-action"
+      <span> {
+        .className = "setting-copy"
+        <strong> { .className = "setting-title"; [title] }
+        <span> { .className = "setting-description"; [description] }
+      }
+      [button]
+    }
+  }
+}
+
 defineScreen("fridge-general-settings", (root) => {
   const permissions = [
     permissionToggle("Task permissions", "Require Parent Mode for task changes", "Unlock Parent Mode to complete or undo tasks and change counts.", $requireParentModeForCompletion, setRequireParentModeForCompletion),
@@ -245,29 +261,30 @@ defineScreen("fridge-general-settings", (root) => {
     <p> { .className = "lead"; ["Manage how your household uses the board."] }
   }
   permissions.forEach(permission => root.append(permission.node));
+  root.append(
+    settingsAction(
+      "Parent Mode",
+      "Parent PIN",
+      "Change the four-digit PIN used to unlock Parent Mode on this household.",
+      Btn("Change PIN", "btn ghost", () => setUI({pinMode:"set",pinBuf:"",view:"pin"}))
+    ),
+    settingsAction(
+      "Danger zone",
+      "Erase household",
+      "Remove everyone, every task, every reward, and all household history.",
+      Btn("Erase board and start over", "btn danger", () => {
+        if (!confirm("Erase everyone and every chore?")) return;
+        eraseBoard();
+      })
+    )
+  );
   return () => permissions.forEach(permission => permission.sync());
 }, [$requireParentModeForCompletion, $requireParentModeForRedemptions]);
 
 function DisplayTab() {
   return <div> {
     <h2> { ["Display"] }
-    <p> {
-      .className = "lead"
-      ["Fridge screens are often dim, portrait, and a little laggy. These keep the board readable on this device."]
-    }
     [ViewControls()]
-    <div> {
-      .className = "row"
-      .style.marginTop = "16px"
-      [Btn("Change PIN", "btn ghost", () => {
-        setUI({ pinMode: "set", pinBuf: "", view: "pin" });
-      })]
-    }
-    <p> { .className = "lead"; .style.marginTop = "28px"; ["Danger"] }
-    [Btn("Erase board and start over", "btn danger", () => {
-      if (!confirm("Erase everyone and every chore?")) return;
-      eraseBoard();
-    })]
   }
 }
 
@@ -297,7 +314,7 @@ function HelpTab() {
         [" this app has no server authentication. Do not expose port 8080 to the internet; allow access only from devices on a trusted home network."]
       }
       <p> {
-        ["Use Lock Parent Mode when you are finished. Returning to the board keeps settings unlocked on this page until you lock them or reload. Change the PIN in Settings → Display while unlocked."]
+        ["Use Lock Parent Mode when you are finished. Returning to the board keeps settings unlocked on this page until you lock them or reload. Change the PIN in Settings → General while unlocked."]
       }
     }
   }

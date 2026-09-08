@@ -99,6 +99,8 @@ Use **Unlock Parent Mode** to enter the PIN and unlock this page. Unlocking keep
 
 In **Settings → General**, enable **Require Parent Mode** to block completion, undo, and count changes while locked. A blocked tap displays “Unlock Parent Mode to change task completion.” The matching **Reward permissions** toggle requires Parent Mode for redemptions and displays “Unlock Parent Mode to redeem rewards.” Task and reward restrictions are independent and default to off. Both preferences are shared across household devices; the unlocked state is local to each page. This remains a browser interface control, not server authentication.
 
+The Parent PIN and destructive household reset controls also live in **Settings → General**. The Display tab contains only the same device-local appearance, theme, and zoom controls available from **View**.
+
 ## Display options
 
 Use **View** from setup or the board, or open **Settings → Display**, to adjust this device's display:

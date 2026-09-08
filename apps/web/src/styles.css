@@ -1611,6 +1611,18 @@ fridge-chore { display: contents; }
   background: var(--well-bg);
   cursor: pointer;
 }
+.setting-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: var(--hit);
+  padding: 24px;
+  border: 2px solid var(--line);
+  border-radius: var(--card-radius);
+  background: var(--well-bg);
+}
+.setting-action .btn { flex: 0 0 auto; }
 .setting-toggle input {
   position: absolute;
   inset: 0;
@@ -1658,6 +1670,7 @@ fridge-chore { display: contents; }
 }
 @media (max-width: 560px) {
   .setting-toggle { gap: 16px; padding: 18px; align-items: flex-start; }
+  .setting-action { align-items: stretch; flex-direction: column; gap: 16px; padding: 18px; }
   .setting-control { padding-top: 2px; }
   .setting-status { display: none; }
   .setting-title { font-size: 20px; }

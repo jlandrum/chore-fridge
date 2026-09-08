@@ -247,8 +247,13 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   click('Display');
   assert.ok(active().querySelector('.settings-body fridge-view-controls'));
   assert.equal(active().querySelector('button.look-classic').textContent.trim(),'Classic (V1)');
+  assert.equal([...active().querySelectorAll('button')].some(button => button.textContent.trim() === 'Change PIN'),false);
+  assert.equal([...active().querySelectorAll('button')].some(button => button.textContent.trim() === 'Erase board and start over'),false);
   assert.equal(modal.hidden,true);
   assert.equal([...active().querySelectorAll('button')].some(button => button.textContent.trim() === 'View'),false);
+  click('General');
+  assert.ok([...active().querySelectorAll('button')].find(button => button.textContent.trim() === 'Change PIN'));
+  assert.ok([...active().querySelectorAll('button')].find(button => button.textContent.trim() === 'Erase board and start over'));
   click('Close');
   assert.equal(boardScreen.inert,false);
   assert.equal(navigation.$ui.get().parentUnlocked,true);
