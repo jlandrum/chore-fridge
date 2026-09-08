@@ -1633,8 +1633,34 @@ fridge-chore { display: contents; }
   background: var(--well-bg);
 }
 .setting-action .btn { flex: 0 0 auto; }
-.setting-input { display: flex; align-items: center; gap: 12px; flex: 0 1 440px; }
-.setting-input input { min-width: 0; }
+.setting-form {
+  display: grid;
+  gap: 8px;
+  padding: 24px;
+  border: 2px solid var(--line);
+  border-radius: var(--card-radius);
+  background: var(--well-bg);
+}
+.setting-input {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: min(100%, 640px);
+  margin-top: 10px;
+}
+.setting-input input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 64px;
+  padding: 0 16px;
+  border: var(--border);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+}
+.setting-input .btn { flex: 0 0 auto; min-height: 64px; }
 .setting-toggle input {
   position: absolute;
   inset: 0;
@@ -1683,7 +1709,8 @@ fridge-chore { display: contents; }
 @media (max-width: 560px) {
   .setting-toggle { gap: 16px; padding: 18px; align-items: flex-start; }
   .setting-action { align-items: stretch; flex-direction: column; gap: 16px; padding: 18px; }
-  .setting-input { flex: none; width: 100%; }
+  .setting-form { padding: 18px; }
+  .setting-input { width: 100%; }
   .setting-control { padding-top: 2px; }
   .setting-status { display: none; }
   .setting-title { font-size: 20px; }

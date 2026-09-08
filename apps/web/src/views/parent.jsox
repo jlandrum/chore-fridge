@@ -234,6 +234,7 @@ function permissionToggle(title, label, description, store, change) {
 
 function householdNameSetting() {
   const input = <input> {
+    .id = "household-name"
     .type = "text"
     .maxlength = 300
     .autocomplete = "organization"
@@ -248,13 +249,10 @@ function householdNameSetting() {
     .className = "settings-group"
     <h3> { ["Household"] }
     <form> {
-      .className = "setting-action"
+      .className = "setting-form"
       .onsubmit = event => { event.preventDefault(); save(); }
-      <span> {
-        .className = "setting-copy"
-        <strong> { .className = "setting-title"; ["Household name"] }
-        <span> { .className = "setting-description"; ["Shown at the top of the board on every device."] }
-      }
+      <label> { .className = "setting-title"; .htmlFor = "household-name"; ["Household name"] }
+      <span> { .className = "setting-description"; ["Shown at the top of the board on every device."] }
       <span> { .className = "setting-input"; [input]; [Btn("Save", "btn", save)] }
     }
   }
