@@ -1,0 +1,62 @@
+import { $kids } from "../stores/family.js";
+import { redeemReward, redemptionError } from "../stores/rewards.js";
+import { starsFor, goldFor } from "../stores/balances.js";
+import { showToast, burst, openModal, closeModal, Btn, Star } from "../ui.jsox";
+
+export function askWho(reward) {
+  const error = redemptionError();
+  if (error) { showToast(error); return; }
+  const choices = <div> { .className = "row" }
+  for (const kid of $kids.get()) {
+    const have = reward.gold ? goldFor(kid.id) : starsFor(kid.id);
+    const disabled = have < reward.cost;
+    [choices] {
+      <button> {
+        .type = "button"
+        .className = "choice"
+        .disabled = disabled
+        [kid.emoji + " " + kid.name]
+        <br> { }
+        [Star(!!reward.gold)]
+        [" " + have]
+        .onclick = () => {
+          const result = redeemReward(reward.id, kid.id);
+          if (result.error) {
+            showToast(result.error);
+            return;
+          }
+          closeModal();
+          burst();
+          showToast((result.kid ? result.kid.name : "You") + " redeemed " + reward.title + "!");
+        }
+      }
+    }
+  }
+  openModal(
+    <div> {
+      <h3> { ["Who earned " + reward.emoji + " " + reward.title + "?"] }
+      <p> {
+        .className = "lead"
+        ["Costs "]
+        [Star(!!reward.gold)]
+        [" " + reward.cost + (reward.gold ? " gold." : ".") + " Ask a parent to actually pay out."]
+      }
+      [choices]
+      <div> {
+        .className = "row"
+        .style.marginTop = "16px"
+        [Btn("Cancel", "btn ghost wide", closeModal)]
+      }
+    }
+  );
+}
+
+export function RewardChip(reward) {
+  return <button> {
+    .type = "button"
+    .className = reward.gold ? "reward gold" : "reward"
+    [reward.emoji + " " + reward.title]
+    <span> { .className = "cost"; [Star(!!reward.gold)]; [" " + reward.cost] }
+    .onclick = () => askWho(reward)
+  }
+}

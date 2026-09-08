@@ -1,0 +1,113 @@
+.dock {
+  flex-shrink: 0;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 10px 2px 6px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.reward {
+  min-height: 64px;
+  padding: 8px 16px;
+  border-radius: 16px;
+  border: var(--border);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  font-size: 20px;
+  font-weight: 800;
+
+  .cost { color: var(--star); }
+
+  &.gold {
+    box-shadow: 0 0 0 3px var(--gold), var(--shadow);
+    .cost { color: var(--gold); }
+  }
+
+  &:disabled { opacity: .45; }
+}
+
+.shop {
+  background: var(--paper);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.shop-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 18px 10px;
+}
+
+fridge-shopkeeper { display: contents; }
+
+.shopkeeper {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 24px;
+  flex: 0 0 auto;
+  background: var(--well-bg);
+}
+
+.shop-copy h2 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: var(--letter);
+}
+
+.shop-lead {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+fridge-saying { display: none; }
+
+.shop-saying {
+  margin: 4px 0 0;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--well-bg);
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1.35;
+  max-width: 22em;
+}
+
+.shop-saying::before { content: "“"; }
+.shop-saying::after { content: "”"; }
+
+.shop-saying:empty { display: none; }
+.shop-saying:empty::before,
+.shop-saying:empty::after { content: none; }
+
+.shop-list {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 6px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+
+  .reward {
+    width: 100%;
+    justify-content: space-between;
+    white-space: normal;
+  }
+}

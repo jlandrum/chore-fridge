@@ -1,6 +1,7 @@
 import { atom } from "nanostores";
 import { commit } from "./changes.js";
 import { uid, upsert } from "@chore-fridge/domain/records";
+import { DEFAULT_SAYINGS, parseSayingsText } from "@chore-fridge/domain/sayings";
 
 export const COLORS = ["#e85d4c", "#2a9d8f", "#e9b44c", "#6c63c0", "#4a7c59", "#d9480f"];
 export const KID_EMOJIS = ["🐻", "🦁", "🐸", "🦊", "🐼", "🐰", "🦄", "🐲", "🐯", "🐮", "🐙", "⭐"];
@@ -9,6 +10,7 @@ export const $requireParentModeForRedemptions = atom(false);
 export const $requireParentModeForCompletion = atom(false);
 export const $mcpEnabled = atom(false);
 export const $familyName = atom("Our Family");
+export const $sayings = atom(DEFAULT_SAYINGS.slice());
 export const $pin = atom("");
 export const $setupDone = atom(false);
 export const $kids = atom([]);
@@ -41,4 +43,17 @@ export function setRequireParentModeForRedemptions(required) {
 
 export function setMcpEnabled(enabled) {
   commit(() => $mcpEnabled.set(enabled), {type:"settings.update",payload:{mcpEnabled:enabled}});
+}
+
+export function setSayingsFromText(text) {
+  const next = parseSayingsText(text);
+  if (next.length > 200) return {error:"Use at most 200 sayings."};
+  if (next.some((line) => line.length > 300)) return {error:"Each saying must be 300 characters or fewer."};
+  commit(() => $sayings.set(next), {type:"settings.update",payload:{sayings:next}});
+  return {ok:true};
+}
+
+export function restoreDefaultSayings() {
+  const next = DEFAULT_SAYINGS.slice();
+  commit(() => $sayings.set(next), {type:"settings.update",payload:{sayings:next}});
 }

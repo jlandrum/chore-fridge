@@ -51,6 +51,7 @@ export function applyCommand(current, command, now = Date.now()) {
         requireValue(p.familyName.trim(), 'Household needs a name');
         state.familyName = p.familyName.trim();
       }
+      if ('sayings' in p) state.sayings = p.sayings.map(line => line.trim()).filter(Boolean);
       break;
     case 'pin.set': state.pin = p.pin; break;
     case 'setup.finish':

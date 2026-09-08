@@ -1,64 +1,14 @@
-import { $familyName, $kids } from "../stores/family.js";
+import { $familyName } from "../stores/family.js";
 import { $chores } from "../stores/chores.js";
-import { $balances, starsFor, goldFor, familyStars, familyGold } from "../stores/balances.js";
-import { $rewards, redeemReward, redemptionError } from "../stores/rewards.js";
+import { $balances, familyStars, familyGold } from "../stores/balances.js";
+import { $rewards } from "../stores/rewards.js";
 import { $ui, openParent, lockParent, openSettings } from "../stores/navigation.js";
 import { $clock } from "../stores/clock.js";
 import { prettyDate } from "@chore-fridge/domain/dates";
-import "../components/kid.jsox";
-import { updateList } from "../components/list.js";
 import { defineScreen } from "../components/screen.jsox";
-import { showToast, burst, openModal, closeModal, Btn, Star } from "../ui.jsox";
+import { Workspace } from "../components/workspace.jsox";
+import { Star, Btn } from "../ui.jsox";
 import { createViewButton } from "./view-options.jsox";
-
-function askWho(reward) {
-  const error = redemptionError();
-  if (error) { showToast(error); return; }
-  const choices = <div> { .className = "row" }
-  for (const kid of $kids.get()) {
-    const have = reward.gold ? goldFor(kid.id) : starsFor(kid.id);
-    const disabled = have < reward.cost;
-    [choices] {
-      <button> {
-        .type = "button"
-        .className = "choice"
-        .disabled = disabled
-        [kid.emoji + " " + kid.name]
-        <br> { }
-        [Star(!!reward.gold)]
-        [" " + have]
-        .onclick = () => {
-          const result = redeemReward(reward.id, kid.id);
-          if (result.error) {
-            showToast(result.error);
-            return;
-          }
-          closeModal();
-
-          burst();
-          showToast((result.kid ? result.kid.name : "You") + " redeemed " + reward.title + "!");
-        }
-      }
-    }
-  }
-  openModal(
-    <div> {
-      <h3> { ["Who earned " + reward.emoji + " " + reward.title + "?"] }
-      <p> {
-        .className = "lead"
-        ["Costs "]
-        [Star(!!reward.gold)]
-        [" " + reward.cost + (reward.gold ? " gold." : ".") + " Ask a parent to actually pay out."]
-      }
-      [choices]
-      <div> {
-        .className = "row"
-        .style.marginTop = "16px"
-        [Btn("Cancel", "btn ghost wide", closeModal)]
-      }
-    }
-  );
-}
 
 defineScreen("fridge-board", (root) => {
   const titleEl = <h1> {}
@@ -77,15 +27,8 @@ defineScreen("fridge-board", (root) => {
     [" "]
     [goldNum]
   }
-  const boardEl = <section> { .className = "board" }
-  const dockEl = <nav> { .className = "dock" }
   const parentButton = Btn("Unlock Parent Mode", "pill", () => $ui.get().parentUnlocked ? lockParent() : openParent());
   const settingsButton = Btn("Settings", "pill settings-button", openSettings);
-  const emptyBoard = <div> {
-    .className = "panel"
-    <h2> { ["No kids yet"] }
-    <p> { .className = "lead"; ["Unlock Parent Mode and open Settings to add your family."] }
-  }
   [root] {
     .className = "screen"
     <header> {
@@ -104,29 +47,7 @@ defineScreen("fridge-board", (root) => {
         [settingsButton]
       }
     }
-    [boardEl]
-    [dockEl]
-  }
-
-  let rewardKey = "";
-
-  function syncDock() {
-    const ids = JSON.stringify($rewards.get());
-    if (ids === rewardKey) return;
-    rewardKey = ids;
-    dockEl.replaceChildren();
-    dockEl.hidden = !$rewards.get().length;
-    for (const reward of $rewards.get()) {
-      [dockEl] {
-        <button> {
-          .type = "button"
-          .className = reward.gold ? "reward gold" : "reward"
-          [reward.emoji + " " + reward.title]
-          <span> { .className = "cost"; [Star(!!reward.gold)]; [" " + reward.cost] }
-          .onclick = () => askWho(reward)
-        }
-      }
-    }
+    [Workspace()]
   }
 
   return [
@@ -142,12 +63,6 @@ defineScreen("fridge-board", (root) => {
       const gold = familyGold();
       goldNum.textContent = gold;
       goldEl.hidden = !(gold > 0 || $chores.get().some((chore) => chore.gold) || $rewards.get().some((reward) => reward.gold));
-    }],
-    [[$rewards], syncDock],
-    [[$kids], () => {
-      emptyBoard.remove();
-      updateList(boardEl, $kids.get(), "fridge-kid");
-      if (!$kids.get().length) boardEl.append(emptyBoard);
     }],
   ];
 });

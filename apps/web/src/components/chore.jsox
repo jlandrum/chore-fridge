@@ -1,0 +1,68 @@
+import { choreKind, maxCount, isCounted, countFor, isDone, bumpChore, toggleChore } from "../stores/chores.js";
+import { burst, showToast, Star } from "../ui.jsox";
+import { defineScreen } from "./screen.jsox";
+
+function afterBump(kid, result) {
+  if (result.error) { showToast(result.error); return; }
+  if (result.skipped) return;
+  if (result.all) {
+    burst();
+    showToast(kid.name + " finished everything!");
+  }
+}
+
+defineScreen("fridge-chore", (root) => {
+  let { chore, kid } = root.model;
+  const mark = <span> { .className = "mark" }
+  const title = <span> { .className = "title" }
+  const kind = <span> { .className = "kind" }
+  const pts = <span> { .className = "pts" }
+  const btn = <button> {
+    .type = "button"
+    [mark]
+    <span> {
+      .className = "copy"
+      [title]
+      <span> { .className = "meta"; [kind]; [pts] }
+    }
+    <span> { .className = "stamp"; ["DONE"] }
+    .onclick = () => {
+      const result = isCounted(chore)
+        ? bumpChore(chore.id, kid.id, 1)
+        : toggleChore(chore.id, kid.id);
+      afterBump(kid, result);
+    }
+  }
+  mark.onclick = (event) => {
+    if (!isCounted(chore)) return;
+    event.stopPropagation();
+    afterBump(kid, bumpChore(chore.id, kid.id, -1));
+  };
+
+  root.append(btn);
+  return () => {
+    ({ chore, kid } = root.model);
+    const complete = isDone(chore, kid.id);
+    const counted = isCounted(chore);
+    btn.className = "chore" + (complete ? " done" : "") + (chore.gold ? " gold" : "");
+    if (counted) {
+      const n = countFor(chore, kid.id);
+      mark.textContent = String(n);
+      kind.textContent = choreKind(chore) + " · " + n + "/" + maxCount(chore);
+    } else {
+      mark.textContent = complete ? "✓" : chore.emoji || "★";
+      kind.textContent = choreKind(chore);
+    }
+    title.textContent = chore.title;
+    pts.replaceChildren();
+    if (chore.gold) {
+      pts.append(Star(true));
+      if (chore.points) {
+        pts.append(" · ");
+        pts.append(Star(false), " " + chore.points);
+      }
+    } else {
+      pts.append(Star(false), " " + (chore.points || 0));
+    }
+  };
+});

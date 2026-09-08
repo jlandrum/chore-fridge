@@ -1,4 +1,5 @@
-import { COLORS, $familyName, setFamilyName, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions, $mcpEnabled, setMcpEnabled } from "../stores/family.js";
+import { COLORS, $familyName, setFamilyName, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions, $mcpEnabled, setMcpEnabled, $sayings, setSayingsFromText, restoreDefaultSayings } from "../stores/family.js";
+import { formatSayingsText, parseSayingsText } from "@chore-fridge/domain/sayings";
 import { $serverMode } from "../stores/sync.js";
 import { $balances, starsFor, goldFor } from "../stores/balances.js";
 import { $rewards, saveReward, removeReward } from "../stores/rewards.js";
@@ -269,6 +270,47 @@ function householdNameSetting() {
   }};
 }
 
+function shopSayingsSetting() {
+  const input = <textarea> {
+    .id = "shop-sayings"
+    .rows = 12
+    .setAttribute("aria-label", "Shop sayings")
+    .setAttribute("spellcheck", "true")
+  }
+  const save = () => {
+    const result = setSayingsFromText(input.value);
+    if (result.error) { showToast(result.error); input.focus(); }
+    else showToast(parseSayingsText(input.value).length ? "Shop sayings saved." : "Shop sayings cleared.");
+  };
+  const restore = () => {
+    restoreDefaultSayings();
+    input.value = formatSayingsText($sayings.get());
+    showToast("Shop sayings restored.");
+  };
+  const node = <section> {
+    .className = "settings-group"
+    <h3> { ["Shop"] }
+    <form> {
+      .className = "setting-form"
+      .onsubmit = event => { event.preventDefault(); save(); }
+      <label> { .className = "setting-title"; .htmlFor = "shop-sayings"; ["Shop sayings"] }
+      <span> { .className = "setting-description"; ["One saying per line. Slide to Buy shows one each day. Saved for the whole household."] }
+      <span> {
+        .className = "setting-input setting-sayings"
+        [input]
+        <span> {
+          .className = "setting-sayings-actions"
+          [Btn("Save sayings", "btn", save)]
+          [Btn("Restore defaults", "btn ghost", restore)]
+        }
+      }
+    }
+  }
+  return {node, sync() {
+    if (document.activeElement !== input) input.value = formatSayingsText($sayings.get());
+  }};
+}
+
 function settingsAction(heading, title, description, button) {
   return <section> {
     .className = "settings-group"
@@ -293,6 +335,7 @@ defineScreen("fridge-general-settings", (root) => {
   const permissionList = <div> { .className = "settings-stack" }
   permissions.forEach(permission => permissionList.append(permission.node));
   const householdName = householdNameSetting();
+  const shopSayings = shopSayingsSetting();
   [root] {
     .className = "general-settings settings-page"
     <div> {
@@ -308,6 +351,7 @@ defineScreen("fridge-general-settings", (root) => {
       [permissionList]
     },
     householdName.node,
+    shopSayings.node,
     settingsAction(
       "Parent Mode",
       "Parent PIN",
@@ -327,8 +371,9 @@ defineScreen("fridge-general-settings", (root) => {
   return () => {
     permissions.forEach(permission => permission.sync());
     householdName.sync();
+    shopSayings.sync();
   };
-}, [$familyName, $requireParentModeForCompletion, $requireParentModeForRedemptions]);
+}, [$familyName, $sayings, $requireParentModeForCompletion, $requireParentModeForRedemptions]);
 
 function DisplayTab() {
   return <div> {

@@ -2,7 +2,7 @@
 
 - [ ] Child-specific options, including a theme the child can choose for only their card
 - [x] Parent Mode lock/unlock, separate Settings, and optional task/redemption locks
-- [ ] New display modes
+- [x] New display modes
 - [ ] Onboarding process
 - [ ] More advanced repeating options
   - [ ] Daily tasks on selected days of the week

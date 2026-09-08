@@ -1,7 +1,7 @@
 
 import { defineComponent } from "@js-ox/web-components";
 import { Choices } from "../components/choices.jsox";
-import { $view, getView, setTheme, setLook, setZoom, setModernColor, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "../view.js";
+import { $view, getView, setTheme, setLook, setZoom, setLayout, setModernColor, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "../view.js";
 import { Btn, openModal, closeModal } from "../ui.jsox";
 
 const appearances = ["light", "dark", "system"].map((value) => ({
@@ -12,6 +12,11 @@ const looks = [
   ["classic", "Classic (V1)"], ["business", "Business"], ["crayon", "Crayon"],
   ["contrast", "High contrast"], ["lego", "Lego"], ["cyberpunk", "Cyberpunk"],
 ].map(([value, label]) => ({ value, label, className: "look-" + value }));
+const layouts = [
+  { value: "classic", label: "Classic" },
+  { value: "gallery", label: "Gallery" },
+  { value: "slide", label: "Slide to Buy" },
+];
 
 [defineComponent("fridge-view-controls")] {
   .connected = function () {
@@ -19,6 +24,7 @@ const looks = [
       this.className = "view-controls";
       const view = getView();
       const appearance = Choices(appearances, view.appearance, setTheme, { className: "row view-themes" });
+      const layout = Choices(layouts, view.layout || "classic", setLayout, { className: "row view-layouts" });
       const look = Choices(looks, view.look, setLook, { className: "view-looks" });
       const zoomVal = <div> { .className = "zoom-val" }
       const color = <input> {
@@ -41,6 +47,8 @@ const looks = [
       [this] {
         <p> { .className = "view-label"; ["Appearance"] }
         [appearance]
+        <p> { .className = "view-label"; ["Board"] }
+        [layout]
         <p> { .className = "view-label"; ["Theme"] }
         [look]
         <p> { .className = "view-label"; ["Zoom"] }
@@ -59,8 +67,10 @@ const looks = [
       this.update = () => {
         const current = getView();
         appearance.value = current.appearance;
+        layout.value = current.layout || "classic";
         look.value = current.look;
         appearance.update();
+        layout.update();
         look.update();
         split.classList.toggle("on", current.look === "modern");
         color.value = current.modernColor || "#146879";

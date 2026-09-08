@@ -99,13 +99,14 @@ Use **Unlock Parent Mode** to enter the PIN and unlock this page. Unlocking keep
 
 In **Settings → General**, enable **Require Parent Mode** to block completion, undo, and count changes while locked. A blocked tap displays “Unlock Parent Mode to change task completion.” The matching **Reward permissions** toggle requires Parent Mode for redemptions and displays “Unlock Parent Mode to redeem rewards.” Task and reward restrictions are independent and default to off. Both preferences are shared across household devices; the unlocked state is local to each page. This remains a browser interface control, not server authentication.
 
-The household name, Parent PIN, and destructive household reset controls also live in **Settings → General**. The Display tab contains only the same device-local appearance, theme, and zoom controls available from **View**.
+The household name, shop sayings, Parent PIN, and destructive household reset controls also live in **Settings → General**. Shop sayings are one line per saying and are shared across household devices; Slide to Buy shows one each day. The Display tab contains only the same device-local appearance, theme, and zoom controls available from **View**.
 
 ## Display options
 
 Use **View** from setup or the board, or open **Settings → Display**, to adjust this device's display:
 
 - Appearance: Light, Dark, or System (follows the device's color preference).
+- Board: Classic columns, Gallery cards (including the shop), or Slide to Buy. Slide to Buy shows a large shopkeeper, a saying of the day, then the shop items.
 - Theme: Modern (v2), Classic (V1), Business, Crayon, High contrast, Lego, or Cyberpunk.
 - Zoom: 50–150% in 10% steps.
 

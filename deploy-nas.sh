@@ -40,8 +40,8 @@ printf 'CHORE_FRIDGE_BIND_ADDRESS=%s\n' "$BIND_ADDRESS" \
 | ssh "$HOST" "umask 077 && cat > '$REMOTE/.env'"
 
 echo "Rebuilding container"
-ssh "$HOST" "cd '$REMOTE' && $DOCKER_COMPOSE up --build -d"
+ssh "$HOST" "export PATH=/usr/local/bin:\$PATH; cd '$REMOTE' && $DOCKER_COMPOSE up --build -d"
 
 echo "Checking container"
-ssh "$HOST" "docker ps --filter name=chore-fridge --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+ssh "$HOST" "export PATH=/usr/local/bin:\$PATH; docker ps --filter name=chore-fridge --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
 echo "Done. Open the service using the host's private LAN address."

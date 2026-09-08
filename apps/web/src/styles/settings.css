@@ -322,6 +322,34 @@
   @media (max-width: 560px) { width: 100%; }
 }
 
+.setting-sayings {
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+
+  textarea {
+    width: 100%;
+    min-height: 240px;
+    padding: 14px 16px;
+    border: var(--border);
+    border-radius: 14px;
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    font-size: 18px;
+    line-height: 1.4;
+    resize: vertical;
+  }
+}
+
+.setting-sayings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  .btn { min-height: 56px; }
+}
+
 .setting-copy { display: grid; gap: 8px; min-width: 0; }
 .setting-title { font-size: 22px; line-height: 1.25; }
 .setting-description { color: var(--muted); font-size: 17px; line-height: 1.5; }
