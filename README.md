@@ -106,7 +106,7 @@ The household name, Parent PIN, and destructive household reset controls also li
 Use **View** from setup or the board, or open **Settings → Display**, to adjust this device's display:
 
 - Appearance: Light, Dark, or System (follows the device's color preference).
-- Theme: Classic (V1), Business, Crayon, High contrast, Lego, or Cyberpunk.
+- Theme: Modern (v2), Classic (V1), Business, Crayon, High contrast, Lego, or Cyberpunk.
 - Zoom: 50–150% in 10% steps.
 
 Changes apply immediately and are remembered in this browser. Display preferences are independent of the shared household state, so each fridge, tablet, or computer can use its own settings. Existing explicit bright/dim preferences are migrated from browser storage; automatic appearance now follows the system instead of dimming after 8 p.m.

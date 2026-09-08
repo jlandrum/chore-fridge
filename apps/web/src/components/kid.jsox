@@ -2,6 +2,7 @@ import { $chores, $completions, $counts, choreKind, maxCount, isCounted, countFo
 import { $balances, starsFor, goldFor } from "../stores/balances.js";
 
 import { $clock } from "../stores/clock.js";
+import { $view, isDark, writePalette } from "../view.js";
 import { defineScreen } from "./screen.jsox";
 import { updateList } from "./list.js";
 import { Star, burst, showToast } from "../ui.jsox";
@@ -104,6 +105,7 @@ defineScreen("fridge-kid", (root) => {
   function sync() {
     kid = root.model;
     root.style.setProperty("--kid", kid.color);
+    writePalette(root, "kid", kid.color, isDark());
     emojiEl.textContent = kid.emoji;
     nameEl.textContent = kid.name;
     const chores = choresForKid(kid.id);
@@ -132,5 +134,5 @@ defineScreen("fridge-kid", (root) => {
   }
 
   return sync;
-}, [$chores, $completions, $counts, $balances, $clock]);
+}, [$chores, $completions, $counts, $balances, $clock, $view]);
 

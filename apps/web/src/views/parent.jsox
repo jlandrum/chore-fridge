@@ -1,4 +1,4 @@
-import { COLORS, KID_EMOJIS, $familyName, setFamilyName, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions } from "../stores/family.js";
+import { COLORS, $familyName, setFamilyName, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions } from "../stores/family.js";
 import { $balances, starsFor, goldFor } from "../stores/balances.js";
 import { $rewards, saveReward, removeReward } from "../stores/rewards.js";
 import { $ui, setUI, lockParent, closeSettings } from "../stores/navigation.js";
@@ -6,24 +6,33 @@ import { eraseBoard } from "../stores/setup.js";
 import { uid } from "@chore-fridge/domain/records";
 import { updateList } from "../components/list.js";
 import { Choices } from "../components/choices.jsox";
+import { EmojiField } from "../components/emoji-field.jsox";
 import { defineScreen } from "../components/screen.jsox";
 import { Btn, showToast, openModal, closeModal, Star } from "../ui.jsox";
 import { TaskLists } from "./tasks.jsox";
+import { openTaskForm } from "./task-form.jsox";
 import { ViewControls } from "./view-options.jsox";
 import { Tabs } from "../components/tabs.jsox";
 
+function settingsIntro(title, lead, action) {
+  return <div> {
+    .className = "settings-intro"
+    <div> {
+      .className = "settings-intro-head"
+      <h2> { [title] }
+      [action]
+    }
+    <p> { .className = "lead"; [lead] }
+  }
+}
+
 function kidForm(existing) {
-  let emoji = existing ? existing.emoji : "🐻";
   let color = existing ? existing.color : COLORS[$kids.get().length % COLORS.length];
   const nameInput = <input> {
     .value = existing ? existing.name : ""
     .autocomplete = "off"
   }
-
-  const emojiRow = Choices(
-    KID_EMOJIS.map((value) => ({ value, label: value })),
-    emoji, (value) => { emoji = value; }
-  );
+  const emoji = EmojiField(existing ? existing.emoji : "🐻", "🐻");
   const colorRow = Choices(
     COLORS.map((value) => ({ value, label: "●", color: value })),
     color, (value) => { color = value; }
@@ -33,12 +42,18 @@ function kidForm(existing) {
     <div> {
       <h3> { [existing ? "Edit kid" : "Add kid"] }
       <div> {
-        .className = "field"
-        <label> { ["Name"] }
-        [nameInput]
+        .className = "row identity-row"
+        <div> {
+          .className = "field task-title"
+          <label> { ["Name"] }
+          [nameInput]
+        }
+        <div> {
+          .className = "field task-emoji"
+          <label> { ["Emoji"] }
+          [emoji.trigger]
+        }
       }
-      <p> { .className = "view-label form-label"; ["Avatar"] }
-      [emojiRow]
       <p> { .className = "view-label form-label"; ["Color"] }
       [colorRow]
       <div> {
@@ -51,7 +66,7 @@ function kidForm(existing) {
             showToast("Need a name");
             return;
           }
-          saveKid({ id: existing?.id, name, emoji, color });
+          saveKid({ id: existing?.id, name, emoji: emoji.value, color });
           closeModal();
         })]
       }
@@ -64,13 +79,7 @@ function rewardForm(existing) {
     .value = existing ? existing.title : ""
     .autocomplete = "off"
   }
-  const emojiInput = <input> {
-    .value = existing ? existing.emoji : ""
-    .placeholder = "🎁"
-    .title = "Type or paste any emoji"
-    .autocomplete = "off"
-    .spellcheck = false
-  }
+  const emoji = EmojiField(existing ? existing.emoji : "🎁", "🎁");
   const costInput = <input> {
     .value = existing ? String(existing.cost) : "20"
     .autocomplete = "off"
@@ -89,14 +98,17 @@ function rewardForm(existing) {
     <div> {
       <h3> { [existing ? "Edit reward" : "Add reward"] }
       <div> {
-        .className = "field"
-        <label> { ["Reward"] }
-        [titleInput]
-      }
-      <div> {
-        .className = "field"
-        <label> { ["Emoji"] }
-        [emojiInput]
+        .className = "row identity-row"
+        <div> {
+          .className = "field task-title"
+          <label> { ["Reward"] }
+          [titleInput]
+        }
+        <div> {
+          .className = "field task-emoji"
+          <label> { ["Emoji"] }
+          [emoji.trigger]
+        }
       }
       <div> {
         .className = "field"
@@ -121,7 +133,7 @@ function rewardForm(existing) {
           const payload = {
             id: existing ? existing.id : uid(),
             title,
-            emoji: emojiInput.value.trim() || "🎁",
+            emoji: emoji.value,
             cost: Math.max(1, parseInt(costInput.value, 10) || 1),
             gold,
           };
@@ -154,10 +166,9 @@ defineScreen("fridge-kid-settings", (root) => {
 defineScreen("fridge-kids-settings", (root) => {
   const list = <div> { .className = "list" }
   [root] {
-    <h2> { ["Kids"] }
-    <p> { .className = "lead"; ["Manage the people who use this household board."] }
+    .className = "settings-page"
+    [settingsIntro("Kids", "Manage the people who use this household board.", Btn("Add kid", "btn", () => kidForm(null)))]
     [list]
-    [Btn("Add kid", "btn", () => kidForm(null))]
   }
   return () => updateList(list, $kids.get(), "fridge-kid-settings");
 }, [$kids, $balances]);
@@ -166,11 +177,8 @@ function KidsTab() { return <fridge-kids-settings> }
 
 function ChoresTab() {
   return <div> {
-    <h2> { ["Chores"] }
-    <p> {
-      .className = "lead"
-      ["Manage every chore in one list. Its frequency appears beside its name."]
-    }
+    .className = "settings-page"
+    [settingsIntro("Chores", "Manage every chore in one list. Its frequency appears beside its name.", Btn("Add", "btn", () => openTaskForm({repeat:"daily"})))]
     [TaskLists()]
   }
 }
@@ -192,10 +200,9 @@ defineScreen("fridge-reward-settings", (root) => {
 defineScreen("fridge-rewards-settings", (root) => {
   const list = <div> { .className = "list" }
   [root] {
-    <h2> { ["Rewards"] }
-    <p> { .className = "lead"; ["Create rewards kids can redeem with the credit they earn."] }
+    .className = "settings-page"
+    [settingsIntro("Rewards", "Create rewards kids can redeem with the credit they earn.", Btn("Add reward", "btn", () => rewardForm(null)))]
     [list]
-    [Btn("Add reward", "btn", () => rewardForm(null))]
   }
   return () => updateList(list, $rewards.get(), "fridge-reward-settings");
 }, [$rewards]);
@@ -286,9 +293,12 @@ defineScreen("fridge-general-settings", (root) => {
   permissions.forEach(permission => permissionList.append(permission.node));
   const householdName = householdNameSetting();
   [root] {
-    .className = "general-settings"
-    <h2> { ["General"] }
-    <p> { .className = "lead"; ["Manage how your household uses the board."] }
+    .className = "general-settings settings-page"
+    <div> {
+      .className = "settings-intro"
+      <h2> { ["General"] }
+      <p> { .className = "lead"; ["Manage how your household uses the board."] }
+    }
   }
   root.append(
     <section> {
@@ -321,16 +331,24 @@ defineScreen("fridge-general-settings", (root) => {
 
 function DisplayTab() {
   return <div> {
-    <h2> { ["Display"] }
-    <p> { .className = "lead"; ["Adjust how the board looks and scales on this device."] }
+    .className = "settings-page"
+    <div> {
+      .className = "settings-intro"
+      <h2> { ["Display"] }
+      <p> { .className = "lead"; ["Adjust how the board looks and scales on this device."] }
+    }
     [ViewControls()]
   }
 }
 
 function HelpTab() {
   return <div> {
-    <h2> { ["Help"] }
-    <p> { .className = "lead"; ["Install Chore Fridge on a shared screen and keep the household service private."] }
+    .className = "settings-page"
+    <div> {
+      .className = "settings-intro"
+      <h2> { ["Help"] }
+      <p> { .className = "lead"; ["Install Chore Fridge on a shared screen and keep the household service private."] }
+    }
     <div> {
       .className = "help"
       <h3> { .className = "settings-label"; ["Put this on the fridge"] }
@@ -371,7 +389,7 @@ defineScreen("fridge-parent", (root) => {
     closeSettings();
     queueMicrotask(() => settingsButton?.focus());
   };
-  const tabs = Tabs(tabOptions, $ui.get().parentTab, tab => setUI({parentTab: tab}), {id:"settings-tabs", controls:"settings-panel"});
+  const tabs = Tabs(tabOptions, $ui.get().parentTab, tab => setUI({parentTab: tab}), {id:"settings-tabs", controls:"settings-panel", className:"tabs settings-nav"});
   const body = <div> { .id = "settings-panel"; .className = "settings-body"; .setAttribute("role", "tabpanel") }
   const close = Btn("Close", "btn ghost settings-close", dismissSettings);
   [root] {
@@ -392,8 +410,11 @@ defineScreen("fridge-parent", (root) => {
           [close]
         }
       }
-      [tabs]
-      [body]
+      <div> {
+        .className = "settings-layout"
+        [tabs]
+        [body]
+      }
     }
   }
 

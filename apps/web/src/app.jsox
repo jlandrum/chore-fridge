@@ -29,13 +29,15 @@ const $screen = computed([$setupDone, $ui], (setupDone, navigation) =>
     }
     this.unsubscribe = $screen.subscribe((current) => {
       for (const screen of this.children) {
+        const overlay = current === "parent" || current === "pin";
         const visible = screen.localName === "fridge-" + current ||
-          (current === "parent" && screen.localName === "fridge-board");
+          (overlay && screen.localName === "fridge-board");
         screen.hidden = !visible;
-        screen.inert = current === "parent" && screen.localName === "fridge-board";
+        screen.inert = overlay && screen.localName === "fridge-board";
         if (!screen.hidden) screen.syncDOM();
       }
       if (current === "parent") queueMicrotask(() => this.querySelector("fridge-parent .settings-close")?.focus());
+      if (current === "pin") queueMicrotask(() => this.querySelector("fridge-pin")?.focus());
     });
     this.stopLock = $ui.listen((next, previous) => {
       if (previous.parentUnlocked && !next.parentUnlocked) closeModal();

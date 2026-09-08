@@ -62,6 +62,7 @@ test('onboarding, PIN, task editing, completion, rewards, themes, and reconnect'
   assert.equal(active().localName, 'fridge-parent');
   click('Chores');
   click('Add');
+  assert.ok(modal.querySelector('.emoji-trigger'), 'Task emoji picker trigger');
   field('Task', 'Wash dishes');
   click('📅 Once a week', modal);
   assert.equal(modal.querySelector('fridge-choices').value, 'weekly');
@@ -143,6 +144,18 @@ test('multiple view controls stay synchronized and removed controls unsubscribe'
   const one = document.createElement('fridge-view-controls');
   const two = document.createElement('fridge-view-controls');
   document.body.append(one, two);
+  view.setLook('modern');
+  const tint = one.querySelector('.look-modern-split input[type="color"]');
+  assert.ok(one.querySelector('.look-modern-split.on'));
+  tint.value = '#8033cc';
+  tint.dispatchEvent(new Event('input',{bubbles:true}));
+  assert.equal(two.querySelector('input[type="color"]').value,'#8033cc');
+  assert.equal(JSON.parse(localStorage.getItem(view.VIEW_KEY)).modernColor,'#8033cc');
+  assert.equal(document.documentElement.style.getPropertyValue('--modern-hue'),'270');
+  assert.equal(document.documentElement.style.getPropertyValue('--modern-accent-sat'),'60%');
+  view.setLook('classic');
+  assert.equal(tint.closest('.look-modern-split').hidden,false);
+  assert.equal(one.querySelector('.look-modern-split.on'),null);
   view.setTheme('light');
   click('Dark', one);
   const selected = two.querySelector('button[aria-pressed="true"]');
@@ -259,6 +272,11 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   click('Display');
   assert.ok(active().querySelector('.settings-body fridge-view-controls'));
   assert.equal(active().querySelector('button.look-classic').textContent.trim(),'Classic (V1)');
+  const modern = active().querySelector('.look-modern-split');
+  assert.ok(modern);
+  assert.ok(modern.querySelector('button.look-modern'));
+  assert.ok(modern.querySelector('input[type="color"][aria-label="Modern theme color"]'));
+  assert.equal(active().querySelectorAll('.modern-color').length,0);
   assert.equal([...active().querySelectorAll('button')].some(button => button.textContent.trim() === 'Change PIN'),false);
   assert.equal([...active().querySelectorAll('button')].some(button => button.textContent.trim() === 'Erase board and start over'),false);
   assert.equal(modal.hidden,true);

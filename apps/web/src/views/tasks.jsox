@@ -56,7 +56,6 @@ defineScreen("fridge-task-lists", (root) => {
     [archivedList]
   }
   [root] {
-    <div> { .className = "task-actions"; [Btn("Add", "btn", () => openTaskForm({repeat:"daily"}))] }
     [list]
     [empty]
     [archivedSection]

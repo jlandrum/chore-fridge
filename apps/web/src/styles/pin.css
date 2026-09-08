@@ -1,0 +1,70 @@
+.pin-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(20, 24, 28, .45);
+
+  &[hidden] { display: none; }
+}
+
+.pin-stack {
+  width: min(100%, 18rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--paper);
+  border-radius: var(--panel-radius);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  padding: 24px;
+
+  h2 {
+    margin: 0 0 6px;
+    font-size: 28px;
+    letter-spacing: var(--letter);
+  }
+
+  .lead { margin: 0; }
+
+  .row {
+    width: 100%;
+    margin-top: 16px;
+  }
+}
+
+.pad {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+
+  button {
+    min-height: 64px;
+    border-radius: 14px;
+    border: var(--border);
+    background: var(--well-bg);
+    font-size: 24px;
+    font-weight: 800;
+  }
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 14px 0 16px;
+
+  span {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--line);
+
+    &.full { background: var(--ink); }
+  }
+}
