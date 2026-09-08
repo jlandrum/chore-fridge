@@ -148,11 +148,14 @@ test('parent completion preference is validated, persisted and included in daily
   app.storage.importLegacy(seed());
   assert.equal((await app.inject('/api/board')).json().requireParentModeForCompletion,false);
   assert.equal((await command(app,'require-parent','settings.update',{requireParentModeForCompletion:true})).statusCode,200);
+  assert.equal((await command(app,'rename-household','settings.update',{familyName:'  Renamed family  '})).statusCode,200);
+  assert.equal((await command(app,'blank-household','settings.update',{familyName:'   '})).statusCode,409);
   assert.equal((await command(app,'invalid-setting','settings.update',{requireParentModeForCompletion:'yes'})).statusCode,400);
   await app.close();
   app = await createApp(options);
   try {
     assert.equal((await app.inject('/api/board')).json().requireParentModeForCompletion,true);
+    assert.equal((await app.inject('/api/board')).json().familyName,'Renamed family');
     assert.equal(app.storage.read().state.requireParentModeForCompletion,true);
     assert.equal((await command(app,'allow-completion','settings.update',{requireParentModeForCompletion:false})).statusCode,200);
     assert.equal((await app.inject('/api/board')).json().requireParentModeForCompletion,false);

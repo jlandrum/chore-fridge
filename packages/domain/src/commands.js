@@ -47,6 +47,10 @@ export function applyCommand(current, command, now = Date.now()) {
       for (const key of ['requireParentModeForCompletion','requireParentModeForRedemptions']) {
         if (key in p) state[key] = p[key];
       }
+      if ('familyName' in p) {
+        requireValue(p.familyName.trim(), 'Household needs a name');
+        state.familyName = p.familyName.trim();
+      }
       break;
     case 'pin.set': state.pin = p.pin; break;
     case 'setup.finish':

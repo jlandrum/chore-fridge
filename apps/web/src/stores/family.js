@@ -23,6 +23,13 @@ export function removeKid(id) {
 
 export function setPin(pin) { commit(() => $pin.set(pin), { type:"pin.set", payload:{pin} }); }
 
+export function setFamilyName(familyName) {
+  const name = familyName.trim();
+  if (!name) return {error:"Enter a household name."};
+  commit(() => $familyName.set(name), {type:"settings.update",payload:{familyName:name}});
+  return {ok:true};
+}
+
 export function setRequireParentModeForCompletion(required) {
   commit(() => $requireParentModeForCompletion.set(required), {type:"settings.update",payload:{requireParentModeForCompletion:required}});
 }

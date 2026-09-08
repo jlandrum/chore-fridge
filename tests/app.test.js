@@ -252,9 +252,16 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.equal(modal.hidden,true);
   assert.equal([...active().querySelectorAll('button')].some(button => button.textContent.trim() === 'View'),false);
   click('General');
+  assert.equal([...active().querySelectorAll('.settings-group > h3')].filter(heading => heading.textContent === 'Permissions').length,1);
+  assert.equal(active().querySelectorAll('.settings-stack .setting-toggle').length,2);
+  const nameInput = active().querySelector('input[aria-label="Household name"]');
+  nameInput.value = 'The Test House';
+  click('Save');
+  assert.equal(family.$familyName.get(),'The Test House');
   assert.ok([...active().querySelectorAll('button')].find(button => button.textContent.trim() === 'Change PIN'));
   assert.ok([...active().querySelectorAll('button')].find(button => button.textContent.trim() === 'Erase board and start over'));
   click('Close');
+  assert.match(active().textContent,/The Test House/);
   assert.equal(boardScreen.inert,false);
   assert.equal(navigation.$ui.get().parentUnlocked,true);
   click('Settings');

@@ -883,17 +883,18 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 5vh 5vw;
   background: rgba(20, 24, 28, .45);
 }
 
 .settings-modal[hidden] { display: none; }
 
 .settings-panel {
-  width: min(1080px, 100%);
-  max-height: calc(100vh - 40px);
-  overflow-x: hidden;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  width: 90vw;
+  height: 90vh;
+  overflow: hidden;
 }
 
 .settings-header {
@@ -905,7 +906,7 @@ button {
 }
 
 .settings-header h1 { margin: 0; }
-.settings-body { min-height: 300px; }
+.settings-body { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; }
 
 .tabs button {
   min-height: 56px;
@@ -940,13 +941,7 @@ button {
     min-height: 0;
   }
 
-  .settings-modal { padding: 0; align-items: stretch; }
-  .settings-panel {
-    width: 100%;
-    max-height: none;
-    min-height: 100vh;
-    border-radius: 0;
-  }
+  .settings-modal { padding: 5vh 5vw; }
   .settings-header { align-items: flex-start; }
 
   .screen {
@@ -1598,6 +1593,7 @@ fridge-chore { display: contents; }
   font-weight: 800;
   color: var(--muted);
 }
+.settings-stack { display: grid; gap: 12px; }
 .setting-toggle {
   position: relative;
   display: flex;
@@ -1623,6 +1619,8 @@ fridge-chore { display: contents; }
   background: var(--well-bg);
 }
 .setting-action .btn { flex: 0 0 auto; }
+.setting-input { display: flex; align-items: center; gap: 12px; flex: 0 1 440px; }
+.setting-input input { min-width: 0; }
 .setting-toggle input {
   position: absolute;
   inset: 0;
@@ -1671,6 +1669,7 @@ fridge-chore { display: contents; }
 @media (max-width: 560px) {
   .setting-toggle { gap: 16px; padding: 18px; align-items: flex-start; }
   .setting-action { align-items: stretch; flex-direction: column; gap: 16px; padding: 18px; }
+  .setting-input { flex: none; width: 100%; }
   .setting-control { padding-top: 2px; }
   .setting-status { display: none; }
   .setting-title { font-size: 20px; }
