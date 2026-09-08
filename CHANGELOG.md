@@ -13,6 +13,7 @@ User-facing changes and upgrade notes are recorded here. Move the Unreleased ent
 - Permanent task IDs and immutable versions. Editing creates a version; archiving preserves history and earned credit; restoring keeps the same task ID.
 - Archive and Restore controls in parent task settings.
 - Historical household revisions and task-version APIs as the foundation for time travel. The browsing interface is still planned.
+- An Advanced settings page with an MCP switch. When on, the household Node server exposes a Streamable HTTP MCP endpoint at `/mcp` and Settings shows the URL and a client config snippet. The switch defaults off.
 - An append-only credit ledger: undo adds a negative reversal linked to the original credit, redo adds a new credit, and reward spending adds a debit. SQLite prevents updates or deletes to journal entries.
 - Day-filtered ledger history with pagination and transactional balance totals.
 
@@ -38,4 +39,4 @@ User-facing changes and upgrade notes are recorded here. Move the Unreleased ent
 - Existing SQLite databases upgrade automatically to schema 3. Known credits and cumulative spending become opening ledger entries once, preserving balances.
 - History begins with the available migration baseline; past edits and undo events that were never recorded cannot be recovered.
 - Legacy full-state GET/PUT remains available for older clients. Modern board requests use the daily API, and daily views cannot be imported or written as complete households.
-- The service remains intended for a trusted LAN. Authentication and MCP support are still planned.
+- The service remains intended for a trusted LAN. Authentication is still planned. MCP is optional and off until enabled in Settings → Advanced.

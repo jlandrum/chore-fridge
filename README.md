@@ -149,7 +149,7 @@ Shared boards receive server-sent revision events through `/api/events` and fetc
 - `packages/domain`: pure household rules shared by browser and server.
 - `packages/contracts`: JSON schemas for commands and legacy snapshots.
 
-The server owns command validation, completion/count changes, and reward spending. Command receipts and state commit in one SQLite transaction, so retrying the same request ID cannot spend credits twice. MCP can later call the same domain/application service; an MCP adapter is not implemented yet.
+The server owns command validation, completion/count changes, and reward spending. Command receipts and state commit in one SQLite transaction, so retrying the same request ID cannot spend credits twice. Settings → Advanced can enable an MCP adapter on `/mcp` that calls the same command entry point.
 
 See [API documentation](docs/api.md) for command examples and compatibility behavior.
 

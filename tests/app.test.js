@@ -259,16 +259,16 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.equal(boardScreen.inert,true);
   const tabs = active().querySelector('fridge-tabs');
   assert.equal(tabs.getAttribute('role'),'tablist');
-  assert.equal(tabs.querySelectorAll('[role="tab"]').length,6);
+  assert.equal(tabs.querySelectorAll('[role="tab"]').length,7);
   assert.equal(tabs.querySelector('[role="tab"]').getAttribute('aria-controls'),'settings-panel');
   assert.equal(tabs.querySelector('[aria-selected="true"]').textContent.toLowerCase(),navigation.$ui.get().parentTab);
-  for (const page of ['General','Kids','Chores','Rewards','Display','Help']) {
+  for (const page of ['General','Kids','Chores','Rewards','Display','Advanced','Help']) {
     click(page);
     assert.ok(active().querySelector('.settings-body .lead'),`${page} has a subtitle`);
   }
   click('Display');
   tabs.querySelector('[aria-selected="true"]').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
-  assert.equal(tabs.querySelector('[aria-selected="true"]').textContent,'Help');
+  assert.equal(tabs.querySelector('[aria-selected="true"]').textContent,'Advanced');
   click('Display');
   assert.ok(active().querySelector('.settings-body fridge-view-controls'));
   assert.equal(active().querySelector('button.look-classic').textContent.trim(),'Classic (V1)');
@@ -290,6 +290,17 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.equal(family.$familyName.get(),'The Test House');
   assert.ok([...active().querySelectorAll('button')].find(button => button.textContent.trim() === 'Change PIN'));
   assert.ok([...active().querySelectorAll('button')].find(button => button.textContent.trim() === 'Erase board and start over'));
+  click('Advanced');
+  const mcpToggle = active().querySelector('input[aria-label="Enable MCP"]');
+  assert.ok(mcpToggle);
+  assert.equal(active().querySelector('.mcp-connection').hidden,true);
+  mcpToggle.click();
+  assert.equal(family.$mcpEnabled.get(),true);
+  assert.equal(active().querySelector('.mcp-connection').hidden,false);
+  assert.match(active().querySelector('input[aria-label="MCP URL"]').value,/\/mcp$/);
+  assert.match(active().querySelector('.setting-details pre').textContent,/chore-fridge/);
+  mcpToggle.click();
+  assert.equal(family.$mcpEnabled.get(),false);
   click('Close');
   assert.match(active().textContent,/The Test House/);
   assert.equal(boardScreen.inert,false);

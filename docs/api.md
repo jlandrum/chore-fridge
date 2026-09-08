@@ -31,7 +31,7 @@ Supported commands:
 | `reward.save` | `id`, `title`, `cost`; optional `emoji`, `gold` |
 | `reward.remove` | `id` |
 | `reward.redeem` | `rewardId`, `kidId`; optional calendar `day` |
-| `settings.update` | One or more of: `familyName`, `requireParentModeForCompletion`, `requireParentModeForRedemptions` |
+| `settings.update` | One or more of: `familyName`, `requireParentModeForCompletion`, `requireParentModeForRedemptions`, `mcpEnabled` |
 | `pin.set` | `pin` (empty or four digits) |
 | `household.reset` | empty object |
 
@@ -43,7 +43,8 @@ Supported commands:
 - `GET /api/state`: full version-1 household document for legacy compatibility/export. The modern board never requests it.
 - `GET /api/kids`, `/api/chores`, `/api/rewards`: resource arrays.
 - `GET /api/balances`: star and gold balances keyed by kid ID.
-- `GET /api/capabilities`: command, event, and compatibility availability.
+- `GET /api/capabilities`: command, event, MCP, and compatibility availability. `mcp` is always true on this server; `mcpEnabled` and `mcpPath` report whether `/mcp` is live.
+- `POST /mcp` (also GET/DELETE for the Streamable HTTP transport): MCP tools for the household. Returns 404 while `mcpEnabled` is false. Tools call `storage.command` and the daily board. This is the same trusted-LAN surface as the rest of the API; it is off by default.
 - `GET /api/events`: SSE stream; initial/current and subsequent messages carry `{ "revision": 1 }`. Fetch the current day’s board after a message. Reconnecting receives the current revision; this is not an event-history API.
 
 ## Compatibility and import
@@ -52,7 +53,7 @@ Supported commands:
 
 `POST /api/import` accepts a version-1 household document only when the database has no household. It atomically rejects subsequent imports with 409. This supports existing browser-only boards; disk JSON migration happens automatically at startup instead. The response contains only `revision`. Day-scoped views are rejected by both import and legacy PUT so a partial cache cannot replace the household.
 
-For server-side reuse, `storage.command(command)` performs validation, transactional persistence, idempotency, and change notification. Future MCP tools should use this entry point. `applyCommand` in the shared domain package is pure and performs no I/O.
+For server-side reuse, `storage.command(command)` performs validation, transactional persistence, idempotency, and change notification. MCP tools use this entry point when enabled. `applyCommand` in the shared domain package is pure and performs no I/O.
 
 ## Versions and time travel
 
@@ -81,4 +82,4 @@ The normal board payload does not grow with the number of past journal entries o
 
 The shared `requireParentModeForCompletion` preference defaults to false and is included in daily board responses. When enabled, the browser blocks completion, undo, and count changes until its local Parent Mode is unlocked and displays a message. This setting does not introduce API authentication or server-side parent sessions.
 
-`requireParentModeForRedemptions` independently gates browser reward redemption while Parent Mode is locked, for both stars and gold. It defaults to false and is included in daily responses. `settings.update` is a partial update: omitted fields are preserved and an empty payload is rejected. It also accepts `familyName`; names are trimmed and blank names are rejected. The redemption gate is checked before opening the reward picker and again before spending so a lock change cannot allow a stale dialog to redeem.
+`requireParentModeForRedemptions` independently gates browser reward redemption while Parent Mode is locked, for both stars and gold. It defaults to false and is included in daily responses. `mcpEnabled` independently exposes `/mcp` and also defaults to false. `settings.update` is a partial update: omitted fields are preserved and an empty payload is rejected. It also accepts `familyName`; names are trimmed and blank names are rejected. The redemption gate is checked before opening the reward picker and again before spending so a lock change cannot allow a stale dialog to redeem.

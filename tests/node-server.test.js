@@ -182,3 +182,48 @@ test('redemption preference persists independently from task permissions', async
     assert.equal((await app.inject('/api/board')).json().requireParentModeForCompletion,false);
   } finally { await app.close(); }
 });
+
+function mcp(app, message) {
+  return app.inject({
+    method: 'POST',
+    url: '/mcp',
+    headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+    payload: message,
+  });
+}
+
+test('MCP endpoint is off by default and serves household tools when enabled', async t => {
+  const options = files(t);
+  const app = await createApp(options);
+  app.storage.importLegacy(seed());
+  try {
+    const capabilities = (await app.inject('/api/capabilities')).json();
+    assert.equal(capabilities.mcp, true);
+    assert.equal(capabilities.mcpEnabled, false);
+    assert.equal(capabilities.mcpPath, '/mcp');
+    assert.equal((await app.inject('/api/board')).json().mcpEnabled, false);
+    assert.equal((await app.inject({ method: 'POST', url: '/mcp', payload: { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} } })).statusCode, 404);
+    assert.equal((await command(app, 'enable-mcp', 'settings.update', { mcpEnabled: true })).statusCode, 200);
+    assert.equal((await app.inject('/api/board')).json().mcpEnabled, true);
+    assert.equal((await app.inject('/api/capabilities')).json().mcpEnabled, true);
+    const initialized = await mcp(app, {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'test', version: '1' } },
+    });
+    assert.equal(initialized.statusCode, 200);
+    const initBody = initialized.json();
+    assert.equal(initBody.result.serverInfo.name, 'chore-fridge');
+    const listed = await mcp(app, { jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
+    assert.equal(listed.statusCode, 200);
+    const names = listed.json().result.tools.map(tool => tool.name);
+    assert.ok(names.includes('get_board'));
+    assert.ok(names.includes('complete_task'));
+    const board = await mcp(app, { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'get_board', arguments: {} } });
+    assert.equal(board.statusCode, 200);
+    assert.match(board.json().result.content[0].text, /Test family/);
+    await command(app, 'disable-mcp', 'settings.update', { mcpEnabled: false });
+    assert.equal((await mcp(app, { jsonrpc: '2.0', id: 4, method: 'tools/list', params: {} })).statusCode, 404);
+  } finally { await app.close(); }
+});

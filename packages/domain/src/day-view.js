@@ -36,6 +36,6 @@ export function dayView(state,day,totals) {
     const total = balanceCarry[entry.kidId];
     if (total) { total.stars -= entry.units*entry.points; if (entry.gold) total.gold -= entry.units; }
   }
-  return {version:1,requireParentModeForRedemptions:!!state.requireParentModeForRedemptions,requireParentModeForCompletion:!!state.requireParentModeForCompletion,dayScoped:true,day,updatedAt:state.updatedAt,familyName:state.familyName,pin:state.pin,setupDone:state.setupDone,
+  return {version:1,requireParentModeForRedemptions:!!state.requireParentModeForRedemptions,requireParentModeForCompletion:!!state.requireParentModeForCompletion,mcpEnabled:!!state.mcpEnabled,dayScoped:true,day,updatedAt:state.updatedAt,familyName:state.familyName,pin:state.pin,setupDone:state.setupDone,
     kids:state.kids,chores:state.chores,rewards:state.rewards,completions,counts,creditProjection,balanceCarry,pastOnce,spent:{},goldSpent:{}};
 }
