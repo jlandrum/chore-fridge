@@ -1,9 +1,10 @@
 import { initializeTaskHistory, evolveTaskHistory } from './task-history.js';
 import { validDay } from './day-view.js';
 import { defaultState } from './state.js';
-import { ck, isOnce, isWeekly, isCounted, maxCount, countFor } from './chores.js';
+import { ck, isOnce, isWeekly, isCounted, maxCount, countFor, isDueOn, claimedBy, allAssignedDone, normalizeChore } from './chores.js';
 import { datesInWeek } from './dates.js';
-import { balancesFor } from './balances.js';
+import { amountFor, balancesFor } from './balances.js';
+import { currencyId, normalizeCurrencies, addSpent } from './currencies.js';
 import { upsert } from './records.js';
 
 function requireValue(condition, message) {
@@ -28,7 +29,7 @@ export function applyCommand(current, command, now = Date.now()) {
       requireValue(p.title.trim(), 'Task needs a name');
       requireValue(p.kidIds.every(id => state.kids.some(kid => kid.id === id)), 'Unknown assigned kid');
       requireValue((p.maxCount || 1) >= (p.minCount || 1), 'Maximum count must cover minimum count');
-      state.chores = upsert(state.chores, {emoji:'🔁',points:0,repeat:'daily',minCount:1,maxCount:1,gold:false,...p,title:p.title.trim()});
+      state.chores = upsert(state.chores, normalizeChore(p, new Date(now)));
       break;
     }
     case 'chore.remove': state.chores = state.chores.filter(chore => chore.id !== p.id); break;
@@ -38,10 +39,12 @@ export function applyCommand(current, command, now = Date.now()) {
       state.chores.push(task);
       break;
     }
-    case 'reward.save':
+    case 'reward.save': {
       requireValue(p.title.trim(), 'Reward needs a name');
-      state.rewards = upsert(state.rewards, {emoji:'🎁',gold:false,...p,title:p.title.trim()});
+      const currency = currencyId(p);
+      state.rewards = upsert(state.rewards, {emoji:'🎁',...p,title:p.title.trim(),currency,gold:currency === 'gold'});
       break;
+    }
     case 'reward.remove': state.rewards = state.rewards.filter(reward => reward.id !== p.id); break;
     case 'settings.update':
       for (const key of ['requireParentModeForCompletion','requireParentModeForRedemptions','mcpEnabled']) {
@@ -52,6 +55,7 @@ export function applyCommand(current, command, now = Date.now()) {
         state.familyName = p.familyName.trim();
       }
       if ('sayings' in p) state.sayings = p.sayings.map(line => line.trim()).filter(Boolean);
+      if ('currencies' in p) state.currencies = normalizeCurrencies(p.currencies);
       break;
     case 'pin.set': state.pin = p.pin; break;
     case 'setup.finish':
@@ -68,9 +72,9 @@ export function applyCommand(current, command, now = Date.now()) {
       requireValue(reward, 'Missing reward');
       const balance = balancesFor(state)[p.kidId];
       requireValue(balance, 'Unknown kid');
-      requireValue((reward.gold ? balance.gold : balance.stars) >= reward.cost, 'Not enough credit');
-      const spent = reward.gold ? state.goldSpent : state.spent;
-      spent[p.kidId] = (spent[p.kidId] || 0) + reward.cost;
+      const currency = currencyId(reward);
+      requireValue(amountFor(balance, currency) >= reward.cost, 'Not enough credit');
+      addSpent(state, currency, p.kidId, reward.cost);
       result.reward = reward;
       break;
     }
@@ -82,7 +86,9 @@ export function applyCommand(current, command, now = Date.now()) {
       requireValue(chore.kidIds.includes(p.kidId), 'Task is not assigned to this kid');
       const date = new Date(p.day + 'T12:00:00');
       requireValue(Number.isFinite(date.getTime()) && date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0') === p.day, 'Invalid task date');
+      requireValue(isDueOn(chore, date), 'Task is not scheduled for this day');
       const key = ck(chore.id, p.kidId, p.day);
+      const claimer = claimedBy(state, chore, date);
       if (command.type === 'chore.count') {
         requireValue(isCounted(chore), 'Task does not use a count');
         const n = Math.max(0, Math.min(maxCount(chore), countFor(state, chore, p.kidId, date) + p.delta));
@@ -90,12 +96,19 @@ export function applyCommand(current, command, now = Date.now()) {
         result.count = n;
       } else {
         requireValue(!isCounted(chore), 'Use the count command for this task');
+        if (isWeekly(chore) && chore.sharedClaim) {
+          if (command.type === 'chore.complete') requireValue(!claimer, 'Already claimed this week');
+          if (command.type === 'chore.undo') requireValue(claimer === p.kidId, 'Only the claimer can undo');
+        }
         const keys = isOnce(chore)
           ? Object.keys(state.completions).filter(item => item.endsWith(':' + chore.id + ':' + p.kidId))
           : isWeekly(chore) ? datesInWeek(date).map(day => ck(chore.id,p.kidId,day)) : [key];
         const completed = keys.filter(item => state.completions[item] > 0);
         if (command.type === 'chore.complete' && !completed.length) state.completions[key] = Math.max(now,Math.abs(state.completions[key] || 0)+1);
         if (command.type === 'chore.undo') for (const item of completed) state.completions[item] = -Math.max(now,Math.abs(state.completions[item])+1);
+      }
+      if ((command.type === 'chore.complete' || command.type === 'chore.count') && isOnce(active) && active.archiveOnComplete !== false && allAssignedDone(state, active, date)) {
+        state.chores = state.chores.filter(item => item.id !== active.id);
       }
       break;
     }

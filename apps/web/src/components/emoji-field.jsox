@@ -4,13 +4,13 @@ function dataSource() {
   return new URL("emoji-data.json", document.baseURI).href;
 }
 
-export function EmojiField(initial, fallback) {
+export function EmojiField(initial, fallback, label) {
   let value = (initial && String(initial).trim()) || "";
   const placeholder = fallback || "😀";
   const trigger = <button> {
     .type = "button"
     .className = "emoji-trigger"
-    .setAttribute("aria-label", "Choose emoji")
+    .setAttribute("aria-label", label || "Choose emoji")
     .setAttribute("aria-expanded", "false")
     .setAttribute("aria-haspopup", "dialog")
     [value || placeholder]
@@ -43,7 +43,8 @@ export function EmojiField(initial, fallback) {
     trigger.classList.toggle("on", next);
     trigger.setAttribute("aria-expanded", String(next));
     if (next) {
-      if (overlay.parentNode !== modal) modal.append(overlay);
+      const host = trigger.closest(".modal, .settings-modal") || modal;
+      if (overlay.parentNode !== host) host.append(overlay);
       overlay.focus();
     }
   }
@@ -81,5 +82,9 @@ export function EmojiField(initial, fallback) {
   return {
     trigger,
     get value() { return value || placeholder; },
+    set value(next) {
+      value = (next && String(next).trim()) || "";
+      trigger.textContent = value || placeholder;
+    },
   };
 }

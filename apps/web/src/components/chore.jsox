@@ -1,5 +1,6 @@
-import { choreKind, maxCount, isCounted, countFor, isDone, bumpChore, toggleChore } from "../stores/chores.js";
-import { burst, showToast, Star } from "../ui.jsox";
+import { choreKind, maxCount, isCounted, countFor, isDone, claimedBy, bumpChore, toggleChore } from "../stores/chores.js";
+import { burst, showToast, CurrencyMark } from "../ui.jsox";
+import { currencyId } from "@chore-fridge/domain/currencies";
 import { defineScreen } from "./screen.jsox";
 
 function afterBump(kid, result) {
@@ -44,7 +45,10 @@ defineScreen("fridge-chore", (root) => {
     ({ chore, kid } = root.model);
     const complete = isDone(chore, kid.id);
     const counted = isCounted(chore);
-    btn.className = "chore" + (complete ? " done" : "") + (chore.gold ? " gold" : "");
+    const claimer = claimedBy(chore);
+    const locked = !!(claimer && claimer !== kid.id);
+    btn.className = "chore" + (complete ? " done" : "") + (chore.gold ? " gold" : "") + (locked ? " locked" : "");
+    btn.disabled = locked;
     if (counted) {
       const n = countFor(chore, kid.id);
       mark.textContent = String(n);
@@ -55,14 +59,6 @@ defineScreen("fridge-chore", (root) => {
     }
     title.textContent = chore.title;
     pts.replaceChildren();
-    if (chore.gold) {
-      pts.append(Star(true));
-      if (chore.points) {
-        pts.append(" · ");
-        pts.append(Star(false), " " + chore.points);
-      }
-    } else {
-      pts.append(Star(false), " " + (chore.points || 0));
-    }
+    pts.append(CurrencyMark(currencyId(chore)), " " + (chore.points || 0));
   };
 });

@@ -3,6 +3,9 @@
 }
 
 html[data-look="cyberpunk"] {
+  --currency-coin: #92610a;
+  --currency-dollar: #237441;
+
   --bg: #d9d0f0;
   --paper: #f4f0ff;
   --paper-edge: #ff2bd6;
@@ -47,6 +50,8 @@ html[data-look="cyberpunk"] {
     #d9d0f0;
 
   &.night {
+    --currency-coin: #f0cb79;
+    --currency-dollar: #80dda0;
     --bg: #07060f;
     --paper: #12101c;
     --paper-edge: #ff2bd6;
@@ -172,6 +177,27 @@ html[data-look="cyberpunk"] {
       animation: none;
       filter: none;
     }
+  }
+
+  .currency-icon.star,
+  .currency-icon.gold {
+    -webkit-mask-image: url("../../assets/currencies/cyberpunk/star.svg");
+    mask-image: url("../../assets/currencies/cyberpunk/star.svg");
+  }
+
+  .currency-icon.coin {
+    -webkit-mask-image: url("../../assets/currencies/cyberpunk/coin.svg");
+    mask-image: url("../../assets/currencies/cyberpunk/coin.svg");
+  }
+
+  .currency-icon.dollar {
+    -webkit-mask-image: url("../../assets/currencies/cyberpunk/dollar.svg");
+    mask-image: url("../../assets/currencies/cyberpunk/dollar.svg");
+  }
+
+  .currency-icon.hours {
+    -webkit-mask-image: url("../../assets/currencies/cyberpunk/hours.svg");
+    mask-image: url("../../assets/currencies/cyberpunk/hours.svg");
   }
 }
 

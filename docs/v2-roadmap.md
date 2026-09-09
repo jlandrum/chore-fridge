@@ -4,8 +4,8 @@
 - [x] Parent Mode lock/unlock, separate Settings, and optional task/redemption locks
 - [x] New display modes
 - [ ] Onboarding process
-- [ ] More advanced repeating options
-  - [ ] Daily tasks on selected days of the week
+- [x] More advanced repeating options
+  - [x] Daily tasks on selected days of the week
 - [x] Rewrite in JSOX 0.2, using web components to simplify the codebase
 - [x] Nano Stores state management with direct DOM subscriptions
 - [x] MCP support

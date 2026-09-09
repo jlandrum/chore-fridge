@@ -136,6 +136,29 @@
   }
 }
 
+.currency-list {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.currency-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.currency-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.setting-name-row .setting-input { margin-top: 0; }
+
 .settings-page {
   display: flex;
   flex-direction: column;

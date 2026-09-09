@@ -99,6 +99,8 @@ Use **Unlock Parent Mode** to enter the PIN and unlock this page. Unlocking keep
 
 In **Settings → General**, enable **Require Parent Mode** to block completion, undo, and count changes while locked. A blocked tap displays “Unlock Parent Mode to change task completion.” The matching **Reward permissions** toggle requires Parent Mode for redemptions and displays “Unlock Parent Mode to redeem rewards.” Task and reward restrictions are independent and default to off. Both preferences are shared across household devices; the unlocked state is local to each page. This remains a browser interface control, not server authentication.
 
+**Settings → Currency** turns household credits on or off and lets you rename them. Star and Gold Star start on; Coin, Dollar, Hours, Custom 1, and Custom 2 can be enabled. Internal ids stay the same.
+
 The household name, shop sayings, Parent PIN, and destructive household reset controls also live in **Settings → General**. Shop sayings are one line per saying and are shared across household devices; Slide to Buy shows one each day. The Display tab contains only the same device-local appearance, theme, and zoom controls available from **View**.
 
 ## Display options
@@ -158,7 +160,7 @@ See [API documentation](docs/api.md) for command examples and compatibility beha
 
 Tasks have a permanent `taskId` (also exposed as legacy `id`) and a `versionId` identifying immutable rules. Editing creates a version; archiving removes the task from the current board while preserving versions and earned credit. Parent task settings include an archived list with Restore, which creates another version under the same task ID.
 
-Active chores appear in insertion order in one settings list. Each row shows whether the chore is Daily, Weekly, or Once; frequency no longer divides the list into separate sections.
+Active chores appear in insertion order in one settings list. Each row shows whether the chore is Daily, Weekly, Once, or an Every interval. Daily tasks can be limited to selected weekdays. Weekly tasks can allow only one claim per week across assigned children. Once tasks archive after everyone assigned has finished, unless that option is turned off.
 
 The append-only SQLite ledger records credits, linked undo reversals, and spending debits. SQLite prevents journal rows from being updated or deleted. Entries reference the task and version and retain the points/gold earned at completion. A change from two to three stars does not revalue earlier work. Counted tasks can contain units earned under different versions; undo appends negative entries against the most recent units first. Current allocations are a derived projection, not the journal itself. Clients send the version they saw with completion commands, including delayed/offline submissions; archived tasks reject new completions.
 

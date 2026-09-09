@@ -1,4 +1,5 @@
 import { countRec } from './history.js';
+import { currencyId } from "./currencies.js";
 
 // The legacy `id` remains an alias for the permanent taskId on the wire.
 const definition = task => Object.fromEntries(Object.entries(task).filter(([key]) => !['taskId','versionId','validFrom','archived','archivedAt'].includes(key)));
@@ -14,7 +15,8 @@ function quantities(state) {
   return result;
 }
 function credit(task,kidId,units) {
-  return {taskId:task.id,versionId:task.versionId,kidId,units,points:task.points || 0,gold:!!task.gold};
+  const currency = currencyId(task);
+  return {taskId:task.id,versionId:task.versionId,kidId,units,points:task.points || 0,gold:currency === "gold",currency};
 }
 
 export function initializeTaskHistory(state, at = Date.now()) {

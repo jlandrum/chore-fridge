@@ -9,6 +9,7 @@ import { openStorage } from '../apps/server/src/storage.js';
 import { defaultState } from '@chore-fridge/domain/state';
 import { balancesFor } from '@chore-fridge/domain/balances';
 import { DEFAULT_SAYINGS } from '@chore-fridge/domain/sayings';
+import { defaultCurrencies } from '@chore-fridge/domain/currencies';
 
 const kid = {id:'kid',name:'Test Kid',emoji:'🐻',color:'#e85d4c'};
 const chore = {id:'task',title:'Test task',kidIds:['kid'],points:5,repeat:'daily',minCount:1,maxCount:1};
@@ -202,6 +203,35 @@ test('shop sayings are a household list on the board and settings API', async t 
     assert.equal((await command(app,'too-long-saying','settings.update',{sayings:['x'.repeat(301)]})).statusCode,400);
     assert.equal((await command(app,'too-many-sayings','settings.update',{sayings:Array.from({length:201},(_,i)=>'Saying '+i)})).statusCode,400);
     assert.deepEqual((await app.inject('/api/sayings')).json(), []);
+  } finally { await app.close(); }
+});
+
+test('advanced chore repeats validate, share weekly claims, and archive once tasks', async t => {
+  const app = await createApp(files(t));
+  const other = {id:'kid-b',name:'Sam',emoji:'🐸',color:'#2a9d8f'};
+  app.storage.importLegacy({...seed(),kids:[kid,other]});
+  try {
+    const saved = await command(app,'save-weekly','chore.save',{id:'trash',title:'Trash',kidIds:['kid','kid-b'],repeat:'weekly',sharedClaim:true,points:2});
+    assert.equal(saved.statusCode,200);
+    const day = '2026-09-07';
+    assert.equal((await command(app,'claim-a','chore.complete',{choreId:'trash',kidId:'kid',day})).statusCode,200);
+    assert.equal((await command(app,'claim-b','chore.complete',{choreId:'trash',kidId:'kid-b',day})).statusCode,409);
+    assert.equal((await command(app,'undo-b','chore.undo',{choreId:'trash',kidId:'kid-b',day})).statusCode,409);
+    assert.equal((await command(app,'save-once','chore.save',{id:'party',title:'Party',kidIds:['kid'],repeat:'once',points:1})).statusCode,200);
+    assert.equal((await command(app,'finish-once','chore.complete',{choreId:'party',kidId:'kid',day})).statusCode,200);
+    assert.equal(app.storage.read().state.chores.some(item => item.id === 'party'), false);
+    assert.equal(app.storage.read().state.archivedChores.some(item => item.id === 'party'), true);
+    assert.equal((await command(app,'save-every','chore.save',{id:'water',title:'Water',kidIds:['kid'],repeat:'every',everyN:3,everyUnit:'days',anchorDay:day,points:1})).statusCode,200);
+    assert.equal((await command(app,'off-cadence','chore.complete',{choreId:'water',kidId:'kid',day:'2026-09-08'})).statusCode,409);
+    assert.equal((await command(app,'on-cadence','chore.complete',{choreId:'water',kidId:'kid',day})).statusCode,200);
+    assert.equal((await command(app,'weekdays','chore.save',{id:'school',title:'School bag',kidIds:['kid'],repeat:'daily',weekdays:[1,2,3,4,5],points:1})).statusCode,200);
+    assert.equal((await command(app,'sunday','chore.complete',{choreId:'school',kidId:'kid',day:'2026-09-06'})).statusCode,409);
+    const currencies = defaultCurrencies().map(item => item.id === 'coin' ? { ...item, enabled: true, name: 'Tokens' } : item);
+    assert.equal((await command(app,'save-currencies','settings.update',{currencies})).statusCode,200);
+    assert.equal((await app.inject('/api/board')).json().currencies.find(item => item.id === 'coin').name, 'Tokens');
+    assert.equal((await command(app,'save-coin-chore','chore.save',{id:'coins',title:'Coins',kidIds:['kid'],repeat:'daily',currency:'coin',points:4})).statusCode,200);
+    assert.equal((await command(app,'earn-coin','chore.complete',{choreId:'coins',kidId:'kid',day})).statusCode,200);
+    assert.equal((await app.inject('/api/balances')).json().kid.coin, 4);
   } finally { await app.close(); }
 });
 

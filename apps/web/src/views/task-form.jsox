@@ -1,18 +1,88 @@
-import { $kids } from "../stores/family.js";
-import { isOnce, isWeekly, saveChore } from "../stores/chores.js";
+import { $kids, $currencies } from "../stores/family.js";
+import { currencyId, enabledCurrencies } from "@chore-fridge/domain/currencies";
+import { isOnce, isWeekly, isEvery, saveChore } from "../stores/chores.js";
+import { ALL_WEEKDAYS, normalizeWeekdays } from "@chore-fridge/domain/chores";
 
 import { Choices } from "../components/choices.jsox";
 import { EmojiField } from "../components/emoji-field.jsox";
+import { Tabs } from "../components/tabs.jsox";
 import { Btn, showToast, openModal, closeModal } from "../ui.jsox";
+
+const WEEKDAY_LABELS = [
+  { value: 0, label: "S" },
+  { value: 1, label: "M" },
+  { value: 2, label: "T" },
+  { value: 3, label: "W" },
+  { value: 4, label: "T" },
+  { value: 5, label: "F" },
+  { value: 6, label: "S" },
+];
+
+const REPEAT_LABELS = { daily: "Daily", weekly: "Weekly", once: "Once", every: "Every" };
+
+function formToggle(title, description, label, initial, onChange) {
+  let value = !!initial;
+  const input = <input> {
+    .type = "checkbox"
+    .checked = value
+    .setAttribute("role", "switch")
+    .setAttribute("aria-label", label)
+    .setAttribute("aria-checked", String(value))
+  }
+  const status = <span> {
+    .className = "setting-status"
+    .setAttribute("aria-hidden", "true")
+    [value ? "On" : "Off"]
+  }
+  const sync = () => {
+    input.checked = value;
+    input.setAttribute("aria-checked", String(value));
+    status.textContent = value ? "On" : "Off";
+  };
+  input.onchange = () => {
+    value = input.checked;
+    sync();
+    if (onChange) onChange(value);
+  };
+  const node = <label> {
+    .className = "setting-toggle"
+    [input]
+    <span> {
+      .className = "setting-copy"
+      <strong> { .className = "setting-title"; [title] }
+      <span> { .className = "setting-description"; [description] }
+    }
+    <span> {
+      .className = "setting-control"
+      [status]
+      <span> { .className = "switch-track"; .setAttribute("aria-hidden", "true") }
+    }
+  }
+  return {
+    node,
+    get() { return value; },
+    set(next) { value = !!next; sync(); },
+  };
+}
+
+function currentRepeat(existing, fallback) {
+  if (!existing) return fallback || "once";
+  if (isOnce(existing)) return "once";
+  if (isWeekly(existing)) return "weekly";
+  if (isEvery(existing)) return "every";
+  return "daily";
+}
 
 export function openTaskForm(opts = {}) {
   const existing = opts.existing || null;
-  let repeat = existing
-    ? (isOnce(existing) ? "once" : isWeekly(existing) ? "weekly" : "daily")
-    : (opts.repeat || "once");
+  let repeat = currentRepeat(existing, opts.repeat);
   let kidIds = existing
     ? existing.kidIds.slice()
     : (opts.kidIds && opts.kidIds.length ? opts.kidIds.slice() : $kids.get().map((k) => k.id));
+  let weekdays = normalizeWeekdays(existing && existing.weekdays);
+  let everyUnit = existing && existing.everyUnit ? existing.everyUnit : "days";
+  let currency = currencyId(existing);
+  let tab = "general";
 
   if (!$kids.get().length) {
     showToast("Add a kid first");
@@ -40,104 +110,190 @@ export function openTaskForm(opts = {}) {
     .autocomplete = "off"
     .inputMode = "numeric"
   }
-  let gold = !!(existing && existing.gold);
-  const goldInput = <input> {
-    .type = "checkbox"
-    .checked = gold
-    .setAttribute("role", "switch")
-    .setAttribute("aria-label", "Gold star task")
-    .setAttribute("aria-checked", String(gold))
-    .onchange = () => {
-      gold = goldInput.checked;
-      goldInput.setAttribute("aria-checked", String(gold));
-      goldStatus.textContent = gold ? "On" : "Off";
+  const everyInput = <input> {
+    .value = existing ? String(existing.everyN || 1) : "1"
+    .autocomplete = "off"
+    .inputMode = "numeric"
+    .setAttribute("aria-label", "Every interval")
+  }
+  const counts = <div> {
+    .className = "task-counts"
+    <div> {
+      .className = "field"
+      <label> { ["Minimum for completion"] }
+      [minInput]
+    }
+    <div> {
+      .className = "field"
+      <label> { ["Maximum per day"] }
+      [maxInput]
     }
   }
-  const goldStatus = <span> {
-    .className = "setting-status"
-    .setAttribute("aria-hidden", "true")
-    [gold ? "On" : "Off"]
-  }
+  const multiple = formToggle(
+    "Allow multiple per day",
+    "Kids can check this off more than once in a day.",
+    "Allow multiple per day",
+    !!(existing && ((existing.maxCount || 1) > 1 || (existing.minCount || 1) > 1)),
+    (on) => { counts.hidden = !on; }
+  );
+  counts.hidden = !multiple.get();
+  const sharedClaim = formToggle(
+    "Only allow one claim per week",
+    "When one child finishes it, the others cannot claim it that week.",
+    "Only allow one claim per week",
+    !!(existing && existing.sharedClaim)
+  );
+  const archiveOnComplete = formToggle(
+    "Archive on completion",
+    "Remove it from the board after everyone assigned has finished.",
+    "Archive on completion",
+    existing ? existing.archiveOnComplete !== false : true
+  );
 
   const repeats = Choices([
-    { value: "daily", label: "🔁 Every day" },
-    { value: "weekly", label: "📅 Once a week" },
-    { value: "once", label: "📌 Just once" },
-  ], repeat, (value) => { repeat = value; }, { className: "row task-repeat" });
+    { value: "daily", label: "🔁 Daily" },
+    { value: "weekly", label: "📅 Weekly" },
+    { value: "once", label: "📌 Once" },
+    { value: "every", label: "⏱ Every" },
+  ], repeat, (value) => {
+    repeat = value;
+    tab = value;
+    renderTabs();
+  }, { className: "row task-repeat" });
   const who = Choices(
     $kids.get().map((kid) => ({ value: kid.id, label: kid.emoji + " " + kid.name })),
     kidIds, (value) => { kidIds = value; }, { multiple: true }
   );
+  const days = Choices(
+    WEEKDAY_LABELS,
+    weekdays,
+    (value) => { weekdays = value.length ? value : ALL_WEEKDAYS.slice(); },
+    { multiple: true, className: "row task-weekdays" }
+  );
+  const units = Choices([
+    { value: "days", label: "Days" },
+    { value: "weeks", label: "Weeks" },
+    { value: "months", label: "Months" },
+  ], everyUnit, (value) => { everyUnit = value; }, { className: "row task-every-units" });
+  const currencyOptions = enabledCurrencies($currencies.get()).map((item) => ({ value: item.id, label: item.name }));
+  if (!currencyOptions.some((item) => item.value === currency)) {
+    const current = $currencies.get().find((item) => item.id === currency);
+    currencyOptions.unshift({ value: currency, label: current ? current.name : currency });
+  }
+  const currencies = Choices(currencyOptions, currency, (value) => { currency = value; }, { className: "row task-currency" });
+
+  const general = <div> {
+    .className = "task-panel"
+    <div> {
+      .className = "row identity-row"
+      <div> {
+        .className = "field task-title"
+        <label> { ["Task"] }
+        [titleInput]
+      }
+      <div> {
+        .className = "field task-emoji"
+        <label> { ["Emoji"] }
+        [emoji.trigger]
+      }
+    }
+    <div> {
+      .className = "task-section"
+      <p> { .className = "view-label"; ["Frequency"] }
+      [repeats]
+    }
+  }
+  const daily = <div> {
+    .className = "task-panel"
+    <div> {
+      .className = "task-section"
+      <p> { .className = "view-label"; ["Days"] }
+      [days]
+      <p> { .className = "field-hint"; ["Shown on the selected days. Defaults to every day."] }
+    }
+  }
+  const weekly = <div> {
+    .className = "task-panel"
+    <div> { .className = "settings-stack"; [sharedClaim.node] }
+  }
+  const once = <div> {
+    .className = "task-panel"
+    <div> { .className = "settings-stack"; [archiveOnComplete.node] }
+  }
+  const every = <div> {
+    .className = "task-panel"
+    <div> {
+      .className = "task-section"
+      <p> { .className = "view-label"; ["Repeat every"] }
+      <div> {
+        .className = "task-every"
+        <div> { .className = "field"; [everyInput] }
+        [units]
+      }
+    }
+  }
+  const children = <div> {
+    .className = "task-panel"
+    <div> {
+      .className = "task-section"
+      <p> { .className = "view-label"; ["Who"] }
+      [who]
+    }
+  }
+  const values = <div> {
+    .className = "task-panel"
+    <div> {
+      .className = "task-section"
+      <p> { .className = "view-label"; ["Currency"] }
+      [currencies]
+    }
+    <div> {
+      .className = "field"
+      <label> { ["Value"] }
+      [pointsInput]
+    }
+    <div> { .className = "settings-stack"; [multiple.node] }
+    [counts]
+  }
+  const panels = { general, daily, weekly, once, every, children, values };
+  const tabHost = <div> { .className = "task-form-tabhost" }
+  const fields = <div> {
+    .className = "task-form-fields"
+    [general]
+    [daily]
+    [weekly]
+    [once]
+    [every]
+    [children]
+    [values]
+  }
+  const body = <div> { .className = "task-form-layout"; [tabHost]; [fields] }
+
+  function showPanel(name) {
+    tab = name;
+    for (const [key, panel] of Object.entries(panels)) panel.hidden = key !== name;
+  }
+
+  function tabOptions() {
+    return [
+      { value: "general", label: "General" },
+      { value: repeat, label: REPEAT_LABELS[repeat] },
+      { value: "children", label: "Children" },
+      { value: "values", label: "Values" },
+    ];
+  }
+
+  function renderTabs() {
+    if (tab !== "general" && tab !== "children" && tab !== "values" && tab !== repeat) tab = "general";
+    const next = Tabs(tabOptions(), tab, showPanel, { className: "tabs task-form-tabs", id: "task-form-tabs", orientation: "vertical" });
+    tabHost.replaceChildren(next);
+    showPanel(tab);
+  }
 
   const sheet = <div> {
     .className = "task-form"
     <h3> { [existing ? "Edit task" : "Add a task"] }
-    <div> {
-      .className = "task-form-fields"
-      <div> {
-        .className = "row identity-row"
-        <div> {
-          .className = "field task-title"
-          <label> { ["Task"] }
-          [titleInput]
-        }
-        <div> {
-          .className = "field task-emoji"
-          <label> { ["Emoji"] }
-          [emoji.trigger]
-        }
-      }
-      <div> {
-        .className = "task-section"
-        <p> { .className = "view-label"; ["How often"] }
-        [repeats]
-      }
-      <div> {
-        .className = "task-section"
-        <p> { .className = "view-label"; ["Who"] }
-        [who]
-      }
-      <div> {
-        .className = "field"
-        <label> { ["Stars each time"] }
-        [pointsInput]
-      }
-      <div> {
-        .className = "field"
-        <label> { ["Times per day"] }
-        <div> {
-          .className = "task-counts"
-          <div> {
-            .className = "field"
-            <label> { ["At least"] }
-            [minInput]
-          }
-          <div> {
-            .className = "field"
-            <label> { ["Up to"] }
-            [maxInput]
-          }
-        }
-        <p> { .className = "field-hint"; ["Both 1 is a single check-off. Raise the second number if they can do it more than once."] }
-      }
-      <div> {
-        .className = "settings-stack"
-        <label> {
-          .className = "setting-toggle"
-          [goldInput]
-          <span> {
-            .className = "setting-copy"
-            <strong> { .className = "setting-title"; ["Gold star task"] }
-            <span> { .className = "setting-description"; ["Gold border, and they earn a gold star each time."] }
-          }
-          <span> {
-            .className = "setting-control"
-            [goldStatus]
-            <span> { .className = "switch-track"; .setAttribute("aria-hidden", "true") }
-          }
-        }
-      }
-    }
+    [body]
     <div> {
       .className = "row task-form-actions"
       [Btn("Cancel", "btn ghost wide", closeModal)]
@@ -151,6 +307,7 @@ export function openTaskForm(opts = {}) {
           showToast("Pick at least one kid");
           return;
         }
+        const allowMultiple = multiple.get();
         saveChore({
           id: existing ? existing.id : undefined,
           title,
@@ -158,14 +315,22 @@ export function openTaskForm(opts = {}) {
           repeat,
           kidIds,
           points: parseInt(pointsInput.value, 10) || 0,
-          minCount: parseInt(minInput.value, 10) || 1,
-          maxCount: parseInt(maxInput.value, 10) || 1,
-          gold,
+          minCount: allowMultiple ? parseInt(minInput.value, 10) || 1 : 1,
+          maxCount: allowMultiple ? parseInt(maxInput.value, 10) || 1 : 1,
+          currency,
+          gold: currency === "gold",
+          weekdays,
+          sharedClaim: sharedClaim.get(),
+          archiveOnComplete: archiveOnComplete.get(),
+          everyN: parseInt(everyInput.value, 10) || 1,
+          everyUnit,
+          anchorDay: existing && existing.anchorDay,
         });
         closeModal();
       })]
     }
   }
   openModal(sheet);
+  renderTabs();
   if (!existing) titleInput.focus();
 }

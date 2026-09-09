@@ -1,6 +1,8 @@
 import { ck, isOnce, isWeekly, isCounted } from './chores.js';
 import { datesInWeek, todayKey } from './dates.js';
 import { householdSayings } from './sayings.js';
+import { creditValue } from './balances.js';
+import { CURRENCY_IDS, emptyAmounts, normalizeCurrencies } from './currencies.js';
 
 export function validDay(day) {
   const date = new Date(day + 'T12:00:00');
@@ -32,11 +34,24 @@ export function dayView(state,day,totals) {
     }
     if (isOnce(task) && !anyToday) pastOnce.push(task.id);
   }
-  const balanceCarry = Object.fromEntries(state.kids.map(kid => [kid.id,{...(totals[kid.id] || {stars:0,gold:0})}]));
+  const balanceCarry = Object.fromEntries(state.kids.map(kid => {
+    const total = totals[kid.id] || {};
+    const amounts = { ...emptyAmounts(), ...total, star: total.star || total.stars || 0, gold: total.gold || 0 };
+    amounts.stars = amounts.star;
+    return [kid.id, amounts];
+  }));
   for (const entries of Object.values(creditProjection)) for (const entry of entries) {
     const total = balanceCarry[entry.kidId];
-    if (total) { total.stars -= entry.units*entry.points; if (entry.gold) total.gold -= entry.units; }
+    if (total) {
+      const value = creditValue(entry);
+      for (const id of CURRENCY_IDS) total[id] = (total[id] || 0) - (value[id] || 0);
+      total.stars = (total.star || 0) - (value.star || 0);
+    }
   }
-  return {version:1,requireParentModeForRedemptions:!!state.requireParentModeForRedemptions,requireParentModeForCompletion:!!state.requireParentModeForCompletion,mcpEnabled:!!state.mcpEnabled,dayScoped:true,day,updatedAt:state.updatedAt,familyName:state.familyName,pin:state.pin,setupDone:state.setupDone,sayings:householdSayings(state.sayings),
-    kids:state.kids,chores:state.chores,rewards:state.rewards,completions,counts,creditProjection,balanceCarry,pastOnce,spent:{},goldSpent:{}};
+  for (const total of Object.values(balanceCarry)) {
+    total.star = total.star || total.stars || 0;
+    total.stars = total.star;
+  }
+  return {version:1,requireParentModeForRedemptions:!!state.requireParentModeForRedemptions,requireParentModeForCompletion:!!state.requireParentModeForCompletion,mcpEnabled:!!state.mcpEnabled,dayScoped:true,day,updatedAt:state.updatedAt,familyName:state.familyName,pin:state.pin,setupDone:state.setupDone,sayings:householdSayings(state.sayings),currencies:normalizeCurrencies(state.currencies),
+    kids:state.kids,chores:state.chores,rewards:state.rewards,completions,counts,creditProjection,balanceCarry,pastOnce,spent:{},goldSpent:{},currencySpent:{}};
 }

@@ -23,7 +23,7 @@ Supported commands:
 | `setup.finish` | `familyName`, nonempty `kids` array, `pin` |
 | `kid.save` | `id`, `name`; optional `emoji`, `color` |
 | `kid.remove` | `id` |
-| `chore.save` | `id`, `title`, nonempty `kidIds`; optional `emoji`, `points`, `repeat`, `minCount`, `maxCount`, `gold` |
+| `chore.save` | `id`, `title`, nonempty `kidIds`; optional `emoji`, `points`, `repeat`, `minCount`, `maxCount`, `gold`, `weekdays`, `sharedClaim`, `archiveOnComplete`, `everyN`, `everyUnit`, `anchorDay` |
 | `chore.remove` | `id` (archive) |
 | `chore.restore` | `id` (restore under the same permanent ID) |
 | `chore.complete`, `chore.undo` | `choreId`, `kidId`, `day`; optional `versionId` |
@@ -31,11 +31,11 @@ Supported commands:
 | `reward.save` | `id`, `title`, `cost`; optional `emoji`, `gold` |
 | `reward.remove` | `id` |
 | `reward.redeem` | `rewardId`, `kidId`; optional calendar `day` |
-| `settings.update` | One or more of: `familyName`, `requireParentModeForCompletion`, `requireParentModeForRedemptions`, `mcpEnabled`, `sayings` |
+| `settings.update` | One or more of: `familyName`, `requireParentModeForCompletion`, `requireParentModeForRedemptions`, `mcpEnabled`, `sayings`, `currencies` |
 | `pin.set` | `pin` (empty or four digits) |
 | `household.reset` | empty object |
 
-`repeat` is `daily`, `weekly`, or `once`. Defaults and exact validation live in `packages/contracts/src/api.js` and `packages/domain/src/commands.js`. Whole-household reset is destructive and is exposed for the existing erase-board action.
+`repeat` is `daily`, `weekly`, `once`, or `every`. Daily tasks may list `weekdays` as `0`–`6` (Sunday–Saturday); omission means every day. Weekly `sharedClaim` lets only one assigned child complete the task that week. Once tasks archive after everyone assigned has finished unless `archiveOnComplete` is false. `every` uses `everyN`, `everyUnit` (`days`, `weeks`, or `months`), and an `anchorDay`. `currency` is one of `star`, `gold`, `coin`, `dollar`, `hours`, `custom1`, `custom2`. `gold: true` still means gold. Household `currencies` is the seven built-in credits with `id`, `name`, and `enabled`; Star and Gold Star default on. Names can change; ids cannot. Custom 1 and Custom 2 may include an `emoji`. Defaults and exact validation live in `packages/contracts/src/api.js` and `packages/domain/src/commands.js`. Whole-household reset is destructive and is exposed for the existing erase-board action.
 
 ## Reads and live updates
 

@@ -70,7 +70,7 @@ test('counted credit keeps per-version values and undo reverses the latest unit 
     await command(app,'one','chore.count',payload);
     await command(app,'edit','chore.save',{...task,maxCount:3,points:3,gold:true});
     const two = await command(app,'two','chore.count',payload);
-    assert.deepEqual(balancesFor(two.state).kid,{stars:5,gold:1});
+    assert.deepEqual(balancesFor(two.state).kid,{stars:2,gold:3});
     const entries = two.state.creditProjection['2026-09-07:task:kid'];
     assert.equal(entries.length,2);
     assert.notEqual(entries[0].versionId,entries[1].versionId);

@@ -110,10 +110,17 @@ export function createHouseholdMcp(storage) {
       kidIds: z.array(z.string()).min(1),
       emoji: z.string().optional(),
       points: z.number().int().optional(),
-      repeat: z.enum(["daily", "weekly", "once"]).optional(),
+      repeat: z.enum(["daily", "weekly", "once", "every"]).optional(),
       minCount: z.number().int().optional(),
       maxCount: z.number().int().optional(),
       gold: z.boolean().optional(),
+      currency: z.enum(["star", "gold", "coin", "dollar", "hours", "custom1", "custom2"]).optional(),
+      weekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
+      sharedClaim: z.boolean().optional(),
+      archiveOnComplete: z.boolean().optional(),
+      everyN: z.number().int().min(1).max(365).optional(),
+      everyUnit: z.enum(["days", "weeks", "months"]).optional(),
+      anchorDay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     },
   }, async (payload) => run("chore.save", { ...payload, id: payload.id || randomUUID() }));
 
@@ -125,6 +132,7 @@ export function createHouseholdMcp(storage) {
       cost: z.number().int(),
       emoji: z.string().optional(),
       gold: z.boolean().optional(),
+      currency: z.enum(["star", "gold", "coin", "dollar", "hours", "custom1", "custom2"]).optional(),
     },
   }, async (payload) => run("reward.save", { ...payload, id: payload.id || randomUUID() }));
 

@@ -64,7 +64,7 @@ test('onboarding, PIN, task editing, completion, rewards, themes, and reconnect'
   click('Add');
   assert.ok(modal.querySelector('.emoji-trigger'), 'Task emoji picker trigger');
   field('Task', 'Wash dishes');
-  click('📅 Once a week', modal);
+  click('📅 Weekly', modal);
   assert.equal(modal.querySelector('fridge-choices').value, 'weekly');
   click('Save', modal);
   assert.equal(chores.$chores.get()[0].repeat, 'weekly');
@@ -126,7 +126,7 @@ test('counted chores, multiple assignments, keyed reorder/removal, and empty boa
   await pauseTap();
   row.querySelector('.mark').click();
   assert.equal(chores.countFor(chore, first.id), 1);
-  assert.equal(balances.goldFor(first.id), 1);
+  assert.equal(balances.goldFor(first.id), 2);
   commit(() => family.$kids.set([...family.$kids.get()].reverse()));
   assert.equal(board.children[0], columns[1]);
   assert.equal(board.children[1], columns[0]);
@@ -138,6 +138,43 @@ test('counted chores, multiple assignments, keyed reorder/removal, and empty boa
   family.removeKid(first.id);
   assert.match(board.textContent, /No kids yet/);
   assert.equal(board.children.length, 1);
+});
+
+test('task form tabs cover weekday daily, weekly one-claim, once archive, and every', async () => {
+  const alex = { id:'tab-alex', name:'Alex', emoji:'🐻', color:'#e85d4c' };
+  const sam = { id:'tab-sam', name:'Sam', emoji:'🐸', color:'#2a9d8f' };
+  family.saveKid(alex);
+  family.saveKid(sam);
+  navigation.setUI({ view:'parent', parentUnlocked:true, parentTab:'chores' });
+  click('Add');
+  assert.ok(modal.querySelector('#task-form-tabs'));
+  field('Task', 'Trash night');
+  click('📅 Weekly', modal);
+  assert.equal(modal.querySelector('[role="tab"][aria-selected="true"]').textContent.trim(), 'Weekly');
+  modal.querySelector('input[aria-label="Only allow one claim per week"]').click();
+  click('Save', modal);
+  const weekly = chores.$chores.get().find(item => item.title === 'Trash night');
+  assert.equal(weekly.repeat, 'weekly');
+  assert.equal(weekly.sharedClaim, true);
+  navigation.setUI({ view:'board', parentUnlocked:true });
+  const alexRow = [...active().querySelectorAll('fridge-kid')].find(node => node.textContent.includes('Alex')).querySelector(`[data-key="${weekly.id}"]`);
+  const samRow = [...active().querySelectorAll('fridge-kid')].find(node => node.textContent.includes('Sam')).querySelector(`[data-key="${weekly.id}"]`);
+  await pauseTap();
+  alexRow.querySelector('button').click();
+  assert.equal(chores.isDone(weekly, alex.id), true);
+  assert.equal(chores.isDone(weekly, sam.id), true);
+  assert.equal(samRow.querySelector('button').disabled, true);
+  const once = chores.saveChore({ title:'Party setup', kidIds:[alex.id], repeat:'once', points:1 });
+  await pauseTap();
+  [...active().querySelectorAll('fridge-kid')].find(node => node.textContent.includes('Alex')).querySelector(`[data-key="${once.id}"] button`).click();
+  assert.equal(chores.$chores.get().some(item => item.id === once.id), false);
+  const every = chores.saveChore({ title:'Water plants', kidIds:[alex.id], repeat:'every', everyN:3, everyUnit:'days', points:1 });
+  assert.equal(every.repeat, 'every');
+  assert.equal(every.everyN, 3);
+  assert.equal(every.everyUnit, 'days');
+  chores.$chores.get().slice().forEach(item => chores.removeChore(item.id));
+  family.removeKid(alex.id);
+  family.removeKid(sam.id);
 });
 
 test('multiple view controls stay synchronized and removed controls unsubscribe', () => {
@@ -287,10 +324,10 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.equal(boardScreen.inert,true);
   const tabs = active().querySelector('fridge-tabs');
   assert.equal(tabs.getAttribute('role'),'tablist');
-  assert.equal(tabs.querySelectorAll('[role="tab"]').length,7);
+  assert.equal(tabs.querySelectorAll('[role="tab"]').length,8);
   assert.equal(tabs.querySelector('[role="tab"]').getAttribute('aria-controls'),'settings-panel');
   assert.equal(tabs.querySelector('[aria-selected="true"]').textContent.toLowerCase(),navigation.$ui.get().parentTab);
-  for (const page of ['General','Kids','Chores','Rewards','Display','Advanced','Help']) {
+  for (const page of ['General','Kids','Chores','Rewards','Currency','Display','Advanced','Help']) {
     click(page);
     assert.ok(active().querySelector('.settings-body .lead'),`${page} has a subtitle`);
   }
@@ -337,6 +374,19 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.match(active().querySelector('.setting-details pre').textContent,/chore-fridge/);
   mcpToggle.click();
   assert.equal(family.$mcpEnabled.get(),false);
+  click('Currency');
+  const coinToggle = active().querySelector('input[aria-label="Enable Coin"]');
+  assert.ok(coinToggle);
+  coinToggle.click();
+  assert.equal(family.$currencies.get().find(item => item.id === 'coin').enabled, true);
+  const coinName = active().querySelector('input[aria-label="Coin name"]');
+  coinName.value = 'Tokens';
+  coinName.parentElement.querySelector('button').click();
+  assert.equal(family.$currencies.get().find(item => item.id === 'coin').name, 'Tokens');
+  assert.ok(active().querySelector('.currency-icon.star'));
+  assert.ok(active().querySelector('button[aria-label="Custom 1 emoji"]'));
+  family.setCurrencies(family.$currencies.get().map(item => item.id === 'custom1' ? { ...item, enabled: true, emoji: '🎯' } : item));
+  assert.equal(family.$currencies.get().find(item => item.id === 'custom1').emoji, '🎯');
   click('Close');
   assert.match(active().textContent,/The Test House/);
   assert.equal(boardScreen.inert,false);
@@ -439,7 +489,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
 test('redemption toggle independently blocks spending while locked and shows a message', async () => {
   const sync = await import('../apps/web/src/stores/sync.js');
   const changes = await import('../apps/web/src/stores/changes.js');
-  sync.applySnapshot({...sync.defaultState(),setupDone:true,requireParentModeForCompletion:true,kids:[{id:'reward-kid',name:'Alex'}],chores:[{id:'earned',title:'Task',points:10,gold:true,kidIds:['reward-kid'],repeat:'daily'}],completions:{'2026-09-06:earned:reward-kid':1},rewards:[{id:'stars',title:'Star reward',emoji:'⭐',cost:2},{id:'gold',title:'Gold reward',emoji:'⭐',cost:1,gold:true}]});
+  sync.applySnapshot({...sync.defaultState(),setupDone:true,requireParentModeForCompletion:true,kids:[{id:'reward-kid',name:'Alex'}],chores:[{id:'earned',title:'Task',points:10,kidIds:['reward-kid'],repeat:'daily'},{id:'gold-task',title:'Gold task',points:1,gold:true,kidIds:['reward-kid'],repeat:'daily'}],completions:{'2026-09-06:earned:reward-kid':1,'2026-09-06:gold-task:reward-kid':1},rewards:[{id:'stars',title:'Star reward',emoji:'⭐',cost:2},{id:'gold',title:'Gold reward',emoji:'⭐',cost:1,gold:true}]});
   navigation.unlockParent();
   click('Settings');
   click('General');
@@ -469,4 +519,29 @@ test('redemption toggle independently blocks spending while locked and shows a m
   click('Lock Parent Mode');
   assert.equal(rewards.redeemReward('stars','reward-kid').ok,true);
   assert.equal(balances.starsFor('reward-kid'),8);
+});
+
+test('child balances retain their nodes and update custom marks as currencies change', () => {
+  const original = family.$currencies.get();
+  const kid = document.createElement('fridge-kid');
+  kid.model = { id: 'currency-layout', name: 'Alexandria Longname', emoji: '🐻', color: '#e85d4c' };
+  try {
+    family.setCurrencies(original.map(currency => ({ ...currency, enabled: true })));
+    document.body.append(kid);
+    const meta = kid.querySelector('.kid-meta');
+    assert.equal(meta.querySelectorAll('.kid-balance').length, 7);
+    const star = meta.querySelector('[aria-label^="Star:"]');
+    const custom = meta.querySelector('[aria-label^="Custom 2:"]');
+    family.setCurrencies(family.$currencies.get().map(currency => currency.id === 'custom2' ? { ...currency, emoji: '🤖' } : currency));
+    assert.equal(meta.querySelector('[aria-label^="Star:"]'), star);
+    assert.equal(custom.querySelector('.currency-mark').textContent, '🤖');
+    family.setCurrencies(family.$currencies.get().map(currency => currency.id === 'coin' ? { ...currency, enabled: false } : currency));
+    assert.equal(meta.querySelectorAll('.kid-balance').length, 6);
+    family.setCurrencies(family.$currencies.get().map(currency => currency.id === 'coin' ? { ...currency, enabled: true } : currency));
+    assert.equal(meta.children[2].getAttribute('aria-label'), 'Coin: 0');
+    assert.equal(meta.lastElementChild.className, 'kid-completion');
+  } finally {
+    kid.remove();
+    family.setCurrencies(original);
+  }
 });

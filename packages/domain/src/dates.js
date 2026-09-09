@@ -20,6 +20,17 @@ export function datesInWeek(d = new Date()) {
   return out;
 }
 
+export function parseDay(day) {
+  const date = new Date(String(day || "") + "T12:00:00");
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+export function daysBetween(from, to) {
+  const a = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
+  const b = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
+  return Math.round((b - a) / 86400000);
+}
+
 export function prettyDate() {
   try {
     return new Date().toLocaleDateString(undefined, {

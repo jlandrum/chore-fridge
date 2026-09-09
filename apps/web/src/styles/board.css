@@ -40,6 +40,12 @@
   flex-shrink: 0;
 }
 
+.top-balances {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .pill {
   min-height: 56px;
   padding: 0 18px;
@@ -63,42 +69,68 @@
   background: var(--gold-pill-bg);
 }
 
-.star,
-.gold-star {
-  display: inline-block;
-  vertical-align: -0.08em;
+.currency-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.12em;
   line-height: 1;
   font-weight: 800;
 }
 
-.star { color: var(--star); }
-
-.gold-star {
+.currency-icon {
   position: relative;
-  color: var(--gold);
+  width: 1.15em;
+  height: 1.15em;
+  display: block;
+  background-color: currentColor;
+  /* SVG masks need transparent holes, not white painted details. */
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+}
 
-  &::after {
-    content: "★";
-    position: absolute;
-    left: 0;
-    top: 0;
-    font: inherit;
-    line-height: 1;
-    color: transparent;
-    background-image: linear-gradient(
-      105deg,
-      transparent 35%,
-      rgba(255, 255, 255, .95) 50%,
-      transparent 65%
-    );
-    background-size: 220% 100%;
-    background-repeat: no-repeat;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: gold-shimmer 2.2s linear infinite;
-    pointer-events: none;
-  }
+/* Classic silhouettes; each look overrides mask-image in its theme file. */
+.currency-icon.star {
+  color: var(--star);
+  -webkit-mask-image: url("../assets/currencies/classic/star.svg");
+  mask-image: url("../assets/currencies/classic/star.svg");
+}
+
+.currency-icon.gold {
+  color: var(--currency-coin);
+  -webkit-mask-image: url("../assets/currencies/classic/star.svg");
+  mask-image: url("../assets/currencies/classic/star.svg");
+}
+
+.currency-icon.gold::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .4) 50%, transparent 65%);
+  background-size: 220% 100%;
+  animation: gold-shimmer 2.2s linear infinite;
+}
+
+.currency-icon.coin {
+  color: var(--currency-coin);
+  -webkit-mask-image: url("../assets/currencies/classic/coin.svg");
+  mask-image: url("../assets/currencies/classic/coin.svg");
+}
+
+.currency-icon.dollar {
+  color: var(--currency-dollar);
+  -webkit-mask-image: url("../assets/currencies/classic/dollar.svg");
+  mask-image: url("../assets/currencies/classic/dollar.svg");
+}
+
+.currency-icon.hours {
+  color: var(--ink);
+  -webkit-mask-image: url("../assets/currencies/classic/hours.svg");
+  mask-image: url("../assets/currencies/classic/hours.svg");
 }
 
 @keyframes gold-shimmer {
@@ -107,7 +139,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gold-star::after { animation: none; display: none; }
+  .currency-icon.gold::after { animation: none; display: none; }
 }
 
 .workspace {
@@ -180,8 +212,8 @@
 
 .kid-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   padding: 20px 18px 8px;
   gap: 8px;
 }
@@ -195,15 +227,28 @@
   gap: 8px;
   min-width: 0;
 
-  .emoji { font-size: 34px; line-height: 1; }
+  .emoji { font-size: 34px; line-height: 1; flex-shrink: 0; }
+  > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 
   @media (max-width: 700px) { font-size: 22px; }
 }
 
 .kid-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-width: 0;
   color: var(--muted);
   font-size: 16px;
   font-weight: 700;
+}
+
+.kid-balance,
+.kid-completion {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   white-space: nowrap;
 }
 
@@ -257,6 +302,9 @@
   text-align: left;
 
   &:active { transform: translateY(1px); }
+
+  &:disabled,
+  &.locked { opacity: .45; }
 
   &.gold { box-shadow: 0 0 0 3px var(--gold), var(--chore-shadow); }
 
@@ -378,3 +426,8 @@
 
   &:active { transform: translateY(1px); }
 }
+
+/* Keep marks legible on the saturated balance pills in every appearance. */
+.stars-pill .currency-icon.star { color: inherit; }
+.gold-pill .currency-icon.gold { color: inherit; }
+html[data-look="contrast"] .currency-icon.gold::after { display: none; }
