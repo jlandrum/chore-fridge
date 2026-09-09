@@ -24,7 +24,7 @@
 
 - [ ] Custom themes without modifying source code
 - [ ] Mobile app
-- [ ] Custom credit types
-- [ ] Custom credit displays (stars, coins, etc.)
+- [x] Custom credit types
+- [x] Custom credit displays (stars, coins, etc.)
 - [ ] Custom background, separate from the theme
 - [ ] Actual authentication

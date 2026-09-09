@@ -2,7 +2,9 @@
 
 User-facing changes and upgrade notes are recorded here. Move the Unreleased entries into a dated version section when a release is published.
 
-## Unreleased — v2
+## Unreleased
+
+## 2.0.0 — 2026-09-08
 
 ### Added
 
