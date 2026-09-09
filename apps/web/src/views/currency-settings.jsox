@@ -1,0 +1,86 @@
+import { $currencies, setCurrencies } from "../stores/family.js";
+import { CURRENCY_DEFAULTS, normalizeCurrencies } from "@chore-fridge/domain/currencies";
+import { defineScreen } from "../components/screen.jsox";
+import { Btn, showToast } from "../ui.jsox";
+
+defineScreen("fridge-currency-settings", (root) => {
+  const list = <div> { .className = "currency-list" }
+  [root] {
+    .className = "settings-page"
+    <div> {
+      .className = "settings-intro"
+      <h2> { ["Currency"] }
+      <p> { .className = "lead"; ["Turn on the credits this household uses. Names can change; the built-in types stay the same."] }
+    }
+    [list]
+  }
+
+  const rows = new Map();
+  function rowFor(item) {
+    if (rows.has(item.id)) return rows.get(item.id);
+    const enabled = <input> {
+      .type = "checkbox"
+      .setAttribute("role", "switch")
+      .setAttribute("aria-label", "Enable " + CURRENCY_DEFAULTS[item.id].name)
+    }
+    const name = <input> {
+      .type = "text"
+      .maxlength = 40
+      .autocomplete = "off"
+      .setAttribute("aria-label", CURRENCY_DEFAULTS[item.id].name + " name")
+    }
+    const save = () => {
+      const next = normalizeCurrencies($currencies.get()).map((currency) => {
+        if (currency.id !== item.id) return currency;
+        return { ...currency, enabled: enabled.checked, name: name.value };
+      });
+      if (!next.some((currency) => currency.enabled)) {
+        showToast("Keep at least one currency on.");
+        enabled.checked = true;
+        return;
+      }
+      setCurrencies(next);
+      showToast("Currency saved.");
+    };
+    enabled.onchange = save;
+    const node = <section> {
+      .className = "settings-group"
+      <h3> { [CURRENCY_DEFAULTS[item.id].name] }
+      <form> {
+        .className = "setting-form"
+        .onsubmit = event => { event.preventDefault(); save(); }
+        <label> {
+          .className = "setting-toggle"
+          [enabled]
+          <span> {
+            .className = "setting-copy"
+            <strong> { .className = "setting-title"; ["Enabled"] }
+            <span> { .className = "setting-description"; ["Available on chores and rewards."] }
+          }
+          <span> {
+            .className = "setting-control"
+            <span> { .className = "switch-track"; .setAttribute("aria-hidden", "true") }
+          }
+        }
+        <label> { .className = "setting-title"; ["Display name"] }
+        <span> { .className = "setting-input"; [name]; [Btn("Save", "btn", save)] }
+      }
+    }
+    const row = { node, enabled, name };
+    rows.set(item.id, row);
+    return row;
+  }
+
+  return () => {
+    list.replaceChildren();
+    for (const item of normalizeCurrencies($currencies.get())) {
+      const row = rowFor(item);
+      row.enabled.checked = item.enabled;
+      row.enabled.setAttribute("aria-checked", String(item.enabled));
+      if (document.activeElement !== row.name) row.name.value = item.name;
+      list.append(row.node);
+    }
+  };
+}, [$currencies]);
+
+export function CurrencyTab() { return <fridge-currency-settings> }

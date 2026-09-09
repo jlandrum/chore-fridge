@@ -34,13 +34,13 @@ export function openStorage({ databaseFile, legacyFile }) {
   try {
     db.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;');
     const version = db.prepare('PRAGMA user_version').get().user_version;
-    if (version > 3) throw new Error('Database schema is newer than this server');
+    if (version > 4) throw new Error('Database schema is newer than this server');
     transaction(() => {
       db.exec(`CREATE TABLE IF NOT EXISTS household (id INTEGER PRIMARY KEY CHECK(id=1), document TEXT NOT NULL, revision INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS commands (id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, result TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS migrations (name TEXT PRIMARY KEY, completed_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS history (revision INTEGER PRIMARY KEY, recorded_at INTEGER NOT NULL, action TEXT NOT NULL, command_id TEXT, document TEXT NOT NULL);
-        PRAGMA user_version=3;`);
+        PRAGMA user_version=4;`);
       if (!db.prepare('SELECT 1 FROM migrations WHERE name=?').get('legacy-json')) {
         if (!db.prepare('SELECT 1 FROM household WHERE id=1').get() && existsSync(legacyFile)) {
           const raw = readFileSync(legacyFile, 'utf8');

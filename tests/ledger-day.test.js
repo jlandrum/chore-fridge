@@ -65,8 +65,8 @@ test('count reversals reference each original allocation and spending is a separ
     act(app,'minus','chore.count',{...complete,delta:-1});
     const reversal = app.storage.ledger.list(day)[2];
     assert.equal(reversal.reverses,second.id);
-    assert.equal(reversal.stars,-3);
-    assert.equal(reversal.gold,-1);
+    assert.equal(reversal.stars,0);
+    assert.equal(reversal.gold,-3);
     act(app,'redeem','reward.redeem',{rewardId:'reward',kidId:'kid',day});
     assert.equal(app.storage.ledger.list(day)[3].kind,'redemption');
     assert.equal(app.storage.ledger.list(day)[3].stars,-2);

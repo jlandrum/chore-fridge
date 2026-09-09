@@ -1,10 +1,12 @@
 import { $chores, $completions, $counts, isDone, choresForKid } from "../stores/chores.js";
-import { $balances, starsFor, goldFor } from "../stores/balances.js";
+import { $balances, amountForKid } from "../stores/balances.js";
+import { $currencies } from "../stores/family.js";
+import { enabledCurrencies } from "@chore-fridge/domain/currencies";
 import { $clock } from "../stores/clock.js";
 import { $view, isDark, writePalette } from "../view.js";
 import { defineScreen } from "./screen.jsox";
 import { updateList } from "./list.js";
-import { Star } from "../ui.jsox";
+import { CurrencyMark } from "../ui.jsox";
 import "./chore.jsox";
 
 defineScreen("fridge-kid", (root) => {
@@ -57,11 +59,12 @@ defineScreen("fridge-kid", (root) => {
       empty.remove();
     }
     const pct = chores.length ? Math.round((done / chores.length) * 100) : 100;
-    const gold = goldFor(kid.id);
     metaEl.replaceChildren();
-    metaEl.append(Star(false), " " + starsFor(kid.id));
-    if (gold) metaEl.append(" · ", Star(true), " " + gold);
+    for (const currency of enabledCurrencies($currencies.get())) {
+      if (metaEl.childNodes.length) metaEl.append(" · ");
+      metaEl.append(CurrencyMark(currency.id), " " + amountForKid(kid.id, currency.id));
+    }
     metaEl.append(" · " + done + "/" + chores.length);
     barEl.style.width = pct + "%";
   };
-}, [$chores, $completions, $counts, $balances, $clock, $view]);
+}, [$chores, $completions, $counts, $balances, $currencies, $clock, $view]);

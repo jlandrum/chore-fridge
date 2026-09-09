@@ -5,6 +5,7 @@ import { defineComponent } from "@js-ox/web-components";
     if (this.update) { this.update(); return; }
     this.className = this.className || "tabs";
     this.setAttribute("role", "tablist");
+    if (this.orientation) this.setAttribute("aria-orientation", this.orientation);
     const tabs = this;
     const buttons = (this.options || []).map((option, index) => {
       const button = <button> {
@@ -55,6 +56,7 @@ export function Tabs(options, value, onChange, attrs = {}) {
     .value = value
     .controls = attrs.controls || ""
     .className = attrs.className || "tabs"
+    .orientation = attrs.orientation || ""
     .onchange = (event) => onChange(event.currentTarget.value)
   }
 }

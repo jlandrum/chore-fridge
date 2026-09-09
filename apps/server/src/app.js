@@ -1,6 +1,7 @@
 import { dayView, validDay } from '@chore-fridge/domain/day-view';
 import { todayKey } from '@chore-fridge/domain/dates';
 import { householdSayings } from '@chore-fridge/domain/sayings';
+import { CURRENCY_IDS } from '@chore-fridge/domain/currencies';
 import Fastify from 'fastify';
 import staticFiles from '@fastify/static';
 import { existsSync } from 'node:fs';
@@ -66,7 +67,16 @@ export async function createApp(options) {
   });
   app.get('/api/balances',async () => {
     const totals = storage.ledger.totals();
-    return Object.fromEntries((storage.read().state?.kids || []).map(kid => [kid.id,{stars:Math.max(0,totals[kid.id]?.stars || 0),gold:Math.max(0,totals[kid.id]?.gold || 0)}]));
+    return Object.fromEntries((storage.read().state?.kids || []).map(kid => {
+      const total = totals[kid.id] || {};
+      const amounts = { stars: Math.max(0, total.stars || total.star || 0), gold: Math.max(0, total.gold || 0) };
+      for (const id of CURRENCY_IDS) {
+        if (id === "star" || id === "gold") continue;
+        const value = Math.max(0, Number(total[id]) || 0);
+        if (value) amounts[id] = value;
+      }
+      return [kid.id, amounts];
+    }));
   });
   app.route({
     method:['GET','POST','DELETE'],

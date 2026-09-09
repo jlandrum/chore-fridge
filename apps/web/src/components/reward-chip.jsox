@@ -1,14 +1,15 @@
 import { $kids } from "../stores/family.js";
 import { redeemReward, redemptionError } from "../stores/rewards.js";
-import { starsFor, goldFor } from "../stores/balances.js";
-import { showToast, burst, openModal, closeModal, Btn, Star } from "../ui.jsox";
+import { amountForKid } from "../stores/balances.js";
+import { currencyId } from "@chore-fridge/domain/currencies";
+import { showToast, burst, openModal, closeModal, Btn, CurrencyMark } from "../ui.jsox";
 
 export function askWho(reward) {
   const error = redemptionError();
   if (error) { showToast(error); return; }
   const choices = <div> { .className = "row" }
   for (const kid of $kids.get()) {
-    const have = reward.gold ? goldFor(kid.id) : starsFor(kid.id);
+    const have = amountForKid(kid.id, currencyId(reward));
     const disabled = have < reward.cost;
     [choices] {
       <button> {
@@ -17,7 +18,7 @@ export function askWho(reward) {
         .disabled = disabled
         [kid.emoji + " " + kid.name]
         <br> { }
-        [Star(!!reward.gold)]
+        [CurrencyMark(currencyId(reward))]
         [" " + have]
         .onclick = () => {
           const result = redeemReward(reward.id, kid.id);
@@ -38,8 +39,8 @@ export function askWho(reward) {
       <p> {
         .className = "lead"
         ["Costs "]
-        [Star(!!reward.gold)]
-        [" " + reward.cost + (reward.gold ? " gold." : ".") + " Ask a parent to actually pay out."]
+        [CurrencyMark(currencyId(reward))]
+        [" " + reward.cost + ". Ask a parent to actually pay out."]
       }
       [choices]
       <div> {
@@ -54,9 +55,9 @@ export function askWho(reward) {
 export function RewardChip(reward) {
   return <button> {
     .type = "button"
-    .className = reward.gold ? "reward gold" : "reward"
+    .className = currencyId(reward) === "gold" ? "reward gold" : "reward"
     [reward.emoji + " " + reward.title]
-    <span> { .className = "cost"; [Star(!!reward.gold)]; [" " + reward.cost] }
+    <span> { .className = "cost"; [CurrencyMark(currencyId(reward))]; [" " + reward.cost] }
     .onclick = () => askWho(reward)
   }
 }

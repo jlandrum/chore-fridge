@@ -136,6 +136,12 @@
   }
 }
 
+.currency-list {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
 .settings-page {
   display: flex;
   flex-direction: column;

@@ -2,7 +2,8 @@ import { $kids } from "../stores/family.js";
 import { $chores, choreKind, minCount, maxCount, isCounted, removeChore, $archivedChores, restoreChore } from "../stores/chores.js";
 import { defineScreen } from "../components/screen.jsox";
 import { updateList } from "../components/list.js";
-import { Btn, showToast, Star } from "../ui.jsox";
+import { Btn, showToast, CurrencyMark } from "../ui.jsox";
+import { currencyId } from "@chore-fridge/domain/currencies";
 import { openTaskForm } from "./task-form.jsox";
 
 function kidNames(chore) {
@@ -30,7 +31,7 @@ defineScreen("fridge-task-summary", (root) => {
     const chore = root.model;
     title.textContent = chore.title + " · " + choreKind(chore);
     sub.replaceChildren(kidNames(chore) || "Nobody assigned");
-    if (chore.gold) sub.append(" · ", Star(true), " gold");
+    sub.append(" · ", CurrencyMark(currencyId(chore)), " " + (chore.points || 0));
     if (isCounted(chore)) sub.append(" · " + minCount(chore) + "–" + maxCount(chore) + " / day");
   };
 });

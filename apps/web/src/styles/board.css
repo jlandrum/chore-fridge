@@ -40,6 +40,17 @@
   flex-shrink: 0;
 }
 
+.top-balances {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.currency-mark {
+  display: inline-block;
+  font-weight: 800;
+}
+
 .pill {
   min-height: 56px;
   padding: 0 18px;
@@ -257,6 +268,9 @@
   text-align: left;
 
   &:active { transform: translateY(1px); }
+
+  &:disabled,
+  &.locked { opacity: .45; }
 
   &.gold { box-shadow: 0 0 0 3px var(--gold), var(--chore-shadow); }
 

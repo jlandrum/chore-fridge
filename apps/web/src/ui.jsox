@@ -72,3 +72,10 @@ export function Btn(label, className, onclick) {
 export function Star(gold) {
   return <span> { .className = gold ? "gold-star" : "star"; ["★"] }
 }
+
+export function CurrencyMark(id) {
+  if (id === "gold") return Star(true);
+  if (!id || id === "star") return Star(false);
+  const marks = { coin: "🪙", dollar: "$", hours: "⏱", custom1: "●", custom2: "●" };
+  return <span> { .className = "currency-mark"; [marks[id] || "●"] }
+}

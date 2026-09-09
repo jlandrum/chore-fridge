@@ -4,10 +4,10 @@ import { defaultState } from "@chore-fridge/domain/state";
 export { defaultState } from "@chore-fridge/domain/state";
 import { atom, batch } from "nanostores";
 import { $revision, $lastChange, commit } from "./changes.js";
-import { $familyName, $pin, $setupDone, $kids, $requireParentModeForCompletion, $requireParentModeForRedemptions, $mcpEnabled, $sayings } from "./family.js";
+import { $familyName, $pin, $setupDone, $kids, $requireParentModeForCompletion, $requireParentModeForRedemptions, $mcpEnabled, $sayings, $currencies } from "./family.js";
 import { $chores, $completions, $counts, $archivedChores, $pastOnce } from "./chores.js";
 import { $rewards } from "./rewards.js";
-import { $spent, $goldSpent, $creditProjection, $balanceCarry } from "./balances.js";
+import { $spent, $goldSpent, $currencySpent, $creditProjection, $balanceCarry } from "./balances.js";
 import { mergeCompletions, mergeCounts } from "@chore-fridge/domain/history";
 
 const STORAGE_KEY = "chore-fridge-v2";
@@ -16,9 +16,9 @@ const fields = {
   requireParentModeForRedemptions:$requireParentModeForRedemptions,
   requireParentModeForCompletion:$requireParentModeForCompletion,
   mcpEnabled: $mcpEnabled,
-  familyName: $familyName, sayings: $sayings, pin: $pin, setupDone: $setupDone, kids: $kids,
+  familyName: $familyName, sayings: $sayings, currencies: $currencies, pin: $pin, setupDone: $setupDone, kids: $kids,
   chores: $chores, archivedChores: $archivedChores, completions: $completions, counts: $counts,
-  rewards: $rewards, spent: $spent, goldSpent: $goldSpent, creditProjection: $creditProjection, balanceCarry:$balanceCarry, pastOnce:$pastOnce,
+  rewards: $rewards, spent: $spent, goldSpent: $goldSpent, currencySpent: $currencySpent, creditProjection: $creditProjection, balanceCarry:$balanceCarry, pastOnce:$pastOnce,
 };
 let metadata = { version: 1, nightMode: "auto", updatedAt: 0 };
 let saveTimer;

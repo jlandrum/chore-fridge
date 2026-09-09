@@ -14,7 +14,7 @@
 .sheet {
   display: flex;
   flex-direction: column;
-  width: 560px;
+  width: 720px;
   max-width: 100%;
   max-height: 90%;
   overflow: hidden;
@@ -24,7 +24,7 @@
   padding: 22px;
   box-shadow: var(--shadow);
 
-  h3 { margin: 0 0 12px; font-size: 28px; }
+  h3 { margin: 0 0 18px; font-size: 28px; }
 
   > * {
     min-height: 0;
@@ -55,18 +55,18 @@
   }
 
   .field {
-    gap: 12px;
+    gap: 16px;
     margin-bottom: 0;
   }
 
   .field > label,
   .view-label {
     line-height: 1.35;
-    padding-bottom: 2px;
+    padding-bottom: 4px;
   }
 
   .view-label {
-    margin: 0 0 12px;
+    margin: 0 0 16px;
   }
 
   .task-section { margin-bottom: 0; }
@@ -86,18 +86,86 @@
   .setting-toggle { min-height: 72px; }
 }
 
+.task-form-layout {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  gap: 28px;
+}
+
+.task-form-tabhost {
+  display: flex;
+  flex: 0 0 10.5rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.task-form-tabs {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-self: stretch;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 20px 4px 0;
+  border-right: 2px solid var(--line);
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  button {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+
 .task-form-fields {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 28px;
   flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
-  padding-bottom: 8px;
+  padding: 4px 0 8px;
   scroll-padding-bottom: 16px;
+}
+
+.task-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.task-currency {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .task-form-layout {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .task-form-tabhost {
+    flex: 0 0 auto;
+  }
+  .task-form-tabs {
+    flex-direction: row;
+    width: 100%;
+    padding: 0 0 12px;
+    border-right: 0;
+    border-bottom: 2px solid var(--line);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+
+    button { width: auto; flex: 0 0 auto; }
+  }
 }
 
 .task-form-actions {
@@ -180,6 +248,32 @@ emoji-picker {
 
 .task-repeat {
   display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.task-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+
+  .choice {
+    min-height: 56px;
+    padding: 8px 0;
+    font-size: 18px;
+    font-weight: 800;
+  }
+}
+
+.task-every {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.task-every-units {
+  display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
 }
@@ -197,7 +291,7 @@ emoji-picker {
   font-size: 15px;
   font-weight: 600;
   line-height: 1.4;
-  margin: 0;
+  margin: 12px 0 0;
 }
 
 .toast {

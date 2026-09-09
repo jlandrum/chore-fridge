@@ -1,7 +1,9 @@
-import { COLORS, $familyName, setFamilyName, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions, $mcpEnabled, setMcpEnabled, $sayings, setSayingsFromText, restoreDefaultSayings } from "../stores/family.js";
+import { COLORS, $familyName, setFamilyName, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions, $mcpEnabled, setMcpEnabled, $sayings, setSayingsFromText, restoreDefaultSayings, $currencies } from "../stores/family.js";
+import { currencyId, enabledCurrencies } from "@chore-fridge/domain/currencies";
+import { CurrencyTab } from "./currency-settings.jsox";
 import { formatSayingsText, parseSayingsText } from "@chore-fridge/domain/sayings";
 import { $serverMode } from "../stores/sync.js";
-import { $balances, starsFor, goldFor } from "../stores/balances.js";
+import { $balances, amountForKid } from "../stores/balances.js";
 import { $rewards, saveReward, removeReward } from "../stores/rewards.js";
 import { $ui, setUI, lockParent, closeSettings } from "../stores/navigation.js";
 import { eraseBoard } from "../stores/setup.js";
@@ -10,7 +12,7 @@ import { updateList } from "../components/list.js";
 import { Choices } from "../components/choices.jsox";
 import { EmojiField } from "../components/emoji-field.jsox";
 import { defineScreen } from "../components/screen.jsox";
-import { Btn, showToast, openModal, closeModal, Star } from "../ui.jsox";
+import { Btn, showToast, openModal, closeModal, CurrencyMark } from "../ui.jsox";
 import { TaskLists } from "./tasks.jsox";
 import { openTaskForm } from "./task-form.jsox";
 import { ViewControls } from "./view-options.jsox";
@@ -86,16 +88,10 @@ function rewardForm(existing) {
     .value = existing ? String(existing.cost) : "20"
     .autocomplete = "off"
   }
-  let gold = !!(existing && existing.gold);
-  const goldBtn = <button> {
-    .type = "button"
-    .className = gold ? "choice on" : "choice"
-    ["Gold star reward"]
-    .onclick = () => {
-      gold = !gold;
-      goldBtn.className = gold ? "choice on" : "choice";
-    }
-  }
+  let currency = currencyId(existing);
+  const currencyOptions = enabledCurrencies($currencies.get()).map((item) => ({ value: item.id, label: item.name }));
+  if (!currencyOptions.some((item) => item.value === currency)) currencyOptions.unshift({ value: currency, label: currency });
+  const currencyChoices = Choices(currencyOptions, currency, (value) => { currency = value; }, { className: "row task-currency" });
   openModal(
     <div> {
       <h3> { [existing ? "Edit reward" : "Add reward"] }
@@ -117,11 +113,8 @@ function rewardForm(existing) {
         <label> { ["Cost"] }
         [costInput]
       }
-      <p> { .className = "lead"; ["Gold rewards spend gold stars instead of regular stars."] }
-      <div> {
-        .className = "row"
-        [goldBtn]
-      }
+      <p> { .className = "view-label"; ["Currency"] }
+      [currencyChoices]
       <div> {
         .className = "row"
         .style.marginTop = "16px"
@@ -137,7 +130,8 @@ function rewardForm(existing) {
             title,
             emoji: emoji.value,
             cost: Math.max(1, parseInt(costInput.value, 10) || 1),
-            gold,
+            currency,
+            gold: currency === "gold",
           };
           saveReward(payload);
           closeModal();
@@ -159,11 +153,12 @@ defineScreen("fridge-kid-settings", (root) => {
   }
   return () => {
     const kid = root.model;
-    const gold = goldFor(kid.id);
-    text.replaceChildren(kid.emoji + " " + kid.name + " · ", Star(false), " " + starsFor(kid.id));
-    if (gold) text.append(" · ", Star(true), " " + gold);
+    text.replaceChildren(kid.emoji + " " + kid.name);
+    for (const currency of enabledCurrencies($currencies.get())) {
+      text.append(" · ", CurrencyMark(currency.id), " " + amountForKid(kid.id, currency.id));
+    }
   };
-});
+}, [$balances, $currencies]);
 
 defineScreen("fridge-kids-settings", (root) => {
   const list = <div> { .className = "list" }
@@ -173,7 +168,7 @@ defineScreen("fridge-kids-settings", (root) => {
     [list]
   }
   return () => updateList(list, $kids.get(), "fridge-kid-settings");
-}, [$kids, $balances]);
+}, [$kids, $balances, $currencies]);
 
 function KidsTab() { return <fridge-kids-settings> }
 
@@ -195,7 +190,7 @@ defineScreen("fridge-reward-settings", (root) => {
   }
   return () => {
     const reward = root.model;
-    text.replaceChildren(reward.emoji + " " + reward.title + " · ", Star(!!reward.gold), " " + reward.cost);
+    text.replaceChildren(reward.emoji + " " + reward.title + " · ", CurrencyMark(currencyId(reward)), " " + reward.cost);
   };
 });
 
@@ -507,7 +502,7 @@ function HelpTab() {
 }
 
 defineScreen("fridge-parent", (root) => {
-  const tabOptions = ["general", "kids", "chores", "rewards", "display", "advanced", "help"].map(tab => ({
+  const tabOptions = ["general", "kids", "chores", "rewards", "currency", "display", "advanced", "help"].map(tab => ({
     value: tab,
     label: tab.charAt(0).toUpperCase() + tab.slice(1),
   }));
@@ -545,7 +540,7 @@ defineScreen("fridge-parent", (root) => {
     }
   }
 
-  const factories = { general: () => <fridge-general-settings>, kids: KidsTab, chores: ChoresTab, rewards: RewardsTab, display: DisplayTab, advanced: AdvancedTab, help: HelpTab };
+  const factories = { general: () => <fridge-general-settings>, kids: KidsTab, chores: ChoresTab, rewards: RewardsTab, currency: CurrencyTab, display: DisplayTab, advanced: AdvancedTab, help: HelpTab };
   const pages = new Map();
   let currentTab;
   function sync() {
