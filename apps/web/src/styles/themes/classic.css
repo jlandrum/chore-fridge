@@ -1,4 +1,7 @@
 :root {
+  --currency-coin: #92610a;
+  --currency-dollar: #237441;
+
   color-scheme: light;
   --bg: #c5d0d7;
   --bg2: #b7c4cc;
@@ -47,6 +50,8 @@
     var(--bg);
 
   &.night {
+    --currency-coin: #f0cb79;
+    --currency-dollar: #80dda0;
     color-scheme: dark;
     --bg: #2b3338;
     --bg2: #232a2e;
@@ -83,4 +88,27 @@
 
 .look-classic .look-swatch {
   background: linear-gradient(90deg, #c5d0d7, #e85d4c, #fffdf6);
+}
+
+html[data-look="classic"] {
+  .currency-icon.star,
+  .currency-icon.gold {
+    -webkit-mask-image: url("../../assets/currencies/classic/star.svg");
+    mask-image: url("../../assets/currencies/classic/star.svg");
+  }
+
+  .currency-icon.coin {
+    -webkit-mask-image: url("../../assets/currencies/classic/coin.svg");
+    mask-image: url("../../assets/currencies/classic/coin.svg");
+  }
+
+  .currency-icon.dollar {
+    -webkit-mask-image: url("../../assets/currencies/classic/dollar.svg");
+    mask-image: url("../../assets/currencies/classic/dollar.svg");
+  }
+
+  .currency-icon.hours {
+    -webkit-mask-image: url("../../assets/currencies/classic/hours.svg");
+    mask-image: url("../../assets/currencies/classic/hours.svg");
+  }
 }

@@ -14,6 +14,8 @@ defineScreen("fridge-kid", (root) => {
   const emojiEl = <span> { .className = "emoji" }
   const nameEl = <span> {}
   const metaEl = <div> { .className = "kid-meta" }
+  const currencyEntries = new Map();
+  const completionEl = <span> { .className = "kid-completion" }
   const barEl = <span> {}
   const list = <div> { .className = "chores" }
   const empty = <div> { .className = "empty" }
@@ -59,12 +61,29 @@ defineScreen("fridge-kid", (root) => {
       empty.remove();
     }
     const pct = chores.length ? Math.round((done / chores.length) * 100) : 100;
-    metaEl.replaceChildren();
-    for (const currency of enabledCurrencies($currencies.get())) {
-      if (metaEl.childNodes.length) metaEl.append(" · ");
-      metaEl.append(CurrencyMark(currency.id), " " + amountForKid(kid.id, currency.id));
+    const currencies = enabledCurrencies($currencies.get());
+    const enabledIds = new Set(currencies.map(currency => currency.id));
+    for (const [id, entry] of currencyEntries) {
+      if (!enabledIds.has(id)) entry.node.remove();
     }
-    metaEl.append(" · " + done + "/" + chores.length);
+    for (const currency of currencies) {
+      let entry = currencyEntries.get(currency.id);
+      if (!entry) {
+        const mark = CurrencyMark(currency.id);
+        const amount = document.createTextNode("");
+        const node = <span> { .className = "kid-balance"; [mark]; [amount] }
+        entry = { node, mark, amount };
+        currencyEntries.set(currency.id, entry);
+      }
+      if (currency.id === "custom1" || currency.id === "custom2") entry.mark.textContent = currency.emoji || "●";
+      entry.amount.textContent = String(amountForKid(kid.id, currency.id));
+      entry.node.setAttribute("aria-label", currency.name + ": " + entry.amount.textContent);
+      const index = currencies.indexOf(currency);
+      if (metaEl.children[index] !== entry.node) metaEl.insertBefore(entry.node, metaEl.children[index] || null);
+    }
+    completionEl.textContent = done + "/" + chores.length;
+    completionEl.setAttribute("aria-label", done + " of " + chores.length + " chores complete");
+    if (metaEl.lastChild !== completionEl) metaEl.append(completionEl);
     barEl.style.width = pct + "%";
   };
 }, [$chores, $completions, $counts, $balances, $currencies, $clock, $view]);

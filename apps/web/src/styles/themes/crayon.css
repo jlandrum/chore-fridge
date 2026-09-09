@@ -3,6 +3,9 @@
 }
 
 html[data-look="crayon"] {
+  --currency-coin: #92610a;
+  --currency-dollar: #237441;
+
   --track: rgba(74, 34, 8, .18);
   --bg: #f4d56a;
   --paper: #fff6d8;
@@ -46,6 +49,8 @@ html[data-look="crayon"] {
     #f4d56a;
 
   &.night {
+    --currency-coin: #f0cb79;
+    --currency-dollar: #80dda0;
     --track: rgba(244, 213, 106, .28);
     --bg: #3a2412;
     --paper: #4a321c;
@@ -90,4 +95,25 @@ html[data-look="crayon"] {
   .pill { border-radius: 40px 28px 36px 24px; }
   .btn { border-radius: 22px 14px 20px 16px; }
   .choice { border-radius: 18px 12px 16px 14px; }
+
+  .currency-icon.star,
+  .currency-icon.gold {
+    -webkit-mask-image: url("../../assets/currencies/crayon/star.svg");
+    mask-image: url("../../assets/currencies/crayon/star.svg");
+  }
+
+  .currency-icon.coin {
+    -webkit-mask-image: url("../../assets/currencies/crayon/coin.svg");
+    mask-image: url("../../assets/currencies/crayon/coin.svg");
+  }
+
+  .currency-icon.dollar {
+    -webkit-mask-image: url("../../assets/currencies/crayon/dollar.svg");
+    mask-image: url("../../assets/currencies/crayon/dollar.svg");
+  }
+
+  .currency-icon.hours {
+    -webkit-mask-image: url("../../assets/currencies/crayon/hours.svg");
+    mask-image: url("../../assets/currencies/crayon/hours.svg");
+  }
 }

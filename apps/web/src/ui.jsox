@@ -1,6 +1,5 @@
 import { $currencies } from "./stores/family.js";
 import { currencyById } from "@chore-fridge/domain/currencies";
-import { currencyIcon } from "./currency-icons.js";
 
 export const modal = <div> {
   .className = "modal"
@@ -82,7 +81,9 @@ export function CurrencyMark(id) {
     const emoji = currencyById($currencies.get(), id).emoji || "●";
     return <span> { .className = "currency-mark"; [emoji] }
   }
-  const mark = <span> { .className = "currency-mark" }
-  mark.append(currencyIcon(id));
-  return mark;
+  const kind = id === "gold" || id === "coin" || id === "dollar" || id === "hours" ? id : "star";
+  return <span> {
+    .className = "currency-mark"
+    <span> { .className = "currency-icon " + kind }
+  }
 }

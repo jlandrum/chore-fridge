@@ -43,7 +43,8 @@ export function EmojiField(initial, fallback, label) {
     trigger.classList.toggle("on", next);
     trigger.setAttribute("aria-expanded", String(next));
     if (next) {
-      if (overlay.parentNode !== modal) modal.append(overlay);
+      const host = trigger.closest(".modal, .settings-modal") || modal;
+      if (overlay.parentNode !== host) host.append(overlay);
       overlay.focus();
     }
   }

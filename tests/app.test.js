@@ -383,7 +383,7 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   coinName.value = 'Tokens';
   coinName.parentElement.querySelector('button').click();
   assert.equal(family.$currencies.get().find(item => item.id === 'coin').name, 'Tokens');
-  assert.ok(active().querySelector('svg.currency-icon.star'));
+  assert.ok(active().querySelector('.currency-icon.star'));
   assert.ok(active().querySelector('button[aria-label="Custom 1 emoji"]'));
   family.setCurrencies(family.$currencies.get().map(item => item.id === 'custom1' ? { ...item, enabled: true, emoji: '🎯' } : item));
   assert.equal(family.$currencies.get().find(item => item.id === 'custom1').emoji, '🎯');
@@ -519,4 +519,29 @@ test('redemption toggle independently blocks spending while locked and shows a m
   click('Lock Parent Mode');
   assert.equal(rewards.redeemReward('stars','reward-kid').ok,true);
   assert.equal(balances.starsFor('reward-kid'),8);
+});
+
+test('child balances retain their nodes and update custom marks as currencies change', () => {
+  const original = family.$currencies.get();
+  const kid = document.createElement('fridge-kid');
+  kid.model = { id: 'currency-layout', name: 'Alexandria Longname', emoji: '🐻', color: '#e85d4c' };
+  try {
+    family.setCurrencies(original.map(currency => ({ ...currency, enabled: true })));
+    document.body.append(kid);
+    const meta = kid.querySelector('.kid-meta');
+    assert.equal(meta.querySelectorAll('.kid-balance').length, 7);
+    const star = meta.querySelector('[aria-label^="Star:"]');
+    const custom = meta.querySelector('[aria-label^="Custom 2:"]');
+    family.setCurrencies(family.$currencies.get().map(currency => currency.id === 'custom2' ? { ...currency, emoji: '🤖' } : currency));
+    assert.equal(meta.querySelector('[aria-label^="Star:"]'), star);
+    assert.equal(custom.querySelector('.currency-mark').textContent, '🤖');
+    family.setCurrencies(family.$currencies.get().map(currency => currency.id === 'coin' ? { ...currency, enabled: false } : currency));
+    assert.equal(meta.querySelectorAll('.kid-balance').length, 6);
+    family.setCurrencies(family.$currencies.get().map(currency => currency.id === 'coin' ? { ...currency, enabled: true } : currency));
+    assert.equal(meta.children[2].getAttribute('aria-label'), 'Coin: 0');
+    assert.equal(meta.lastElementChild.className, 'kid-completion');
+  } finally {
+    kid.remove();
+    family.setCurrencies(original);
+  }
 });
