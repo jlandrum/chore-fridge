@@ -16,6 +16,8 @@ export function defaultState() {
     kids: [],
     chores: [],
     rewards: [],
+    rewardRedemptions: {},
+    exchangeEarned: {},
     completions: {},
     counts: {},
     spent: {},

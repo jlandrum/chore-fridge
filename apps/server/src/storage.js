@@ -135,7 +135,7 @@ export function openStorage({ databaseFile, legacyFile }) {
       validateState(incoming);
       const snapshot = transaction(() => {
         const current = read().state;
-        const next = {...defaultState(),...untrustedSnapshot(incoming),
+        const next = {...defaultState(),exchangeEarned:current?.exchangeEarned || {},rewardRedemptions:current?.rewardRedemptions || {},...untrustedSnapshot(incoming),
           completions:mergeCompletions(current?.completions,incoming.completions),
           counts:mergeCounts(current?.counts,incoming.counts)};
         const state = current ? evolveTaskHistory(current,next,{id:randomUUID(),type:'legacy.put'}) : initializeTaskHistory(next);

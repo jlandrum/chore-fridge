@@ -1,13 +1,13 @@
+import { openRewardForm as rewardForm } from "./reward-form.jsox";
 import { COLORS, $familyName, setFamilyName, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions, $mcpEnabled, setMcpEnabled, $sayings, setSayingsFromText, restoreDefaultSayings, $currencies } from "../stores/family.js";
 import { currencyId, enabledCurrencies } from "@chore-fridge/domain/currencies";
 import { CurrencyTab } from "./currency-settings.jsox";
 import { formatSayingsText, parseSayingsText } from "@chore-fridge/domain/sayings";
 import { $serverMode } from "../stores/sync.js";
 import { $balances, amountForKid } from "../stores/balances.js";
-import { $rewards, saveReward, removeReward } from "../stores/rewards.js";
+import { $rewards, removeReward } from "../stores/rewards.js";
 import { $ui, setUI, lockParent, closeSettings } from "../stores/navigation.js";
 import { eraseBoard } from "../stores/setup.js";
-import { uid } from "@chore-fridge/domain/records";
 import { updateList } from "../components/list.js";
 import { Choices } from "../components/choices.jsox";
 import { EmojiField } from "../components/emoji-field.jsox";
@@ -78,68 +78,6 @@ function kidForm(existing) {
   );
 }
 
-function rewardForm(existing) {
-  const titleInput = <input> {
-    .value = existing ? existing.title : ""
-    .autocomplete = "off"
-  }
-  const emoji = EmojiField(existing ? existing.emoji : "🎁", "🎁");
-  const costInput = <input> {
-    .value = existing ? String(existing.cost) : "20"
-    .autocomplete = "off"
-  }
-  let currency = currencyId(existing);
-  const currencyOptions = enabledCurrencies($currencies.get()).map((item) => ({ value: item.id, label: item.name }));
-  if (!currencyOptions.some((item) => item.value === currency)) currencyOptions.unshift({ value: currency, label: currency });
-  const currencyChoices = Choices(currencyOptions, currency, (value) => { currency = value; }, { className: "row task-currency" });
-  openModal(
-    <div> {
-      <h3> { [existing ? "Edit reward" : "Add reward"] }
-      <div> {
-        .className = "row identity-row"
-        <div> {
-          .className = "field task-title"
-          <label> { ["Reward"] }
-          [titleInput]
-        }
-        <div> {
-          .className = "field task-emoji"
-          <label> { ["Emoji"] }
-          [emoji.trigger]
-        }
-      }
-      <div> {
-        .className = "field"
-        <label> { ["Cost"] }
-        [costInput]
-      }
-      <p> { .className = "view-label"; ["Currency"] }
-      [currencyChoices]
-      <div> {
-        .className = "row"
-        .style.marginTop = "16px"
-        [Btn("Cancel", "btn ghost wide", closeModal)]
-        [Btn("Save", "btn wide", () => {
-          const title = titleInput.value.trim();
-          if (!title) {
-            showToast("Need a name");
-            return;
-          }
-          const payload = {
-            id: existing ? existing.id : uid(),
-            title,
-            emoji: emoji.value,
-            cost: Math.max(1, parseInt(costInput.value, 10) || 1),
-            currency,
-            gold: currency === "gold",
-          };
-          saveReward(payload);
-          closeModal();
-        })]
-      }
-    }
-  );
-}
 
 defineScreen("fridge-kid-settings", (root) => {
   const text = <div> { .className = "grow" }
@@ -191,6 +129,8 @@ defineScreen("fridge-reward-settings", (root) => {
   return () => {
     const reward = root.model;
     text.replaceChildren(reward.emoji + " " + reward.title + " · ", CurrencyMark(currencyId(reward)), " " + reward.cost);
+    if (reward.currencyExchange) text.append(" → ", CurrencyMark(reward.exchangeCurrency), " " + reward.exchangeValue);
+    if (reward.oncePerDay) text.append(" · Once per child per day");
   };
 });
 

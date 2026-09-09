@@ -1,3 +1,4 @@
+import { formToggle } from "../components/form-toggle.jsox";
 import { $kids, $currencies } from "../stores/family.js";
 import { currencyId, enabledCurrencies } from "@chore-fridge/domain/currencies";
 import { isOnce, isWeekly, isEvery, saveChore } from "../stores/chores.js";
@@ -20,50 +21,6 @@ const WEEKDAY_LABELS = [
 
 const REPEAT_LABELS = { daily: "Daily", weekly: "Weekly", once: "Once", every: "Every" };
 
-function formToggle(title, description, label, initial, onChange) {
-  let value = !!initial;
-  const input = <input> {
-    .type = "checkbox"
-    .checked = value
-    .setAttribute("role", "switch")
-    .setAttribute("aria-label", label)
-    .setAttribute("aria-checked", String(value))
-  }
-  const status = <span> {
-    .className = "setting-status"
-    .setAttribute("aria-hidden", "true")
-    [value ? "On" : "Off"]
-  }
-  const sync = () => {
-    input.checked = value;
-    input.setAttribute("aria-checked", String(value));
-    status.textContent = value ? "On" : "Off";
-  };
-  input.onchange = () => {
-    value = input.checked;
-    sync();
-    if (onChange) onChange(value);
-  };
-  const node = <label> {
-    .className = "setting-toggle"
-    [input]
-    <span> {
-      .className = "setting-copy"
-      <strong> { .className = "setting-title"; [title] }
-      <span> { .className = "setting-description"; [description] }
-    }
-    <span> {
-      .className = "setting-control"
-      [status]
-      <span> { .className = "switch-track"; .setAttribute("aria-hidden", "true") }
-    }
-  }
-  return {
-    node,
-    get() { return value; },
-    set(next) { value = !!next; sync(); },
-  };
-}
 
 function currentRepeat(existing, fallback) {
   if (!existing) return fallback || "once";

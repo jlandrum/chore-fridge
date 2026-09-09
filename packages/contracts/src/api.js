@@ -7,7 +7,7 @@ const object = (properties, required = Object.keys(properties)) => ({ type: "obj
 const currencySetting = object({ id: currency, name: { type: "string", minLength: 1, maxLength: 40 }, enabled: { type: "boolean" }, emoji: { type: "string", maxLength: 32 } }, ["id", "name", "enabled"]);
 export const kidSchema = object({ id, name:text, emoji:{ type:"string", maxLength:100 }, color:{ type:"string", maxLength:100 } }, ['id','name']);
 export const choreSchema = object({ id, title:text, emoji:{ type:"string", maxLength:100 }, points:{ type:"integer", minimum:0 }, repeat:{ enum:['daily','weekly','once','every'] }, kidIds:{ type:'array', minItems:1, uniqueItems:true, items:id }, minCount:{ type:'integer', minimum:1 }, maxCount:{ type:'integer', minimum:1 }, gold:{ type:'boolean' }, currency, weekdays:{ type:'array', minItems:1, maxItems:7, uniqueItems:true, items:{ type:'integer', minimum:0, maximum:6 } }, sharedClaim:{ type:'boolean' }, archiveOnComplete:{ type:'boolean' }, everyN:{ type:'integer', minimum:1, maximum:365 }, everyUnit:{ enum:['days','weeks','months'] }, anchorDay:day }, ['id','title','kidIds']);
-export const rewardSchema = object({ id, title:text, emoji:{ type:"string", maxLength:100 }, cost:{ type:'integer', minimum:1 }, gold:{ type:'boolean' }, currency }, ['id','title','cost']);
+export const rewardSchema = object({ id, title:text, emoji:{ type:"string", maxLength:100 }, cost:{ type:'integer', minimum:1 }, gold:{ type:'boolean' }, currency, currencyExchange:{type:'boolean'}, exchangeCurrency:currency, exchangeValue:{type:'integer',minimum:1}, oncePerDay:{type:'boolean'} }, ['id','title','cost']);
 const task = { choreId:id, kidId:id, day };
 export const payloadSchemas = {
   'kid.save': kidSchema, 'kid.remove':object({id}),

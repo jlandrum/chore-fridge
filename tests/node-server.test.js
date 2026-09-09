@@ -279,3 +279,52 @@ test('MCP endpoint is off by default and serves household tools when enabled', a
     assert.equal((await mcp(app, { jsonrpc: '2.0', id: 4, method: 'tools/list', params: {} })).statusCode, 404);
   } finally { await app.close(); }
 });
+
+test('exchanges are atomic, daily limits survive restart, and retries never pay twice', async t => {
+  const options = files(t);
+  let app = await createApp(options);
+  const data = {...seed(),exchangeEarned:{star:{kid:300}}};
+  await app.inject({method:'PUT',url:'/api/state',payload:data});
+  const reward={id:'exchange',title:'Pocket money',cost:100,currency:'star',currencyExchange:true,exchangeCurrency:'dollar',exchangeValue:5,oncePerDay:true};
+  assert.equal((await command(app,'save-exchange','reward.save',reward)).statusCode,200);
+  const payload={rewardId:'exchange',kidId:'kid'};
+  const responses=await Promise.all(['first-exchange','second-exchange'].map(id=>command(app,id,'reward.redeem',payload)));
+  assert.deepEqual(responses.map(r=>r.statusCode).sort(),[200,409]);
+  const successful=['first-exchange','second-exchange'][responses.findIndex(r=>r.statusCode===200)];
+  const totals=(await app.inject('/api/balances')).json();
+  assert.deepEqual(totals.kid,{stars:200,gold:0,dollar:5});
+  const day = (await import('@chore-fridge/domain/dates')).todayKey();
+  const db=new DatabaseSync(options.databaseFile);
+  const entries=db.prepare('SELECT kind,stars,currency FROM ledger WHERE command_id=?').all(successful);
+  assert.equal(entries.length,2);
+  assert.ok(entries.some(entry=>entry.kind==='exchange-credit' && entry.stars===5 && entry.currency==='dollar'));
+  assert.ok(entries.some(entry=>entry.kind==='redemption' && entry.stars===-100));
+  db.close();
+  await app.close();
+  app=await createApp(options);
+  try {
+    assert.equal((await command(app,successful,'reward.redeem',payload)).json().replayed,true);
+    assert.equal((await command(app,'third-exchange','reward.redeem',payload)).statusCode,409);
+    assert.deepEqual((await app.inject('/api/balances')).json(),totals);
+    const current=(await app.inject('/api/state')).json();
+    assert.equal(current.rewardRedemptions[day+':exchange:kid'],1);
+  } finally { await app.close(); }
+});
+
+test('exchange ledger and daily projections agree for every currency', async t => {
+  const options=files(t);
+  const app=await createApp(options);
+  t.after(()=>app.close());
+  const ids=['star','gold','coin','dollar','hours','custom1','custom2'];
+  const data={...seed(),exchangeEarned:Object.fromEntries(ids.map(id=>[id,{kid:100}]))};
+  await app.inject({method:'PUT',url:'/api/state',payload:data});
+  for (let i=0;i<ids.length;i++) {
+    const reward={id:'exchange-'+i,title:'Exchange',cost:10,currency:ids[i],currencyExchange:true,exchangeCurrency:ids[(i+1)%ids.length],exchangeValue:2};
+    assert.equal((await command(app,'save-'+i,'reward.save',reward)).statusCode,200);
+    assert.equal((await command(app,'redeem-'+i,'reward.redeem',{rewardId:reward.id,kidId:'kid'})).statusCode,200);
+  }
+  const current=(await app.inject('/api/state')).json();
+  const totals=(await app.inject('/api/balances')).json();
+  assert.deepEqual(totals,balancesFor(current));
+  for (const id of ids) assert.equal(totals.kid[id === 'star' ? 'stars' : id],92);
+});
