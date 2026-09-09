@@ -8,9 +8,10 @@ export const $creditProjection = atom(null);
 export const $spent = atom({});
 export const $goldSpent = atom({});
 export const $currencySpent = atom({});
+export const $exchangeEarned = atom({});
 
-export const $balances = computed([$kids, $chores, $completions, $counts, $spent, $goldSpent, $currencySpent, $creditProjection, $balanceCarry], (kids, chores, completions, counts, spent, goldSpent, currencySpent, creditProjection, balanceCarry) => {
-  return balancesFor({ kids, chores, completions, counts, spent, goldSpent, currencySpent, creditProjection, balanceCarry });
+export const $balances = computed([$kids, $chores, $completions, $counts, $spent, $goldSpent, $currencySpent, $exchangeEarned, $creditProjection, $balanceCarry], (kids, chores, completions, counts, spent, goldSpent, currencySpent, exchangeEarned, creditProjection, balanceCarry) => {
+  return balancesFor({ kids, chores, completions, counts, spent, goldSpent, currencySpent, exchangeEarned, creditProjection, balanceCarry });
 });
 
 export function starsFor(kidId) { return amountFor($balances.get()[kidId], "star"); }

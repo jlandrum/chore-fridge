@@ -6,6 +6,8 @@ User-facing changes and upgrade notes are recorded here. Move the Unreleased ent
 
 ### Added
 
+- Rewards use a side-tabbed editor with General and Advanced tabs. Currency Exchange adds a payout tab and credits a chosen currency when the cost is spent. An optional daily limit allows each child one redemption of that reward per calendar day, enforced across devices.
+
 - Modern (v2) theme with neutral surfaces and coordinated light and dark appearances, compiled from its own CSS theme file. Its theme tile is a compound control: the name plus a color chip. The chip’s full color sets hue, saturation, and accent brightness; surfaces stay readable. Each child’s column is tinted with that child’s color. Completed chores use the theme accent instead of a separate mint check and pink stamp, and theme tiles use the same thin border as the rest of Modern.
 
 - Live synchronization across household devices with server-sent events and automatic retry after connection failures.
@@ -43,6 +45,8 @@ User-facing changes and upgrade notes are recorded here. Move the Unreleased ent
 - Task edits no longer change the value of credits already earned. Counted tasks preserve the value of each earned allocation across edits.
 
 ### Upgrade notes
+
+- Reward commands and MCP accept optional `currencyExchange`, `exchangeCurrency`, `exchangeValue`, and `oncePerDay` fields. Existing rewards keep their behavior. Household snapshots add exchange earnings and redemption records; daily responses carry today’s records and include exchange earnings in balances. No database schema migration is required.
 
 - Existing `state.json` files migrate automatically into SQLite, with an unchanged source file and a content-addressed backup. Invalid data stops startup instead of creating an empty household.
 - Existing SQLite databases upgrade automatically to schema 4. Known credits and cumulative spending become opening ledger entries once, preserving balances. Extra household currencies are stored beside stars and gold.

@@ -6,8 +6,8 @@ import { atom, batch } from "nanostores";
 import { $revision, $lastChange, commit } from "./changes.js";
 import { $familyName, $pin, $setupDone, $kids, $requireParentModeForCompletion, $requireParentModeForRedemptions, $mcpEnabled, $sayings, $currencies } from "./family.js";
 import { $chores, $completions, $counts, $archivedChores, $pastOnce } from "./chores.js";
-import { $rewards } from "./rewards.js";
-import { $spent, $goldSpent, $currencySpent, $creditProjection, $balanceCarry } from "./balances.js";
+import { $rewards, $rewardRedemptions } from "./rewards.js";
+import { $spent, $goldSpent, $currencySpent, $exchangeEarned, $creditProjection, $balanceCarry } from "./balances.js";
 import { mergeCompletions, mergeCounts } from "@chore-fridge/domain/history";
 
 const STORAGE_KEY = "chore-fridge-v2";
@@ -18,6 +18,7 @@ const fields = {
   mcpEnabled: $mcpEnabled,
   familyName: $familyName, sayings: $sayings, currencies: $currencies, pin: $pin, setupDone: $setupDone, kids: $kids,
   chores: $chores, archivedChores: $archivedChores, completions: $completions, counts: $counts,
+  rewardRedemptions: $rewardRedemptions, exchangeEarned: $exchangeEarned,
   rewards: $rewards, spent: $spent, goldSpent: $goldSpent, currencySpent: $currencySpent, creditProjection: $creditProjection, balanceCarry:$balanceCarry, pastOnce:$pastOnce,
 };
 let metadata = { version: 1, nightMode: "auto", updatedAt: 0 };

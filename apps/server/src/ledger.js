@@ -61,6 +61,15 @@ export function createLedger(db) {
       }
     }
     for (const currency of CURRENCY_IDS) {
+      const before = previous?.exchangeEarned?.[currency] || {};
+      const after = next.exchangeEarned?.[currency] || {};
+      for (const kidId of new Set([...Object.keys(before), ...Object.keys(after)])) {
+        const amount = (after[kidId] || 0) - (before[kidId] || 0);
+        if (!amount) continue;
+        const packed = currency === 'gold' ? {stars:0,gold:amount,currency:'gold'} : {stars:amount,gold:0,currency:currency === 'star' ? '' : currency};
+        append({revision,day,kind:previous ? 'exchange-credit' : 'opening-credit',kidId,...packed,commandId});
+      }
+
       const kids = new Set([...Object.keys(spentKids(previous, currency)), ...Object.keys(spentKids(next, currency))]);
       for (const kidId of kids) {
         const amount = spentFor(previous || {}, currency, kidId) - spentFor(next, currency, kidId);

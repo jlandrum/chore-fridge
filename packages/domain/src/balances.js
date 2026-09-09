@@ -36,7 +36,7 @@ export function balancesFor(household) {
       const value = creditValue({ units: count, points: chore.points, gold: chore.gold, currency: chore.currency });
       for (const id of CURRENCY_IDS) amounts[id] += value[id] || 0;
     }
-    for (const id of CURRENCY_IDS) amounts[id] = Math.max(0, amounts[id] - spentFor(household, id, kid.id));
+    for (const id of CURRENCY_IDS) amounts[id] = Math.max(0, amounts[id] + (household.exchangeEarned?.[id]?.[kid.id] || 0) - spentFor(household, id, kid.id));
     const out = { stars: amounts.star, gold: amounts.gold };
     for (const id of CURRENCY_IDS) {
       if (id === "star" || id === "gold") continue;

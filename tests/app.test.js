@@ -545,3 +545,41 @@ test('child balances retain their nodes and update custom marks as currencies ch
     family.setCurrencies(original);
   }
 });
+
+test('reward editor preserves advanced choices and local exchanges enforce the daily limit', async () => {
+  const sync = await import('../apps/web/src/stores/sync.js');
+  const { openRewardForm } = await import('../apps/web/src/views/reward-form.jsox');
+  const original=sync.serializeHousehold();
+  try {
+    sync.applySnapshot({...sync.defaultState(),kids:[{id:'exchange-kid',name:'Alex'}],exchangeEarned:{star:{'exchange-kid':300}}});
+    navigation.setUI({parentUnlocked:true});
+    openRewardForm();
+    field('Reward','Pocket money');
+    field('Cost','100');
+    click('Advanced',modal);
+    assert.equal(modal.querySelector('[role="tablist"]').getAttribute('aria-orientation'),'vertical');
+    modal.querySelector('input[aria-label="Currency Exchange"]').click();
+    modal.querySelector('input[aria-label="Only allow one redemption per day"]').click();
+    click('Currency Exchange',modal);
+    field('Payout value','5');
+    click('General',modal);
+    assert.equal(modal.querySelector('input[aria-label="Reward"]').value,'Pocket money');
+    click('Save',modal);
+    const reward=rewards.$rewards.get()[0];
+    assert.equal(reward.currencyExchange,true);
+    assert.equal(reward.oncePerDay,true);
+    assert.equal(reward.exchangeCurrency,'dollar');
+    assert.equal(rewards.redeemReward(reward.id,'exchange-kid').ok,true);
+    assert.equal(balances.amountForKid('exchange-kid','star'),200);
+    assert.equal(balances.amountForKid('exchange-kid','dollar'),5);
+    assert.match(rewards.redeemReward(reward.id,'exchange-kid').error,/Already redeemed/);
+    openRewardForm(reward);
+    click('Currency Exchange',modal);
+    assert.equal(modal.querySelector('input[aria-label="Payout value"]').value,'5');
+    click('Advanced',modal);
+    modal.querySelector('input[aria-label="Currency Exchange"]').click();
+    assert.ok(!modal.querySelector('[role="tab"][id="reward-form-tabs-exchange"]'));
+    click('Save',modal);
+    assert.equal(rewards.$rewards.get()[0].currencyExchange,false);
+  } finally { sync.applySnapshot(original); }
+});

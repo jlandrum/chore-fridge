@@ -1,3 +1,5 @@
+import { alreadyRedeemed, redemptionKey, rewardValidation } from './rewards.js';
+import { todayKey } from './dates.js';
 import { initializeTaskHistory, evolveTaskHistory } from './task-history.js';
 import { validDay } from './day-view.js';
 import { defaultState } from './state.js';
@@ -41,6 +43,8 @@ export function applyCommand(current, command, now = Date.now()) {
     }
     case 'reward.save': {
       requireValue(p.title.trim(), 'Reward needs a name');
+      const validation = rewardValidation(p);
+      requireValue(!validation, validation);
       const currency = currencyId(p);
       state.rewards = upsert(state.rewards, {emoji:'🎁',...p,title:p.title.trim(),currency,gold:currency === 'gold'});
       break;
@@ -70,11 +74,26 @@ export function applyCommand(current, command, now = Date.now()) {
     case 'reward.redeem': {
       const reward = state.rewards.find(item => item.id === p.rewardId);
       requireValue(reward, 'Missing reward');
+      const day = p.day || todayKey(new Date(now));
+      if (reward.oncePerDay) {
+        requireValue(day === todayKey(new Date(now)), 'Daily rewards must be redeemed for today');
+        requireValue(!alreadyRedeemed(state.rewardRedemptions, reward.id, p.kidId, day), 'Already redeemed today');
+      }
+      const validation = rewardValidation(reward);
+      requireValue(!validation, validation);
       const balance = balancesFor(state)[p.kidId];
       requireValue(balance, 'Unknown kid');
       const currency = currencyId(reward);
       requireValue(amountFor(balance, currency) >= reward.cost, 'Not enough credit');
       addSpent(state, currency, p.kidId, reward.cost);
+      if (reward.currencyExchange) {
+        const earned = state.exchangeEarned ||= {};
+        const bucket = earned[reward.exchangeCurrency] ||= {};
+        bucket[p.kidId] = (bucket[p.kidId] || 0) + reward.exchangeValue;
+      }
+      const records = state.rewardRedemptions ||= {};
+      const key = redemptionKey(reward.id, p.kidId, day);
+      records[key] = (records[key] || 0) + 1;
       result.reward = reward;
       break;
     }

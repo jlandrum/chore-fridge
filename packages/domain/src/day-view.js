@@ -53,5 +53,6 @@ export function dayView(state,day,totals) {
     total.stars = total.star;
   }
   return {version:1,requireParentModeForRedemptions:!!state.requireParentModeForRedemptions,requireParentModeForCompletion:!!state.requireParentModeForCompletion,mcpEnabled:!!state.mcpEnabled,dayScoped:true,day,updatedAt:state.updatedAt,familyName:state.familyName,pin:state.pin,setupDone:state.setupDone,sayings:householdSayings(state.sayings),currencies:normalizeCurrencies(state.currencies),
+    rewardRedemptions:Object.fromEntries(Object.entries(state.rewardRedemptions || {}).filter(([key]) => key.startsWith(day + ':'))),exchangeEarned:{},
     kids:state.kids,chores:state.chores,rewards:state.rewards,completions,counts,creditProjection,balanceCarry,pastOnce,spent:{},goldSpent:{},currencySpent:{}};
 }
