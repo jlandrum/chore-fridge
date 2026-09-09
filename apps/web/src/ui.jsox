@@ -1,3 +1,7 @@
+import { $currencies } from "./stores/family.js";
+import { currencyById } from "@chore-fridge/domain/currencies";
+import { currencyIcon } from "./currency-icons.js";
+
 export const modal = <div> {
   .className = "modal"
   .hidden = true
@@ -70,12 +74,15 @@ export function Btn(label, className, onclick) {
 }
 
 export function Star(gold) {
-  return <span> { .className = gold ? "gold-star" : "star"; ["★"] }
+  return CurrencyMark(gold ? "gold" : "star");
 }
 
 export function CurrencyMark(id) {
-  if (id === "gold") return Star(true);
-  if (!id || id === "star") return Star(false);
-  const marks = { coin: "🪙", dollar: "$", hours: "⏱", custom1: "●", custom2: "●" };
-  return <span> { .className = "currency-mark"; [marks[id] || "●"] }
+  if (id === "custom1" || id === "custom2") {
+    const emoji = currencyById($currencies.get(), id).emoji || "●";
+    return <span> { .className = "currency-mark"; [emoji] }
+  }
+  const mark = <span> { .className = "currency-mark" }
+  mark.append(currencyIcon(id));
+  return mark;
 }

@@ -6,12 +6,17 @@ export const CURRENCY_DEFAULTS = {
   coin: { id: "coin", name: "Coin", enabled: false, mark: "🪙" },
   dollar: { id: "dollar", name: "Dollar", enabled: false, mark: "$" },
   hours: { id: "hours", name: "Hours", enabled: false, mark: "⏱" },
-  custom1: { id: "custom1", name: "Custom 1", enabled: false, mark: "●" },
-  custom2: { id: "custom2", name: "Custom 2", enabled: false, mark: "●" },
+  custom1: { id: "custom1", name: "Custom 1", enabled: false, emoji: "①" },
+  custom2: { id: "custom2", name: "Custom 2", enabled: false, emoji: "②" },
 };
 
 export function defaultCurrencies() {
-  return CURRENCY_IDS.map((id) => ({ id, name: CURRENCY_DEFAULTS[id].name, enabled: CURRENCY_DEFAULTS[id].enabled }));
+  return CURRENCY_IDS.map((id) => {
+    const fallback = CURRENCY_DEFAULTS[id];
+    const item = { id, name: fallback.name, enabled: fallback.enabled };
+    if (fallback.emoji) item.emoji = fallback.emoji;
+    return item;
+  });
 }
 
 export function normalizeCurrencies(list) {
@@ -20,7 +25,12 @@ export function normalizeCurrencies(list) {
     const fallback = CURRENCY_DEFAULTS[id];
     const saved = incoming.get(id);
     const name = saved && String(saved.name || "").trim() ? String(saved.name).trim().slice(0, 40) : fallback.name;
-    return { id, name, enabled: saved ? !!saved.enabled : fallback.enabled };
+    const item = { id, name, enabled: saved ? !!saved.enabled : fallback.enabled };
+    if (id === "custom1" || id === "custom2") {
+      const emoji = saved && String(saved.emoji || "").trim() ? String(saved.emoji).trim().slice(0, 32) : fallback.emoji;
+      item.emoji = emoji || fallback.emoji;
+    }
+    return item;
   });
   if (!next.some((item) => item.enabled)) next[0].enabled = true;
   return next;

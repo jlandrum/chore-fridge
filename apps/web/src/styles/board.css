@@ -46,11 +46,6 @@
   align-items: center;
 }
 
-.currency-mark {
-  display: inline-block;
-  font-weight: 800;
-}
-
 .pill {
   min-height: 56px;
   padding: 0 18px;
@@ -74,51 +69,37 @@
   background: var(--gold-pill-bg);
 }
 
-.star,
-.gold-star {
-  display: inline-block;
-  vertical-align: -0.08em;
+.currency-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.12em;
   line-height: 1;
   font-weight: 800;
 }
 
-.star { color: var(--star); }
-
-.gold-star {
-  position: relative;
-  color: var(--gold);
-
-  &::after {
-    content: "★";
-    position: absolute;
-    left: 0;
-    top: 0;
-    font: inherit;
-    line-height: 1;
-    color: transparent;
-    background-image: linear-gradient(
-      105deg,
-      transparent 35%,
-      rgba(255, 255, 255, .95) 50%,
-      transparent 65%
-    );
-    background-size: 220% 100%;
-    background-repeat: no-repeat;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: gold-shimmer 2.2s linear infinite;
-    pointer-events: none;
-  }
+.currency-icon {
+  width: 1.15em;
+  height: 1.15em;
+  display: block;
+  overflow: visible;
 }
 
-@keyframes gold-shimmer {
-  0% { background-position: 120% 0; }
-  100% { background-position: -20% 0; }
-}
+.currency-icon.star { color: var(--star); }
+.currency-icon.star path { fill: currentColor; }
+.currency-icon.gold { color: var(--gold); }
+.currency-icon.coin { color: #c9922a; }
+.currency-icon.coin circle:first-child { fill: currentColor; }
+.currency-icon.dollar { color: #2a9d4f; }
+.currency-icon.dollar circle { fill: currentColor; }
+.currency-icon.dollar path { fill: var(--paper); }
+.currency-icon.hours { color: var(--ink); }
+.currency-icon.hours circle { fill: none; stroke: currentColor; }
+.currency-icon.hours path { fill: currentColor; }
 
 @media (prefers-reduced-motion: reduce) {
-  .gold-star::after { animation: none; display: none; }
+  .currency-icon.gold path { fill: var(--gold); }
+  .currency-icon.gold animate { display: none; }
 }
 
 .workspace {

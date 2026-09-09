@@ -383,6 +383,10 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   coinName.value = 'Tokens';
   coinName.parentElement.querySelector('button').click();
   assert.equal(family.$currencies.get().find(item => item.id === 'coin').name, 'Tokens');
+  assert.ok(active().querySelector('svg.currency-icon.star'));
+  assert.ok(active().querySelector('button[aria-label="Custom 1 emoji"]'));
+  family.setCurrencies(family.$currencies.get().map(item => item.id === 'custom1' ? { ...item, enabled: true, emoji: '🎯' } : item));
+  assert.equal(family.$currencies.get().find(item => item.id === 'custom1').emoji, '🎯');
   click('Close');
   assert.match(active().textContent,/The Test House/);
   assert.equal(boardScreen.inert,false);

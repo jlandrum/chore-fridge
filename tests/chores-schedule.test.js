@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { claimedBy, isDone, isDueOn, normalizeChore, choresForKid } from '@chore-fridge/domain/chores';
+import { normalizeCurrencies } from '@chore-fridge/domain/currencies';
 
 const monday = new Date('2026-09-07T12:00:00');
 const tuesday = new Date('2026-09-08T12:00:00');
@@ -33,4 +34,14 @@ test('weekly shared claim greys the chore out for the other child', () => {
   assert.equal(isDone(household, chore, 'a', monday), true);
   assert.equal(isDone(household, chore, 'b', monday), true);
   assert.equal(choresForKid(household, 'b').length, 1);
+});
+
+test('custom currencies keep a chosen emoji while built-in ids stay fixed', () => {
+  const next = normalizeCurrencies([
+    { id: 'star', name: 'Star', enabled: true },
+    { id: 'custom1', name: 'Stickers', enabled: true, emoji: '🎯' },
+  ]);
+  assert.equal(next.find(item => item.id === 'star').name, 'Star');
+  assert.equal(next.find(item => item.id === 'custom1').emoji, '🎯');
+  assert.equal(next.find(item => item.id === 'custom2').emoji, '②');
 });
