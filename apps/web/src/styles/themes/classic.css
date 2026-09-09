@@ -1,0 +1,114 @@
+:root {
+  --currency-coin: #92610a;
+  --currency-dollar: #237441;
+
+  color-scheme: light;
+  --bg: #c5d0d7;
+  --bg2: #b7c4cc;
+  --paper: #fffdf6;
+  --paper-edge: #e7dcc4;
+  --ink: #2a2622;
+  --muted: #6d655c;
+  --line: rgba(42, 38, 34, 0.12);
+  --ok: #2c8a5a;
+  --ok-soft: #e5f6ec;
+  --stamp: #c44536;
+  --star: #1e56b3;
+  --gold: #e0b422;
+  --shadow: 0 10px 24px rgba(40, 50, 60, 0.18);
+  --hit: 84px;
+  --radius: 18px;
+  --card-radius: 14px;
+  --panel-radius: 24px;
+  --stripe-h: 10px;
+  --font: "Trebuchet MS", "Segoe UI", "Avenir Next", "Century Gothic", sans-serif;
+  --letter: -0.03em;
+  --pill-bg: rgba(255,255,255,.55);
+  --pill-shadow: 0 2px 0 rgba(255,255,255,.7) inset, 0 3px 8px rgba(0,0,0,.08);
+  --stars-fg: #1e56b3;
+  --stars-bg: #d4e6fb;
+  --gold-pill-fg: #6a4a00;
+  --gold-pill-bg: linear-gradient(#ffe27a, #e8b84a);
+  --chore-bg: linear-gradient(#fff, #f6f0e2);
+  --chore-shadow: 0 1px 0 #fff inset, 0 3px 0 var(--paper-edge), 0 8px 12px rgba(0,0,0,.08);
+  --chore-done-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 2px 0 rgba(0,0,0,.06);
+  --mark-bg: #fff;
+  --btn-bg: var(--ink);
+  --btn-fg: var(--paper);
+  --choice-bg: #fff;
+  --choice-on-bg: #f4ead0;
+  --choice-on-fg: inherit;
+  --well-bg: #efe8d8;
+  --tab-on-bg: var(--ink);
+  --tab-on-fg: var(--paper);
+  --border: 0 solid transparent;
+  --track: var(--line);
+  --body-bg:
+    radial-gradient(circle at 12% 8%, rgba(255,255,255,.45), transparent 28%),
+    radial-gradient(circle at 88% 92%, rgba(90, 120, 140, .14), transparent 32%),
+    repeating-linear-gradient(135deg, transparent 0 18px, rgba(255,255,255,.04) 18px 19px),
+    var(--bg);
+
+  &.night {
+    --currency-coin: #f0cb79;
+    --currency-dollar: #80dda0;
+    color-scheme: dark;
+    --bg: #2b3338;
+    --bg2: #232a2e;
+    --paper: #3a4248;
+    --paper-edge: #2f363b;
+    --ink: #f3eee6;
+    --muted: #c0b6a8;
+    --star: #9cc2ff;
+    --gold: #ffe27a;
+    --line: rgba(243, 238, 230, 0.12);
+    --ok-soft: #244536;
+    --shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+    --pill-bg: rgba(255,255,255,.08);
+    --pill-shadow: none;
+    --stars-fg: #9cc2ff;
+    --stars-bg: #1c3554;
+    --gold-pill-fg: #ffe27a;
+    --gold-pill-bg: #5a420c;
+    --chore-bg: linear-gradient(#454e55, #3b4349);
+    --chore-shadow: 0 3px 0 #2a3035, 0 8px 12px rgba(0,0,0,.25);
+    --mark-bg: #2f363b;
+    --btn-bg: #f3eee6;
+    --btn-fg: #1c2024;
+    --choice-bg: #2f363b;
+    --choice-on-bg: #4a4334;
+    --well-bg: #2b3237;
+    --tab-on-bg: #f3eee6;
+    --tab-on-fg: #1c2024;
+    --body-bg:
+      radial-gradient(circle at 20% 0%, rgba(255, 200, 120, .08), transparent 36%),
+      var(--bg);
+  }
+}
+
+.look-classic .look-swatch {
+  background: linear-gradient(90deg, #c5d0d7, #e85d4c, #fffdf6);
+}
+
+html[data-look="classic"] {
+  .currency-icon.star,
+  .currency-icon.gold {
+    -webkit-mask-image: url("../../assets/currencies/classic/star.svg");
+    mask-image: url("../../assets/currencies/classic/star.svg");
+  }
+
+  .currency-icon.coin {
+    -webkit-mask-image: url("../../assets/currencies/classic/coin.svg");
+    mask-image: url("../../assets/currencies/classic/coin.svg");
+  }
+
+  .currency-icon.dollar {
+    -webkit-mask-image: url("../../assets/currencies/classic/dollar.svg");
+    mask-image: url("../../assets/currencies/classic/dollar.svg");
+  }
+
+  .currency-icon.hours {
+    -webkit-mask-image: url("../../assets/currencies/classic/hours.svg");
+    mask-image: url("../../assets/currencies/classic/hours.svg");
+  }
+}

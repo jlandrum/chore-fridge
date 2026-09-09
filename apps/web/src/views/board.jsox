@@ -1,0 +1,56 @@
+import { $familyName, $currencies } from "../stores/family.js";
+import { $balances, familyAmount } from "../stores/balances.js";
+import { enabledCurrencies } from "@chore-fridge/domain/currencies";
+import { $ui, openParent, lockParent, openSettings } from "../stores/navigation.js";
+import { $clock } from "../stores/clock.js";
+import { prettyDate } from "@chore-fridge/domain/dates";
+import { defineScreen } from "../components/screen.jsox";
+import { Workspace } from "../components/workspace.jsox";
+import { Btn, CurrencyMark } from "../ui.jsox";
+import { createViewButton } from "./view-options.jsox";
+
+defineScreen("fridge-board", (root) => {
+  const titleEl = <h1> {}
+  const dateEl = <div> { .className = "date" }
+  const totalsEl = <div> { .className = "top-balances" }
+  const parentButton = Btn("Unlock Parent Mode", "pill", () => $ui.get().parentUnlocked ? lockParent() : openParent());
+  const settingsButton = Btn("Settings", "pill settings-button", openSettings);
+  [root] {
+    .className = "screen"
+    <header> {
+      .className = "top"
+      <div> {
+        .className = "brand"
+        [titleEl]
+        [dateEl]
+      }
+      <div> {
+        .className = "top-actions"
+        [totalsEl]
+        [createViewButton()]
+        [parentButton]
+        [settingsButton]
+      }
+    }
+    [Workspace()]
+  }
+
+  return [
+    [[$ui], () => {
+      const unlocked = $ui.get().parentUnlocked;
+      parentButton.textContent = unlocked ? "Lock Parent Mode" : "Unlock Parent Mode";
+      settingsButton.hidden = !unlocked;
+    }],
+    [[$familyName], () => { titleEl.textContent = $familyName.get(); }],
+    [[$clock], () => { dateEl.textContent = prettyDate(); }],
+    [[$balances, $currencies], () => {
+      totalsEl.replaceChildren();
+      for (const currency of enabledCurrencies($currencies.get())) {
+        const amount = familyAmount(currency.id);
+        const pill = <div> { .className = "pill" + (currency.id === "gold" ? " gold-pill" : " stars-pill") }
+        pill.append(CurrencyMark(currency.id), " " + amount);
+        totalsEl.append(pill);
+      }
+    }],
+  ];
+});

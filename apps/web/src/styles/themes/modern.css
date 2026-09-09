@@ -1,0 +1,179 @@
+html[data-look="modern"] {
+  --currency-coin: #92610a;
+  --currency-dollar: #237441;
+
+  --bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 96%);
+  --bg2: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 93%);
+  --paper: hsl(var(--modern-hue, 190), 0%, 100%);
+  --paper-edge: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 22%), 90%);
+  --ink: hsl(var(--modern-hue, 190), 38%, 15%);
+  --muted: hsl(var(--modern-hue, 190), 15%, 41%);
+  --line: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 23%), 89%);
+  --ok: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 72%), var(--modern-accent-lit, 28%));
+  --ok-soft: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 93%);
+  --stamp: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 72%), var(--modern-accent-lit, 28%));
+  --star: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 72%), var(--modern-accent-lit, 28%));
+  --gold: #92610a;
+  --shadow: 0 1px 3px rgba(24, 43, 54, .04), 0 12px 32px rgba(24, 43, 54, .06);
+  --radius: 14px;
+  --card-radius: 14px;
+  --panel-radius: 20px;
+  --stripe-h: 3px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --letter: -.025em;
+  --pill-bg: hsl(var(--modern-hue, 190), 0%, 100%);
+  --pill-shadow: inset 0 0 0 1px var(--line);
+  --stars-fg: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 72%), var(--modern-accent-lit, 28%));
+  --stars-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 92%);
+  --gold-pill-fg: #815409;
+  --gold-pill-bg: #fff2ce;
+  --chore-bg: hsl(var(--modern-hue, 190), 0%, 100%);
+  --chore-shadow: inset 0 0 0 1px var(--line);
+  --chore-done-shadow: inset 0 0 0 1px hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 82%);
+  --mark-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 96%);
+  --btn-bg: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 72%), var(--modern-accent-lit, 28%));
+  --btn-fg: var(--modern-on-accent, #fff);
+  --choice-bg: hsl(var(--modern-hue, 190), 0%, 100%);
+  --choice-on-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 92%);
+  --choice-on-fg: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 58%), 17%);
+  --well-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 23%), 97%);
+  --tab-on-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 92%);
+  --tab-on-fg: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 58%), 17%);
+  --border: 1px solid var(--line);
+  --track: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 29%), 92%);
+  --body-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 96%);
+
+  &.night {
+    --currency-coin: #f0cb79;
+    --currency-dollar: #80dda0;
+    --bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 10%);
+    --bg2: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 13%);
+    --paper: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 15%);
+    --paper-edge: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 23%);
+    --ink: hsl(var(--modern-hue, 190), 38%, 95%);
+    --muted: hsl(var(--modern-hue, 190), 20%, 71%);
+    --line: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 28%);
+    --ok: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 61%), var(--modern-accent-lit, 73%));
+    --ok-soft: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 18%);
+    --stamp: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 61%), var(--modern-accent-lit, 73%));
+    --star: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 61%), var(--modern-accent-lit, 73%));
+    --gold: #f0cb79;
+    --shadow: 0 12px 32px rgba(0, 0, 0, .2);
+    --pill-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 15%);
+    --stars-fg: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 61%), var(--modern-accent-lit, 73%));
+    --stars-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 21%);
+    --gold-pill-fg: #f0cb79;
+    --gold-pill-bg: #423822;
+    --chore-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 19%);
+    --chore-done-shadow: inset 0 0 0 1px hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 28%);
+    --mark-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 13%);
+    --btn-bg: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 61%), var(--modern-accent-lit, 73%));
+    --btn-fg: var(--modern-on-accent, #142028);
+    --choice-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 19%);
+    --choice-on-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 24%);
+    --choice-on-fg: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 67%), 86%);
+    --well-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 13%);
+    --tab-on-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 24%);
+    --tab-on-fg: hsl(var(--modern-hue, 190), var(--modern-accent-sat, 67%), 86%);
+    --track: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 23%);
+    --body-bg: hsl(var(--modern-hue, 190), var(--modern-surface-sat, 26%), 10%);
+  }
+
+  .pill, .btn, .choice, .tiny, .tabs button {
+    border-radius: 12px;
+    font-weight: 600;
+  }
+
+  .brand h1, .settings-header h1 { font-weight: 700; }
+  .settings-intro h2 { font-size: 30px; font-weight: 650; }
+  .setting-title { font-size: 19px; font-weight: 600; }
+  .setting-description, .settings-page .lead { line-height: 1.55; }
+  .settings-nav button.on { box-shadow: inset 3px 0 var(--star); }
+  .choice,
+  .look-modern-split {
+    box-shadow: none;
+    border: 1px solid var(--line);
+  }
+  .choice.on,
+  .look-modern-split.on {
+    box-shadow: none;
+    border-color: var(--star);
+  }
+  .look-modern-split { border-radius: 12px; }
+  .look-modern-split .choice,
+  .look-modern-split .choice.on {
+    border: 0;
+    box-shadow: none;
+    border-radius: 12px 0 0 12px;
+  }
+  .look-modern-color { border-left: 1px solid var(--line); border-radius: 0 12px 12px 0; }
+  .chore .mark { border-width: 2px; }
+  .chore.done .mark { color: var(--btn-fg); }
+  .chore .stamp {
+    border-width: 1px;
+    border-radius: 8px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    padding: 4px 7px;
+  }
+  .btn.ghost { box-shadow: none; border: 1px solid var(--line); }
+  .btn.danger { background: var(--paper); color: var(--stamp); border: 1px solid var(--stamp); }
+  .setting-form, .setting-action, .setting-details, .settings-stack { border-width: 1px; }
+  .setting-toggle { border-bottom-width: 1px; }
+  .item { border: 1px solid var(--line); border-radius: 12px; }
+  .chore { border-radius: 12px; }
+
+  .kid {
+    --ok: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-accent-sat, var(--modern-accent-sat, 72%)), var(--kid-accent-lit, var(--modern-accent-lit, 28%)));
+    --ok-soft: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 93%);
+    --stamp: var(--ok);
+    --track: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 90%);
+    --mark-bg: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 96%);
+    --chore-bg: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 100%);
+    --chore-shadow: inset 0 0 0 1px hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 86%);
+    --chore-done-shadow: inset 0 0 0 1px hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 80%);
+    --line: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 86%);
+    background: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 97%);
+
+    .chore.done .mark { color: var(--kid-on-accent, var(--btn-fg)); }
+  }
+
+  &.night .kid {
+    --ok: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-accent-sat, var(--modern-accent-sat, 61%)), var(--kid-accent-lit, var(--modern-accent-lit, 73%)));
+    --ok-soft: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 19%);
+    --stamp: var(--ok);
+    --track: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 24%);
+    --mark-bg: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 14%);
+    --chore-bg: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 20%);
+    --chore-shadow: inset 0 0 0 1px hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 28%);
+    --chore-done-shadow: inset 0 0 0 1px hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 30%);
+    --line: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 28%);
+    background: hsl(var(--kid-hue, var(--modern-hue, 190)), var(--kid-surface-sat, var(--modern-surface-sat, 26%)), 16%);
+  }
+
+  button:focus-visible, input:focus-visible {
+    outline: 3px solid var(--star);
+    outline-offset: 3px;
+  }
+
+  .currency-icon.star,
+  .currency-icon.gold {
+    -webkit-mask-image: url("../../assets/currencies/modern/star.svg");
+    mask-image: url("../../assets/currencies/modern/star.svg");
+  }
+
+  .currency-icon.coin {
+    -webkit-mask-image: url("../../assets/currencies/modern/coin.svg");
+    mask-image: url("../../assets/currencies/modern/coin.svg");
+  }
+
+  .currency-icon.dollar {
+    -webkit-mask-image: url("../../assets/currencies/modern/dollar.svg");
+    mask-image: url("../../assets/currencies/modern/dollar.svg");
+  }
+
+  .currency-icon.hours {
+    -webkit-mask-image: url("../../assets/currencies/modern/hours.svg");
+    mask-image: url("../../assets/currencies/modern/hours.svg");
+  }
+}

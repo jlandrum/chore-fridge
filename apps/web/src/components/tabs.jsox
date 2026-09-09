@@ -1,0 +1,62 @@
+import { defineComponent } from "@js-ox/web-components";
+
+[defineComponent("fridge-tabs")] {
+  .connected = function () {
+    if (this.update) { this.update(); return; }
+    this.className = this.className || "tabs";
+    this.setAttribute("role", "tablist");
+    if (this.orientation) this.setAttribute("aria-orientation", this.orientation);
+    const tabs = this;
+    const buttons = (this.options || []).map((option, index) => {
+      const button = <button> {
+        .type = "button"
+        .id = (tabs.id || "settings-tabs") + "-" + option.value
+        .setAttribute("role", "tab")
+        .setAttribute("aria-controls", tabs.controls || "")
+        [option.label]
+        .onclick = () => tabs.select(option.value)
+        .onkeydown = (event) => {
+          const keys = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 };
+          let next = index;
+          if (event.key === "Home") next = 0;
+          else if (event.key === "End") next = buttons.length - 1;
+          else if (keys[event.key]) next = (index + keys[event.key] + buttons.length) % buttons.length;
+          else return;
+          event.preventDefault();
+          buttons[next].focus();
+          tabs.select(tabs.options[next].value);
+        }
+      }
+      tabs.append(button);
+      return button;
+    });
+    this.select = (value) => {
+      if (tabs.value === value) return;
+      tabs.value = value;
+      tabs.update();
+      tabs.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    this.update = () => {
+      this.options.forEach((option, index) => {
+        const selected = this.value === option.value;
+        buttons[index].classList.toggle("on", selected);
+        buttons[index].setAttribute("aria-selected", String(selected));
+        buttons[index].tabIndex = selected ? 0 : -1;
+      });
+    };
+    this.update();
+  }
+  .register()
+}
+
+export function Tabs(options, value, onChange, attrs = {}) {
+  return <fridge-tabs> {
+    .id = attrs.id || ""
+    .options = options
+    .value = value
+    .controls = attrs.controls || ""
+    .className = attrs.className || "tabs"
+    .orientation = attrs.orientation || ""
+    .onchange = (event) => onChange(event.currentTarget.value)
+  }
+}

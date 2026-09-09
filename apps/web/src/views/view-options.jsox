@@ -1,0 +1,108 @@
+
+import { defineComponent } from "@js-ox/web-components";
+import { Choices } from "../components/choices.jsox";
+import { $view, getView, setTheme, setLook, setZoom, setLayout, setModernColor, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from "../view.js";
+import { Btn, openModal, closeModal } from "../ui.jsox";
+
+const appearances = ["light", "dark", "system"].map((value) => ({
+  value, label: value.charAt(0).toUpperCase() + value.slice(1),
+}));
+const looks = [
+  ["modern", "Modern (v2)"],
+  ["classic", "Classic (V1)"], ["business", "Business"], ["crayon", "Crayon"],
+  ["contrast", "High contrast"], ["lego", "Lego"], ["cyberpunk", "Cyberpunk"],
+].map(([value, label]) => ({ value, label, className: "look-" + value }));
+const layouts = [
+  { value: "classic", label: "Classic" },
+  { value: "gallery", label: "Gallery" },
+  { value: "slide", label: "Slide to Buy" },
+];
+
+[defineComponent("fridge-view-controls")] {
+  .connected = function () {
+    if (!this.update) {
+      this.className = "view-controls";
+      const view = getView();
+      const appearance = Choices(appearances, view.appearance, setTheme, { className: "row view-themes" });
+      const layout = Choices(layouts, view.layout || "classic", setLayout, { className: "row view-layouts" });
+      const look = Choices(looks, view.look, setLook, { className: "view-looks" });
+      const zoomVal = <div> { .className = "zoom-val" }
+      const color = <input> {
+        .type = "color"
+        .setAttribute("aria-label", "Modern theme color")
+        .oninput = () => {
+          if (getView().look !== "modern") setLook("modern");
+          setModernColor(color.value);
+        }
+      }
+      const chip = <label> { .className = "look-modern-color"; [color] }
+      chip.addEventListener("click", () => {
+        if (getView().look !== "modern") setLook("modern");
+      });
+      const split = <div> { .className = "look-modern-split" }
+      const minus = Btn("−", "tiny", () => setZoom(getView().zoom - ZOOM_STEP));
+      const plus = Btn("+", "tiny", () => setZoom(getView().zoom + ZOOM_STEP));
+      minus.setAttribute("aria-label", "Zoom out");
+      plus.setAttribute("aria-label", "Zoom in");
+      [this] {
+        <p> { .className = "view-label"; ["Appearance"] }
+        [appearance]
+        <p> { .className = "view-label"; ["Board"] }
+        [layout]
+        <p> { .className = "view-label"; ["Theme"] }
+        [look]
+        <p> { .className = "view-label"; ["Zoom"] }
+        <div> { .className = "zoom-row"; [minus]; [zoomVal]; [plus] }
+        <p> { .className = "lead tight"; ["Saved on this device for the next visit."] }
+      }
+      const modernBtn = look.querySelector("button.look-modern");
+      modernBtn.replaceWith(split);
+      split.append(modernBtn, chip);
+      // Swatches are decorative; choice labels remain the accessible names.
+      for (const button of look.querySelectorAll("button")) {
+        if (button.classList.contains("look-modern")) continue;
+        const swatch = <span> { .className = "look-swatch" }
+        button.prepend(swatch);
+      }
+      this.update = () => {
+        const current = getView();
+        appearance.value = current.appearance;
+        layout.value = current.layout || "classic";
+        look.value = current.look;
+        appearance.update();
+        layout.update();
+        look.update();
+        split.classList.toggle("on", current.look === "modern");
+        color.value = current.modernColor || "#146879";
+        zoomVal.textContent = current.zoom + "%";
+        minus.disabled = current.zoom <= ZOOM_MIN;
+        plus.disabled = current.zoom >= ZOOM_MAX;
+      };
+    }
+    this.unsubscribe = $view.subscribe(this.update);
+  }
+  .disconnected = function () {
+    this.unsubscribe();
+  }
+  .register()
+}
+
+export function ViewControls() {
+  return <fridge-view-controls>
+}
+
+export function openViewOptions() {
+  openModal(<div> {
+    <h3> { ["View options"] }
+    <fridge-view-controls>
+    <div> {
+      .className = "row"
+      .style.marginTop = "16px"
+      [Btn("Done", "btn wide", closeModal)]
+    }
+  });
+}
+
+export function createViewButton(className = "pill") {
+  return Btn("View", className, openViewOptions);
+}

@@ -1,0 +1,64 @@
+import { choreKind, maxCount, isCounted, countFor, isDone, claimedBy, bumpChore, toggleChore } from "../stores/chores.js";
+import { burst, showToast, CurrencyMark } from "../ui.jsox";
+import { currencyId } from "@chore-fridge/domain/currencies";
+import { defineScreen } from "./screen.jsox";
+
+function afterBump(kid, result) {
+  if (result.error) { showToast(result.error); return; }
+  if (result.skipped) return;
+  if (result.all) {
+    burst();
+    showToast(kid.name + " finished everything!");
+  }
+}
+
+defineScreen("fridge-chore", (root) => {
+  let { chore, kid } = root.model;
+  const mark = <span> { .className = "mark" }
+  const title = <span> { .className = "title" }
+  const kind = <span> { .className = "kind" }
+  const pts = <span> { .className = "pts" }
+  const btn = <button> {
+    .type = "button"
+    [mark]
+    <span> {
+      .className = "copy"
+      [title]
+      <span> { .className = "meta"; [kind]; [pts] }
+    }
+    <span> { .className = "stamp"; ["DONE"] }
+    .onclick = () => {
+      const result = isCounted(chore)
+        ? bumpChore(chore.id, kid.id, 1)
+        : toggleChore(chore.id, kid.id);
+      afterBump(kid, result);
+    }
+  }
+  mark.onclick = (event) => {
+    if (!isCounted(chore)) return;
+    event.stopPropagation();
+    afterBump(kid, bumpChore(chore.id, kid.id, -1));
+  };
+
+  root.append(btn);
+  return () => {
+    ({ chore, kid } = root.model);
+    const complete = isDone(chore, kid.id);
+    const counted = isCounted(chore);
+    const claimer = claimedBy(chore);
+    const locked = !!(claimer && claimer !== kid.id);
+    btn.className = "chore" + (complete ? " done" : "") + (chore.gold ? " gold" : "") + (locked ? " locked" : "");
+    btn.disabled = locked;
+    if (counted) {
+      const n = countFor(chore, kid.id);
+      mark.textContent = String(n);
+      kind.textContent = choreKind(chore) + " · " + n + "/" + maxCount(chore);
+    } else {
+      mark.textContent = complete ? "✓" : chore.emoji || "★";
+      kind.textContent = choreKind(chore);
+    }
+    title.textContent = chore.title;
+    pts.replaceChildren();
+    pts.append(CurrencyMark(currencyId(chore)), " " + (chore.points || 0));
+  };
+});

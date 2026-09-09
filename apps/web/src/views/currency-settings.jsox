@@ -1,0 +1,118 @@
+import { $currencies, setCurrencies } from "../stores/family.js";
+import { CURRENCY_DEFAULTS, normalizeCurrencies } from "@chore-fridge/domain/currencies";
+import { defineScreen } from "../components/screen.jsox";
+import { EmojiField } from "../components/emoji-field.jsox";
+import { CurrencyMark, Btn, showToast } from "../ui.jsox";
+
+defineScreen("fridge-currency-settings", (root) => {
+  const list = <div> { .className = "currency-list" }
+  [root] {
+    .className = "settings-page"
+    <div> {
+      .className = "settings-intro"
+      <h2> { ["Currency"] }
+      <p> { .className = "lead"; ["Turn on the credits this household uses. Names can change; the built-in types stay the same. Custom 1 and Custom 2 can pick an emoji."] }
+    }
+    [list]
+  }
+
+  const rows = new Map();
+  function rowFor(item) {
+    if (rows.has(item.id)) return rows.get(item.id);
+    const custom = item.id === "custom1" || item.id === "custom2";
+    const enabled = <input> {
+      .type = "checkbox"
+      .setAttribute("role", "switch")
+      .setAttribute("aria-label", "Enable " + CURRENCY_DEFAULTS[item.id].name)
+    }
+    const name = <input> {
+      .type = "text"
+      .maxlength = 40
+      .autocomplete = "off"
+      .setAttribute("aria-label", CURRENCY_DEFAULTS[item.id].name + " name")
+    }
+    const emoji = custom ? EmojiField(item.emoji, CURRENCY_DEFAULTS[item.id].emoji, CURRENCY_DEFAULTS[item.id].name + " emoji") : null;
+    const preview = <span> { .className = "currency-preview" }
+    const save = () => {
+      const next = normalizeCurrencies($currencies.get()).map((currency) => {
+        if (currency.id !== item.id) return currency;
+        const updated = { ...currency, enabled: enabled.checked, name: name.value };
+        if (custom) updated.emoji = emoji.value;
+        return updated;
+      });
+      if (!next.some((currency) => currency.enabled)) {
+        showToast("Keep at least one currency on.");
+        enabled.checked = true;
+        return;
+      }
+      setCurrencies(next);
+      showToast("Currency saved.");
+    };
+    enabled.onchange = save;
+    const heading = <h3> { .className = "currency-heading" }
+    heading.append(preview, document.createTextNode(" " + CURRENCY_DEFAULTS[item.id].name));
+    const nameRow = <div> { .className = custom ? "row identity-row" : "setting-name-row" }
+    if (custom) {
+      nameRow.append(
+        <div> {
+          .className = "field task-emoji"
+          <label> { ["Emoji"] }
+          [emoji.trigger]
+        }
+      );
+    }
+    nameRow.append(
+      <div> {
+        .className = "field task-title"
+        <label> { ["Display name"] }
+        <span> { .className = "setting-input"; [name]; [Btn("Save", "btn", save)] }
+      }
+    );
+    const node = <section> {
+      .className = "settings-group"
+      [heading]
+      <form> {
+        .className = "setting-form"
+        .onsubmit = event => { event.preventDefault(); save(); }
+        <label> {
+          .className = "setting-toggle"
+          [enabled]
+          <span> {
+            .className = "setting-copy"
+            <strong> { .className = "setting-title"; ["Enabled"] }
+            <span> { .className = "setting-description"; ["Available on chores and rewards."] }
+          }
+          <span> {
+            .className = "setting-control"
+            <span> { .className = "switch-track"; .setAttribute("aria-hidden", "true") }
+          }
+        }
+        [nameRow]
+      }
+    }
+    const row = { node, enabled, name, emoji, preview, custom };
+    rows.set(item.id, row);
+    return row;
+  }
+
+  function paintPreview(row, item) {
+    row.preview.replaceChildren();
+    if (row.custom) row.preview.append(item.emoji || "●");
+    else row.preview.append(CurrencyMark(item.id));
+  }
+
+  return () => {
+    list.replaceChildren();
+    for (const item of normalizeCurrencies($currencies.get())) {
+      const row = rowFor(item);
+      row.enabled.checked = item.enabled;
+      row.enabled.setAttribute("aria-checked", String(item.enabled));
+      if (document.activeElement !== row.name) row.name.value = item.name;
+      if (row.custom && document.activeElement !== row.emoji.trigger) row.emoji.value = item.emoji;
+      paintPreview(row, item);
+      list.append(row.node);
+    }
+  };
+}, [$currencies]);
+
+export function CurrencyTab() { return <fridge-currency-settings> }

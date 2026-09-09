@@ -1,0 +1,108 @@
+.look-business .look-swatch {
+  background: linear-gradient(90deg, #1e3a5f, #8aa0b8, #f4f6f8);
+}
+
+html[data-look="business"] {
+  --currency-coin: #92610a;
+  --currency-dollar: #237441;
+
+  --bg: #d5dee8;
+  --paper: #fff;
+  --paper-edge: #c5d0dc;
+  --ink: #1a2332;
+  --muted: #5b6b7c;
+  --line: rgba(26, 35, 50, 0.14);
+  --ok: #0f766e;
+  --ok-soft: #e6f4f1;
+  --stamp: #9f1239;
+  --star: #1e3a5f;
+  --gold: #b45309;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 8px 20px rgba(16, 24, 40, .08);
+  --radius: 8px;
+  --card-radius: 8px;
+  --panel-radius: 10px;
+  --stripe-h: 4px;
+  --font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --letter: 0;
+  --pill-bg: #fff;
+  --pill-shadow: 0 1px 2px rgba(16, 24, 40, .12);
+  --stars-fg: #1e3a5f;
+  --stars-bg: #e8eef5;
+  --gold-pill-fg: #7c3d0a;
+  --gold-pill-bg: #f3e6d0;
+  --chore-bg: #fff;
+  --chore-shadow: 0 0 0 1px #d8e0e8, 0 1px 2px rgba(16, 24, 40, .05);
+  --chore-done-shadow: 0 0 0 1px #b7d8d0;
+  --mark-bg: #fff;
+  --btn-bg: #1e3a5f;
+  --btn-fg: #fff;
+  --choice-bg: #fff;
+  --choice-on-bg: #e8eef5;
+  --well-bg: #eef2f6;
+  --tab-on-bg: #1e3a5f;
+  --tab-on-fg: #fff;
+  --body-bg: linear-gradient(#e8eef4, #d5dee8);
+
+  &.night {
+    --currency-coin: #f0cb79;
+    --currency-dollar: #80dda0;
+    --bg: #1a2330;
+    --paper: #243044;
+    --paper-edge: #1a2330;
+    --ink: #e8eef5;
+    --muted: #9aabbd;
+    --line: rgba(232, 238, 245, .12);
+    --ok: #2dd4bf;
+    --ok-soft: #16352f;
+    --stamp: #fb7185;
+    --star: #93c5fd;
+    --gold: #fbbf24;
+    --shadow: 0 8px 24px rgba(0, 0, 0, .35);
+    --pill-bg: #2a3a50;
+    --pill-shadow: none;
+    --stars-fg: #bfdbfe;
+    --stars-bg: #1e3a5f;
+    --gold-pill-fg: #fde68a;
+    --gold-pill-bg: #4a3510;
+    --chore-bg: #2a384c;
+    --chore-shadow: 0 0 0 1px #35475c;
+    --chore-done-shadow: 0 0 0 1px #2a5c54;
+    --mark-bg: #1a2330;
+    --btn-bg: #e8eef5;
+    --btn-fg: #1a2330;
+    --choice-bg: #2a384c;
+    --choice-on-bg: #3d4f66;
+    --well-bg: #1a2330;
+    --tab-on-bg: #e8eef5;
+    --tab-on-fg: #1a2330;
+    --body-bg: #1a2330;
+  }
+
+  .pill,
+  .btn,
+  .choice,
+  .tabs button {
+    border-radius: 8px;
+  }
+
+  .currency-icon.star,
+  .currency-icon.gold {
+    -webkit-mask-image: url("../../assets/currencies/business/star.svg");
+    mask-image: url("../../assets/currencies/business/star.svg");
+  }
+
+  .currency-icon.coin {
+    -webkit-mask-image: url("../../assets/currencies/business/coin.svg");
+    mask-image: url("../../assets/currencies/business/coin.svg");
+  }
+
+  .currency-icon.dollar {
+    -webkit-mask-image: url("../../assets/currencies/business/dollar.svg");
+    mask-image: url("../../assets/currencies/business/dollar.svg");
+  }
+
+  .currency-icon.hours {
+    -webkit-mask-image: url("../../assets/currencies/business/hours.svg");
+    mask-image: url("../../assets/currencies/business/hours.svg");
+  }
+}

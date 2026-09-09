@@ -1,0 +1,129 @@
+.look-contrast .look-swatch {
+  background: linear-gradient(90deg, #000, #fff 50%, #ffef00);
+}
+
+html[data-look="contrast"] {
+  --currency-coin: var(--ink);
+  --currency-dollar: var(--ink);
+
+  --track: #fff;
+  --bg: #fff;
+  --paper: #fff;
+  --paper-edge: #000;
+  --ink: #000;
+  --muted: #000;
+  --line: #000;
+  --ok: #000;
+  --ok-soft: #ffef00;
+  --stamp: #000;
+  --star: #000;
+  --gold: #000;
+  --shadow: 4px 4px 0 #000;
+  --radius: 0;
+  --card-radius: 0;
+  --panel-radius: 0;
+  --stripe-h: 12px;
+  --font: Arial, Helvetica, sans-serif;
+  --letter: 0;
+  --pill-bg: #fff;
+  --pill-shadow: 4px 4px 0 #000;
+  --stars-fg: #000;
+  --stars-bg: #ffef00;
+  --gold-pill-fg: #000;
+  --gold-pill-bg: #ffef00;
+  --chore-bg: #fff;
+  --chore-shadow: 4px 4px 0 #000;
+  --chore-done-shadow: 4px 4px 0 #000;
+  --mark-bg: #fff;
+  --btn-bg: #000;
+  --btn-fg: #fff;
+  --choice-bg: #fff;
+  --choice-on-bg: #ffef00;
+  --choice-on-fg: #000;
+  --well-bg: #fff;
+  --tab-on-bg: #000;
+  --tab-on-fg: #fff;
+  --border: 3px solid #000;
+  --body-bg: #fff;
+
+  &.night {
+    --currency-coin: var(--ink);
+    --currency-dollar: var(--ink);
+    --track: #000;
+    --bg: #000;
+    --paper: #000;
+    --paper-edge: #fff;
+    --ink: #fff;
+    --muted: #fff;
+    --line: #fff;
+    --ok: #fff;
+    --ok-soft: #000;
+    --stamp: #ffef00;
+    --star: #ffef00;
+    --gold: #ffef00;
+    --shadow: 4px 4px 0 #fff;
+    --pill-bg: #000;
+    --pill-shadow: 4px 4px 0 #fff;
+    --stars-fg: #000;
+    --stars-bg: #ffef00;
+    --gold-pill-fg: #000;
+    --gold-pill-bg: #ffef00;
+    --chore-bg: #000;
+    --chore-shadow: 4px 4px 0 #fff;
+    --chore-done-shadow: 4px 4px 0 #ffef00;
+    --mark-bg: #000;
+    --btn-bg: #fff;
+    --btn-fg: #000;
+    --choice-bg: #000;
+    --choice-on-bg: #ffef00;
+    --choice-on-fg: #000;
+    --well-bg: #000;
+    --tab-on-bg: #ffef00;
+    --tab-on-fg: #000;
+    --border: 3px solid #fff;
+    --body-bg: #000;
+  }
+
+  .pill,
+  .btn,
+  .choice,
+  .tabs button,
+  .toast,
+  .progress,
+  .reward,
+  .chore .mark {
+    border-radius: 0;
+  }
+
+  .chore {
+    .mark { border-width: 3px; }
+    &.done .title { opacity: 1; }
+  }
+
+  .progress { border: 2px solid var(--ink); }
+
+  .currency-icon.star {
+    -webkit-mask-image: url("../../assets/currencies/contrast/star.svg");
+    mask-image: url("../../assets/currencies/contrast/star.svg");
+  }
+
+  .currency-icon.gold {
+    -webkit-mask-image: url("../../assets/currencies/contrast/gold.svg");
+    mask-image: url("../../assets/currencies/contrast/gold.svg");
+  }
+
+  .currency-icon.coin {
+    -webkit-mask-image: url("../../assets/currencies/contrast/coin.svg");
+    mask-image: url("../../assets/currencies/contrast/coin.svg");
+  }
+
+  .currency-icon.dollar {
+    -webkit-mask-image: url("../../assets/currencies/contrast/dollar.svg");
+    mask-image: url("../../assets/currencies/contrast/dollar.svg");
+  }
+
+  .currency-icon.hours {
+    -webkit-mask-image: url("../../assets/currencies/contrast/hours.svg");
+    mask-image: url("../../assets/currencies/contrast/hours.svg");
+  }
+}

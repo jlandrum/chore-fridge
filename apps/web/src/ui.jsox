@@ -1,0 +1,89 @@
+import { $currencies } from "./stores/family.js";
+import { currencyById } from "@chore-fridge/domain/currencies";
+
+export const modal = <div> {
+  .className = "modal"
+  .hidden = true
+  .onclick = (event) => {
+    if (event.target === modal) closeModal();
+  }
+}
+
+export const toastEl = <div> {
+  .className = "toast"
+  .hidden = true
+}
+
+export const confettiEl = <div> {
+  .className = "confetti"
+  .hidden = true
+}
+
+export function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.hidden = false;
+  clearTimeout(showToast.t);
+  showToast.t = setTimeout(() => {
+    toastEl.hidden = true;
+  }, 2400);
+}
+
+export function burst() {
+  confettiEl.replaceChildren();
+  confettiEl.hidden = false;
+  const colors = ["#e85d4c", "#e9b44c", "#2a9d8f", "#6c63c0", "#fff"];
+  for (let i = 0; i < 28; i++) {
+    const bit = <div> {
+      .className = "bit"
+      .style.left = Math.random() * 100 + "%"
+      .style.background = colors[i % colors.length]
+      .style.animationDelay = Math.random() * 0.25 + "s"
+    }
+    [confettiEl] { [bit] }
+  }
+  setTimeout(() => {
+    confettiEl.hidden = true;
+    confettiEl.replaceChildren();
+  }, 1400);
+}
+
+export function closeModal() {
+  modal.hidden = true;
+  modal.replaceChildren();
+}
+
+export function openModal(node) {
+  modal.replaceChildren();
+  [modal] {
+    <div> {
+      .className = "sheet"
+      [node]
+    }
+  }
+  modal.hidden = false;
+}
+
+export function Btn(label, className, onclick) {
+  return <button> {
+    .type = "button"
+    .className = className
+    [label]
+    .onclick = onclick
+  }
+}
+
+export function Star(gold) {
+  return CurrencyMark(gold ? "gold" : "star");
+}
+
+export function CurrencyMark(id) {
+  if (id === "custom1" || id === "custom2") {
+    const emoji = currencyById($currencies.get(), id).emoji || "●";
+    return <span> { .className = "currency-mark"; [emoji] }
+  }
+  const kind = id === "gold" || id === "coin" || id === "dollar" || id === "hours" ? id : "star";
+  return <span> {
+    .className = "currency-mark"
+    <span> { .className = "currency-icon " + kind }
+  }
+}

@@ -1,0 +1,104 @@
+import { $kids } from "../stores/family.js";
+import { $rewards } from "../stores/rewards.js";
+import { $view, getView } from "../view.js";
+import { defineScreen } from "./screen.jsox";
+import { updateList } from "./list.js";
+import { Shop } from "./shop.jsox";
+import { Dock } from "./dock.jsox";
+import "./kid.jsox";
+
+defineScreen("fridge-workspace", (root) => {
+  const boardEl = <section> { .className = "board" }
+  const shopEl = Shop()
+  const dockEl = Dock()
+  const goShop = <button> {
+    .type = "button"
+    .className = "slide-arrow slide-go-shop"
+    .setAttribute("aria-label", "Open the shop")
+    ["›"]
+  }
+  const goBoard = <button> {
+    .type = "button"
+    .className = "slide-arrow slide-go-board"
+    .setAttribute("aria-label", "Back to chores")
+    ["‹"]
+  }
+  const emptyBoard = <div> {
+    .className = "panel"
+    <h2> { ["No kids yet"] }
+    <p> { .className = "lead"; ["Unlock Parent Mode and open Settings to add your family."] }
+  }
+  [root] {
+    .className = "workspace"
+    <div> { .className = "stage"; [boardEl]; [shopEl] }
+    [goShop]
+    [goBoard]
+    [dockEl]
+  }
+
+  let shopOpen = false;
+  let startX = 0;
+  let startY = 0;
+  let tracking = false;
+
+  function layout() {
+    return getView().layout || "classic";
+  }
+
+  function applyLayout() {
+    const mode = layout();
+    root.classList.toggle("shop-open", mode === "slide" && shopOpen);
+    shopEl.hidden = mode === "classic";
+    goShop.hidden = mode !== "slide" || shopOpen;
+    goBoard.hidden = mode !== "slide" || !shopOpen;
+    dockEl.hidden = mode !== "classic" || !$rewards.get().length;
+    if (!shopEl.hidden && shopEl.syncDOM) shopEl.syncDOM();
+    if (!dockEl.hidden && dockEl.syncDOM) dockEl.syncDOM();
+  }
+
+  function showShop() {
+    if (layout() !== "slide") return;
+    shopOpen = true;
+    applyLayout();
+  }
+
+  function showBoard() {
+    shopOpen = false;
+    applyLayout();
+  }
+
+  goShop.onclick = showShop;
+  goBoard.onclick = showBoard;
+
+  root.addEventListener("pointerdown", (event) => {
+    if (layout() !== "slide") return;
+    tracking = true;
+    startX = event.clientX;
+    startY = event.clientY;
+  });
+  root.addEventListener("pointerup", (event) => {
+    if (!tracking) return;
+    tracking = false;
+    if (layout() !== "slide") return;
+    const dx = event.clientX - startX;
+    const dy = event.clientY - startY;
+    if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (dx < 0) showShop();
+    else showBoard();
+  });
+  root.addEventListener("pointercancel", () => { tracking = false; });
+
+  return [
+    [[$kids], () => {
+      emptyBoard.remove();
+      updateList(boardEl, $kids.get(), "fridge-kid");
+      if (!$kids.get().length) boardEl.append(emptyBoard);
+    }],
+    [[$rewards, $view], () => {
+      if (layout() !== "slide") shopOpen = false;
+      applyLayout();
+    }],
+  ];
+});
+
+export function Workspace() { return <fridge-workspace> }

@@ -1,0 +1,293 @@
+import { formToggle } from "../components/form-toggle.jsox";
+import { $kids, $currencies } from "../stores/family.js";
+import { currencyId, enabledCurrencies } from "@chore-fridge/domain/currencies";
+import { isOnce, isWeekly, isEvery, saveChore } from "../stores/chores.js";
+import { ALL_WEEKDAYS, normalizeWeekdays } from "@chore-fridge/domain/chores";
+
+import { Choices } from "../components/choices.jsox";
+import { EmojiField } from "../components/emoji-field.jsox";
+import { Tabs } from "../components/tabs.jsox";
+import { Btn, showToast, openModal, closeModal } from "../ui.jsox";
+
+const WEEKDAY_LABELS = [
+  { value: 0, label: "S" },
+  { value: 1, label: "M" },
+  { value: 2, label: "T" },
+  { value: 3, label: "W" },
+  { value: 4, label: "T" },
+  { value: 5, label: "F" },
+  { value: 6, label: "S" },
+];
+
+const REPEAT_LABELS = { daily: "Daily", weekly: "Weekly", once: "Once", every: "Every" };
+
+
+function currentRepeat(existing, fallback) {
+  if (!existing) return fallback || "once";
+  if (isOnce(existing)) return "once";
+  if (isWeekly(existing)) return "weekly";
+  if (isEvery(existing)) return "every";
+  return "daily";
+}
+
+export function openTaskForm(opts = {}) {
+  const existing = opts.existing || null;
+  let repeat = currentRepeat(existing, opts.repeat);
+  let kidIds = existing
+    ? existing.kidIds.slice()
+    : (opts.kidIds && opts.kidIds.length ? opts.kidIds.slice() : $kids.get().map((k) => k.id));
+  let weekdays = normalizeWeekdays(existing && existing.weekdays);
+  let everyUnit = existing && existing.everyUnit ? existing.everyUnit : "days";
+  let currency = currencyId(existing);
+  let tab = "general";
+
+  if (!$kids.get().length) {
+    showToast("Add a kid first");
+    return;
+  }
+
+  const titleInput = <input> {
+    .value = existing ? existing.title : ""
+    .placeholder = "What needs doing?"
+    .autocomplete = "off"
+  }
+  const emoji = EmojiField(existing && existing.emoji, "😀");
+  const pointsInput = <input> {
+    .value = existing ? String(existing.points || 0) : "5"
+    .autocomplete = "off"
+    .inputMode = "numeric"
+  }
+  const minInput = <input> {
+    .value = existing ? String(existing.minCount || 1) : "1"
+    .autocomplete = "off"
+    .inputMode = "numeric"
+  }
+  const maxInput = <input> {
+    .value = existing ? String(existing.maxCount || 1) : "1"
+    .autocomplete = "off"
+    .inputMode = "numeric"
+  }
+  const everyInput = <input> {
+    .value = existing ? String(existing.everyN || 1) : "1"
+    .autocomplete = "off"
+    .inputMode = "numeric"
+    .setAttribute("aria-label", "Every interval")
+  }
+  const counts = <div> {
+    .className = "task-counts"
+    <div> {
+      .className = "field"
+      <label> { ["Minimum for completion"] }
+      [minInput]
+    }
+    <div> {
+      .className = "field"
+      <label> { ["Maximum per day"] }
+      [maxInput]
+    }
+  }
+  const multiple = formToggle(
+    "Allow multiple per day",
+    "Kids can check this off more than once in a day.",
+    "Allow multiple per day",
+    !!(existing && ((existing.maxCount || 1) > 1 || (existing.minCount || 1) > 1)),
+    (on) => { counts.hidden = !on; }
+  );
+  counts.hidden = !multiple.get();
+  const sharedClaim = formToggle(
+    "Only allow one claim per week",
+    "When one child finishes it, the others cannot claim it that week.",
+    "Only allow one claim per week",
+    !!(existing && existing.sharedClaim)
+  );
+  const archiveOnComplete = formToggle(
+    "Archive on completion",
+    "Remove it from the board after everyone assigned has finished.",
+    "Archive on completion",
+    existing ? existing.archiveOnComplete !== false : true
+  );
+
+  const repeats = Choices([
+    { value: "daily", label: "🔁 Daily" },
+    { value: "weekly", label: "📅 Weekly" },
+    { value: "once", label: "📌 Once" },
+    { value: "every", label: "⏱ Every" },
+  ], repeat, (value) => {
+    repeat = value;
+    tab = value;
+    renderTabs();
+  }, { className: "row task-repeat" });
+  const who = Choices(
+    $kids.get().map((kid) => ({ value: kid.id, label: kid.emoji + " " + kid.name })),
+    kidIds, (value) => { kidIds = value; }, { multiple: true }
+  );
+  const days = Choices(
+    WEEKDAY_LABELS,
+    weekdays,
+    (value) => { weekdays = value.length ? value : ALL_WEEKDAYS.slice(); },
+    { multiple: true, className: "row task-weekdays" }
+  );
+  const units = Choices([
+    { value: "days", label: "Days" },
+    { value: "weeks", label: "Weeks" },
+    { value: "months", label: "Months" },
+  ], everyUnit, (value) => { everyUnit = value; }, { className: "row task-every-units" });
+  const currencyOptions = enabledCurrencies($currencies.get()).map((item) => ({ value: item.id, label: item.name }));
+  if (!currencyOptions.some((item) => item.value === currency)) {
+    const current = $currencies.get().find((item) => item.id === currency);
+    currencyOptions.unshift({ value: currency, label: current ? current.name : currency });
+  }
+  const currencies = Choices(currencyOptions, currency, (value) => { currency = value; }, { className: "row task-currency" });
+
+  const general = <div> {
+    .className = "task-panel"
+    <div> {
+      .className = "row identity-row"
+      <div> {
+        .className = "field task-title"
+        <label> { ["Task"] }
+        [titleInput]
+      }
+      <div> {
+        .className = "field task-emoji"
+        <label> { ["Emoji"] }
+        [emoji.trigger]
+      }
+    }
+    <div> {
+      .className = "task-section"
+      <p> { .className = "view-label"; ["Frequency"] }
+      [repeats]
+    }
+  }
+  const daily = <div> {
+    .className = "task-panel"
+    <div> {
+      .className = "task-section"
+      <p> { .className = "view-label"; ["Days"] }
+      [days]
+      <p> { .className = "field-hint"; ["Shown on the selected days. Defaults to every day."] }
+    }
+  }
+  const weekly = <div> {
+    .className = "task-panel"
+    <div> { .className = "settings-stack"; [sharedClaim.node] }
+  }
+  const once = <div> {
+    .className = "task-panel"
+    <div> { .className = "settings-stack"; [archiveOnComplete.node] }
+  }
+  const every = <div> {
+    .className = "task-panel"
+    <div> {
+      .className = "task-section"
+      <p> { .className = "view-label"; ["Repeat every"] }
+      <div> {
+        .className = "task-every"
+        <div> { .className = "field"; [everyInput] }
+        [units]
+      }
+    }
+  }
+  const children = <div> {
+    .className = "task-panel"
+    <div> {
+      .className = "task-section"
+      <p> { .className = "view-label"; ["Who"] }
+      [who]
+    }
+  }
+  const values = <div> {
+    .className = "task-panel"
+    <div> {
+      .className = "task-section"
+      <p> { .className = "view-label"; ["Currency"] }
+      [currencies]
+    }
+    <div> {
+      .className = "field"
+      <label> { ["Value"] }
+      [pointsInput]
+    }
+    <div> { .className = "settings-stack"; [multiple.node] }
+    [counts]
+  }
+  const panels = { general, daily, weekly, once, every, children, values };
+  const tabHost = <div> { .className = "task-form-tabhost" }
+  const fields = <div> {
+    .className = "task-form-fields"
+    [general]
+    [daily]
+    [weekly]
+    [once]
+    [every]
+    [children]
+    [values]
+  }
+  const body = <div> { .className = "task-form-layout"; [tabHost]; [fields] }
+
+  function showPanel(name) {
+    tab = name;
+    for (const [key, panel] of Object.entries(panels)) panel.hidden = key !== name;
+  }
+
+  function tabOptions() {
+    return [
+      { value: "general", label: "General" },
+      { value: repeat, label: REPEAT_LABELS[repeat] },
+      { value: "children", label: "Children" },
+      { value: "values", label: "Values" },
+    ];
+  }
+
+  function renderTabs() {
+    if (tab !== "general" && tab !== "children" && tab !== "values" && tab !== repeat) tab = "general";
+    const next = Tabs(tabOptions(), tab, showPanel, { className: "tabs task-form-tabs", id: "task-form-tabs", orientation: "vertical" });
+    tabHost.replaceChildren(next);
+    showPanel(tab);
+  }
+
+  const sheet = <div> {
+    .className = "task-form"
+    <h3> { [existing ? "Edit task" : "Add a task"] }
+    [body]
+    <div> {
+      .className = "row task-form-actions"
+      [Btn("Cancel", "btn ghost wide", closeModal)]
+      [Btn("Save", "btn wide", () => {
+        const title = titleInput.value.trim();
+        if (!title) {
+          showToast("Name the task");
+          return;
+        }
+        if (!kidIds.length) {
+          showToast("Pick at least one kid");
+          return;
+        }
+        const allowMultiple = multiple.get();
+        saveChore({
+          id: existing ? existing.id : undefined,
+          title,
+          emoji: emoji.value,
+          repeat,
+          kidIds,
+          points: parseInt(pointsInput.value, 10) || 0,
+          minCount: allowMultiple ? parseInt(minInput.value, 10) || 1 : 1,
+          maxCount: allowMultiple ? parseInt(maxInput.value, 10) || 1 : 1,
+          currency,
+          gold: currency === "gold",
+          weekdays,
+          sharedClaim: sharedClaim.get(),
+          archiveOnComplete: archiveOnComplete.get(),
+          everyN: parseInt(everyInput.value, 10) || 1,
+          everyUnit,
+          anchorDay: existing && existing.anchorDay,
+        });
+        closeModal();
+      })]
+    }
+  }
+  openModal(sheet);
+  renderTabs();
+  if (!existing) titleInput.focus();
+}

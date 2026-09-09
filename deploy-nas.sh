@@ -30,9 +30,9 @@ fi
 cd "$ROOT"
 
 echo "Copying app to ${HOST}:${REMOTE} (leaving data/ untouched)"
-tar czf - \
-  Dockerfile docker-compose.yml server.py package.json package-lock.json \
-  index.html vite.config.js src public .dockerignore \
+tar --exclude=node_modules --exclude=dist -czf - \
+  Dockerfile docker-compose.yml package.json package-lock.json \
+  apps packages .dockerignore \
 | ssh "$HOST" "cd '$REMOTE' && tar xzpf -"
 
 echo "Configuring the private LAN bind address"
@@ -40,8 +40,8 @@ printf 'CHORE_FRIDGE_BIND_ADDRESS=%s\n' "$BIND_ADDRESS" \
 | ssh "$HOST" "umask 077 && cat > '$REMOTE/.env'"
 
 echo "Rebuilding container"
-ssh "$HOST" "cd '$REMOTE' && $DOCKER_COMPOSE up --build -d"
+ssh "$HOST" "export PATH=/usr/local/bin:\$PATH; cd '$REMOTE' && $DOCKER_COMPOSE up --build -d"
 
 echo "Checking container"
-ssh "$HOST" "docker ps --filter name=chore-fridge --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+ssh "$HOST" "export PATH=/usr/local/bin:\$PATH; docker ps --filter name=chore-fridge --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
 echo "Done. Open the service using the host's private LAN address."

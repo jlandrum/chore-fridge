@@ -1,0 +1,70 @@
+import { todayKey } from '@chore-fridge/domain/dates';
+import { alreadyRedeemed } from '@chore-fridge/domain/rewards';
+import { $rewardRedemptions } from '../stores/rewards.js';
+import { $kids } from "../stores/family.js";
+import { redeemReward, redemptionError } from "../stores/rewards.js";
+import { amountForKid } from "../stores/balances.js";
+import { currencyId } from "@chore-fridge/domain/currencies";
+import { showToast, burst, openModal, closeModal, Btn, CurrencyMark } from "../ui.jsox";
+
+export function askWho(reward) {
+  const error = redemptionError();
+  if (error) { showToast(error); return; }
+  const choices = <div> { .className = "row" }
+  for (const kid of $kids.get()) {
+    const have = amountForKid(kid.id, currencyId(reward));
+    const claimed = reward.oncePerDay && alreadyRedeemed($rewardRedemptions.get(), reward.id, kid.id, todayKey());
+    const disabled = have < reward.cost || claimed;
+    [choices] {
+      <button> {
+        .type = "button"
+        .className = "choice"
+        .disabled = disabled
+        [kid.emoji + " " + kid.name]
+        <br> { }
+        [CurrencyMark(currencyId(reward))]
+        [claimed ? " Already redeemed today" : " " + have]
+        .onclick = () => {
+          const result = redeemReward(reward.id, kid.id);
+          if (result.error) {
+            showToast(result.error);
+            return;
+          }
+          closeModal();
+          burst();
+          showToast((result.kid ? result.kid.name : "You") + " redeemed " + reward.title + "!");
+        }
+      }
+    }
+  }
+  openModal(
+    <div> {
+      <h3> { ["Who earned " + reward.emoji + " " + reward.title + "?"] }
+      <p> {
+        .className = "lead"
+        ["Costs "]
+        [CurrencyMark(currencyId(reward))]
+        [" " + reward.cost]
+        [reward.currencyExchange ? " → Receive " : ". Ask a parent to actually pay out."]
+        [reward.currencyExchange ? CurrencyMark(reward.exchangeCurrency) : ""]
+        [reward.currencyExchange ? " " + reward.exchangeValue + " added to your balance." : ""]
+      }
+      [choices]
+      <div> {
+        .className = "row"
+        .style.marginTop = "16px"
+        [Btn("Cancel", "btn ghost wide", closeModal)]
+      }
+    }
+  );
+}
+
+export function RewardChip(reward) {
+  return <button> {
+    .type = "button"
+    .className = currencyId(reward) === "gold" ? "reward gold" : "reward"
+    [reward.emoji + " " + reward.title]
+    <span> { .className = "cost"; [CurrencyMark(currencyId(reward))]; [" " + reward.cost]; [reward.currencyExchange ? " → " : ""]; [reward.currencyExchange ? CurrencyMark(reward.exchangeCurrency) : ""]; [reward.currencyExchange ? " " + reward.exchangeValue : ""] }
+    .onclick = () => askWho(reward)
+  }
+}

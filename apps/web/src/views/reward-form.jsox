@@ -1,0 +1,85 @@
+import { $currencies } from "../stores/family.js";
+import { saveReward } from "../stores/rewards.js";
+import { currencyId, enabledCurrencies, currencyById } from "@chore-fridge/domain/currencies";
+import { Choices } from "../components/choices.jsox";
+import { EmojiField } from "../components/emoji-field.jsox";
+import { formToggle } from "../components/form-toggle.jsox";
+import { Tabs } from "../components/tabs.jsox";
+import { Btn, showToast, openModal, closeModal } from "../ui.jsox";
+
+export function openRewardForm(existing = null) {
+  let currency = currencyId(existing);
+  let exchangeCurrency = existing?.exchangeCurrency || "dollar";
+  let selected = "general";
+  const titleInput = <input> { .value = existing?.title || ""; .autocomplete = "off"; .setAttribute("aria-label", "Reward") }
+  const emoji = EmojiField(existing?.emoji || "🎁", "🎁");
+  const costInput = <input> { .type = "number"; .min = "1"; .step = "1"; .value = String(existing?.cost || 20); .setAttribute("aria-label", "Cost") }
+  const valueInput = <input> { .type = "number"; .min = "1"; .step = "1"; .value = String(existing?.exchangeValue || 5); .setAttribute("aria-label", "Payout value") }
+  const options = enabledCurrencies($currencies.get()).map(item => ({value:item.id,label:item.name}));
+  for (const id of [currency, exchangeCurrency]) {
+    if (!options.some(item => item.value === id)) options.push({value:id,label:currencyById($currencies.get(), id).name});
+  }
+  const currencyChoices = Choices(options, currency, value => { currency = value; }, {className:"row task-currency"});
+  const exchangeChoices = Choices(options, exchangeCurrency, value => { exchangeCurrency = value; }, {className:"row task-currency"});
+  const exchange = formToggle("Currency Exchange", "Give another currency when this reward is redeemed.", "Currency Exchange", existing?.currencyExchange, () => updateTabs());
+  const daily = formToggle("Only allow one redemption per day", "Each child can redeem this reward once per calendar day.", "Only allow one redemption per day", existing?.oncePerDay);
+  const general = <div> {
+    .className = "task-panel"
+    <div> {
+      .className = "row identity-row"
+      <div> { .className = "field task-title"; <label> { ["Reward"] }; [titleInput] }
+      <div> { .className = "field task-emoji"; <label> { ["Emoji"] }; [emoji.trigger] }
+    }
+    <div> { .className = "field"; <label> { ["Cost"] }; [costInput] }
+    <p> { .className = "view-label"; ["Currency to spend"] }
+    [currencyChoices]
+  }
+  const advanced = <div> {
+    .className = "task-panel"
+    <h4> { ["Advanced"] }
+    <div> { .className = "settings-stack"; [exchange.node]; [daily.node] }
+  }
+  const payout = <div> {
+    .className = "task-panel"
+    <h4> { ["Currency Exchange"] }
+    <p> { .className = "lead"; ["The cost on General is deducted and this amount is added to the child’s balance. For example: spend 100 Stars to receive 5 Dollars."] }
+    <p> { .className = "view-label"; ["Currency to receive"] }
+    [exchangeChoices]
+    <div> { .className = "field"; <label> { ["Payout value"] }; [valueInput] }
+  }
+  const panels = {general, advanced, exchange:payout};
+  const fields = <div> { .id = "reward-form-panel"; .className = "task-form-fields"; .setAttribute("role", "tabpanel"); [general]; [advanced]; [payout] }
+  const tabHost = <div> { .className = "task-form-tabhost" }
+  function showPanel(value) {
+    selected = value;
+    for (const [name, panel] of Object.entries(panels)) panel.hidden = name !== value;
+    fields.setAttribute("aria-labelledby", "reward-form-tabs-" + value);
+  }
+  function updateTabs() {
+    if (!exchange.get() && selected === "exchange") selected = "advanced";
+    const tabs = [{value:"general",label:"General"},{value:"advanced",label:"Advanced"}];
+    if (exchange.get()) tabs.push({value:"exchange",label:"Currency Exchange"});
+    tabHost.replaceChildren(Tabs(tabs, selected, showPanel, {id:"reward-form-tabs",controls:"reward-form-panel",className:"tabs task-form-tabs",orientation:"vertical"}));
+    showPanel(selected);
+  }
+  const sheet = <div> {
+    .className = "task-form reward-form"
+    <h3> { [existing ? "Edit reward" : "Add reward"] }
+    <div> { .className = "task-form-layout"; [tabHost]; [fields] }
+    <div> {
+      .className = "row task-form-actions"
+      [Btn("Cancel", "btn ghost wide", closeModal)]
+      [Btn("Save", "btn wide", () => {
+        const title = titleInput.value.trim();
+        if (!title) { showToast("Need a name"); return; }
+        const payload = {id:existing?.id,title,emoji:emoji.value,cost:Number(costInput.value),currency,gold:currency === "gold",currencyExchange:exchange.get(),oncePerDay:daily.get()};
+        if (exchange.get()) { payload.exchangeCurrency = exchangeCurrency; payload.exchangeValue = Number(valueInput.value); }
+        const result = saveReward(payload);
+        if (result?.error) { showToast(result.error); return; }
+        closeModal();
+      })]
+    }
+  }
+  openModal(sheet);
+  updateTabs();
+}

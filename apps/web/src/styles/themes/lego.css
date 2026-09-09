@@ -1,0 +1,123 @@
+.look-lego .look-swatch {
+  background: linear-gradient(90deg, #c91a09, #f5cd2f, #0055bf, #00af4d);
+}
+
+html[data-look="lego"] {
+  --currency-coin: #92610a;
+  --currency-dollar: #237441;
+
+  --bg: #f5cd2f;
+  --paper: #f4f4f4;
+  --paper-edge: #c91a09;
+  --ink: #111;
+  --muted: #444;
+  --line: rgba(0, 0, 0, .2);
+  --ok: #00af4d;
+  --ok-soft: #c8f0d8;
+  --stamp: #c91a09;
+  --star: #0055bf;
+  --gold: #f5cd2f;
+  --shadow: 0 6px 0 rgba(0, 0, 0, .18);
+  --radius: 6px;
+  --card-radius: 6px;
+  --panel-radius: 8px;
+  --stripe-h: 22px;
+  --font: "Arial Black", Arial, Helvetica, sans-serif;
+  --letter: 0;
+  --pill-bg: #fff;
+  --pill-shadow: 0 4px 0 rgba(0, 0, 0, .2);
+  --stars-fg: #0055bf;
+  --stars-bg: #d6e6ff;
+  --gold-pill-fg: #111;
+  --gold-pill-bg: #f5cd2f;
+  --chore-bg: #fff;
+  --chore-shadow: 0 5px 0 rgba(0, 0, 0, .16);
+  --chore-done-shadow: 0 5px 0 #00af4d;
+  --mark-bg: #fff;
+  --btn-bg: #c91a09;
+  --btn-fg: #fff;
+  --choice-bg: #fff;
+  --choice-on-bg: #f5cd2f;
+  --choice-on-fg: #111;
+  --well-bg: #eee;
+  --tab-on-bg: #c91a09;
+  --tab-on-fg: #fff;
+  --border: 2px solid rgba(0, 0, 0, .18);
+  --body-bg:
+    radial-gradient(circle at 12px 12px, rgba(0, 0, 0, .16) 5px, transparent 6px) 0 0 / 24px 24px,
+    #f5cd2f;
+
+  &.night {
+    --currency-coin: #f0cb79;
+    --currency-dollar: #80dda0;
+    --bg: #1a1a1a;
+    --paper: #2a2a2a;
+    --paper-edge: #000;
+    --ink: #f4f4f4;
+    --muted: #bbb;
+    --line: rgba(255, 255, 255, .18);
+    --ok: #00af4d;
+    --ok-soft: #0d3d22;
+    --stamp: #ff4d3d;
+    --star: #4d9fff;
+    --gold: #f5cd2f;
+    --shadow: 0 6px 0 #000;
+    --pill-bg: #2a2a2a;
+    --pill-shadow: 0 4px 0 #000;
+    --stars-fg: #7eb6ff;
+    --stars-bg: #003366;
+    --gold-pill-fg: #111;
+    --gold-pill-bg: #f5cd2f;
+    --chore-bg: #333;
+    --chore-shadow: 0 5px 0 #000;
+    --chore-done-shadow: 0 5px 0 #00af4d;
+    --mark-bg: #1a1a1a;
+    --btn-bg: #c91a09;
+    --btn-fg: #fff;
+    --choice-bg: #2a2a2a;
+    --choice-on-bg: #0055bf;
+    --choice-on-fg: #fff;
+    --well-bg: #1a1a1a;
+    --tab-on-bg: #c91a09;
+    --tab-on-fg: #fff;
+    --border: 2px solid #000;
+    --body-bg:
+      radial-gradient(circle at 12px 12px, rgba(255, 255, 255, .12) 5px, transparent 6px) 0 0 / 24px 24px,
+      #1a1a1a;
+  }
+
+  .pill,
+  .btn,
+  .choice,
+  .tabs button,
+  .chore .mark {
+    border-radius: 6px;
+  }
+
+  .kid::before {
+    background:
+      radial-gradient(circle at 12px 11px, rgba(255, 255, 255, .55) 5px, rgba(0, 0, 0, .22) 6px, transparent 7px) 6px 0 / 22px 22px repeat-x,
+      var(--kid);
+  }
+
+  .currency-icon.star,
+  .currency-icon.gold {
+    -webkit-mask-image: url("../../assets/currencies/lego/star.svg");
+    mask-image: url("../../assets/currencies/lego/star.svg");
+  }
+
+  .currency-icon.coin {
+    -webkit-mask-image: url("../../assets/currencies/lego/coin.svg");
+    mask-image: url("../../assets/currencies/lego/coin.svg");
+  }
+
+  .currency-icon.dollar {
+    -webkit-mask-image: url("../../assets/currencies/lego/dollar.svg");
+    mask-image: url("../../assets/currencies/lego/dollar.svg");
+  }
+
+  .currency-icon.hours {
+    -webkit-mask-image: url("../../assets/currencies/lego/hours.svg");
+    mask-image: url("../../assets/currencies/lego/hours.svg");
+  }
+}

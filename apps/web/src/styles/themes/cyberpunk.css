@@ -1,0 +1,239 @@
+.look-cyberpunk .look-swatch {
+  background: linear-gradient(90deg, #ff2bd6, #7b2cff, #00f0ff);
+}
+
+html[data-look="cyberpunk"] {
+  --currency-coin: #92610a;
+  --currency-dollar: #237441;
+
+  --bg: #d9d0f0;
+  --paper: #f4f0ff;
+  --paper-edge: #ff2bd6;
+  --ink: #1b0b33;
+  --muted: #6a4a88;
+  --line: rgba(123, 44, 255, .28);
+  --ok: #00a88a;
+  --ok-soft: #d4fff4;
+  --stamp: #c4007a;
+  --star: #0077aa;
+  --gold: #c9a000;
+  --shadow: 0 0 0 1px rgba(255, 43, 214, .35), 0 8px 24px rgba(123, 44, 255, .18);
+  --radius: 4px;
+  --card-radius: 4px;
+  --panel-radius: 6px;
+  --stripe-h: 6px;
+  --font: Menlo, Consolas, "Courier New", monospace;
+  --letter: 0.04em;
+  --pill-bg: rgba(255, 255, 255, .86);
+  --pill-shadow: 0 0 12px rgba(0, 240, 255, .35);
+  --stars-fg: #0077aa;
+  --stars-bg: #d6f6ff;
+  --gold-pill-fg: #6a4a00;
+  --gold-pill-bg: #ffe56a;
+  --chore-bg: #fff;
+  --chore-shadow: 0 0 0 1px rgba(123, 44, 255, .28), 0 0 16px rgba(255, 43, 214, .12);
+  --chore-done-shadow: 0 0 0 1px #00a88a, 0 0 14px rgba(0, 168, 138, .25);
+  --mark-bg: #fff;
+  --btn-bg: #c4007a;
+  --btn-fg: #fff;
+  --choice-bg: #fff;
+  --choice-on-bg: #e8d8ff;
+  --choice-on-fg: #1b0b33;
+  --well-bg: #ece4ff;
+  --tab-on-bg: #c4007a;
+  --tab-on-fg: #fff;
+  --border: 1px solid rgba(123, 44, 255, .35);
+  --body-bg:
+    linear-gradient(180deg, rgba(255, 43, 214, .08), transparent 28%),
+    repeating-linear-gradient(90deg, transparent 0 31px, rgba(0, 240, 255, .12) 31px 32px),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(255, 43, 214, .1) 31px 32px),
+    #d9d0f0;
+
+  &.night {
+    --currency-coin: #f0cb79;
+    --currency-dollar: #80dda0;
+    --bg: #07060f;
+    --paper: #12101c;
+    --paper-edge: #ff2bd6;
+    --ink: #eaf7ff;
+    --muted: #8aa0c8;
+    --line: rgba(0, 240, 255, .22);
+    --ok: #39ff14;
+    --ok-soft: #123318;
+    --stamp: #ff2bd6;
+    --star: #00f0ff;
+    --gold: #ffe600;
+    --shadow: 0 0 0 1px rgba(0, 240, 255, .35), 0 0 24px rgba(255, 43, 214, .22);
+    --pill-bg: rgba(10, 8, 22, .88);
+    --pill-shadow: 0 0 14px rgba(0, 240, 255, .45);
+    --stars-fg: #00f0ff;
+    --stars-bg: #042a33;
+    --gold-pill-fg: #07060f;
+    --gold-pill-bg: #ffe600;
+    --chore-bg: #161325;
+    --chore-shadow: 0 0 0 1px rgba(0, 240, 255, .28), 0 0 18px rgba(255, 43, 214, .16);
+    --chore-done-shadow: 0 0 0 1px #39ff14, 0 0 16px rgba(57, 255, 20, .28);
+    --mark-bg: #07060f;
+    --btn-bg: #ff2bd6;
+    --btn-fg: #07060f;
+    --choice-bg: #161325;
+    --choice-on-bg: #2a1450;
+    --choice-on-fg: #00f0ff;
+    --well-bg: #0b0914;
+    --tab-on-bg: #00f0ff;
+    --tab-on-fg: #07060f;
+    --border: 1px solid rgba(0, 240, 255, .35);
+    --body-bg:
+      radial-gradient(ellipse at 50% 0%, rgba(255, 43, 214, .18), transparent 42%),
+      repeating-linear-gradient(90deg, transparent 0 31px, rgba(0, 240, 255, .08) 31px 32px),
+      repeating-linear-gradient(0deg, transparent 0 31px, rgba(255, 43, 214, .07) 31px 32px),
+      #07060f;
+  }
+
+  &:not(.night) body {
+    &::before { opacity: .45; }
+    &::after { opacity: .18; }
+  }
+
+  .pill,
+  .btn,
+  .choice,
+  .tabs button,
+  .chore .mark,
+  .reward,
+  .toast {
+    border-radius: 2px;
+  }
+
+  .brand h1 {
+    text-transform: uppercase;
+    text-shadow: 0 0 10px var(--star), 0 0 22px var(--stamp);
+    animation: cp-flicker 5s step-end infinite;
+  }
+
+  .kid,
+  .panel,
+  .sheet,
+  .pin-stack,
+  .reward {
+    animation: cp-glow 3.4s ease-in-out infinite;
+  }
+
+  .kid::before {
+    box-shadow: 0 0 10px var(--kid), 0 0 18px var(--kid);
+    animation: cp-tube 2.2s ease-in-out infinite;
+  }
+
+  .chore.gold { animation: cp-gold 2.6s ease-in-out infinite; }
+
+  .progress > span { box-shadow: 0 0 8px var(--kid); }
+
+  .btn {
+    box-shadow: 0 0 16px rgba(196, 0, 122, .55);
+    animation: cp-btn 2.8s ease-in-out infinite;
+  }
+
+  body {
+    &::before,
+    &::after {
+      content: "";
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+    }
+
+    &::before {
+      z-index: 4;
+      background: linear-gradient(transparent 40%, rgba(0, 240, 255, .1) 50%, transparent 60%);
+      background-size: 100% 220%;
+      animation: cp-sweep 7s linear infinite;
+      mix-blend-mode: screen;
+    }
+
+    &::after {
+      z-index: 12;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0 2px,
+        rgba(0, 0, 0, .14) 2px 3px
+      );
+      opacity: .35;
+      animation: cp-scan 9s linear infinite;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .brand h1,
+    .kid,
+    .panel,
+    .sheet,
+    .pin-stack,
+    .reward,
+    .kid::before,
+    .chore.gold,
+    .btn,
+    body::before,
+    body::after {
+      animation: none;
+      filter: none;
+    }
+  }
+
+  .currency-icon.star,
+  .currency-icon.gold {
+    -webkit-mask-image: url("../../assets/currencies/cyberpunk/star.svg");
+    mask-image: url("../../assets/currencies/cyberpunk/star.svg");
+  }
+
+  .currency-icon.coin {
+    -webkit-mask-image: url("../../assets/currencies/cyberpunk/coin.svg");
+    mask-image: url("../../assets/currencies/cyberpunk/coin.svg");
+  }
+
+  .currency-icon.dollar {
+    -webkit-mask-image: url("../../assets/currencies/cyberpunk/dollar.svg");
+    mask-image: url("../../assets/currencies/cyberpunk/dollar.svg");
+  }
+
+  .currency-icon.hours {
+    -webkit-mask-image: url("../../assets/currencies/cyberpunk/hours.svg");
+    mask-image: url("../../assets/currencies/cyberpunk/hours.svg");
+  }
+}
+
+@keyframes cp-glow {
+  0%, 100% { box-shadow: 0 0 0 1px var(--star), 0 0 14px rgba(0, 240, 255, .18); }
+  50% { box-shadow: 0 0 0 1px var(--stamp), 0 0 22px rgba(255, 43, 214, .32); }
+}
+
+@keyframes cp-gold {
+  0%, 100% { box-shadow: 0 0 0 3px var(--gold), 0 0 12px rgba(255, 230, 0, .35); }
+  50% { box-shadow: 0 0 0 3px var(--stamp), 0 0 20px rgba(255, 43, 214, .45); }
+}
+
+@keyframes cp-tube {
+  0%, 100% { opacity: .85; filter: brightness(1); }
+  50% { opacity: 1; filter: brightness(1.35); }
+}
+
+@keyframes cp-flicker {
+  0%, 18%, 22%, 100% { opacity: 1; }
+  20% { opacity: .55; }
+  70% { opacity: 1; }
+  72% { opacity: .8; }
+}
+
+@keyframes cp-btn {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 43, 214, .45); }
+  50% { box-shadow: 0 0 22px rgba(255, 43, 214, .85); }
+}
+
+@keyframes cp-sweep {
+  0% { background-position: 0 -40%; }
+  100% { background-position: 0 140%; }
+}
+
+@keyframes cp-scan {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 12px; }
+}

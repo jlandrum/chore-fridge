@@ -1,0 +1,149 @@
+import { COLORS, KID_EMOJIS } from "../stores/family.js";
+
+import { $setup, setSetup, finishSetup } from "../stores/setup.js";
+import { uid } from "@chore-fridge/domain/records";
+import { defineScreen } from "../components/screen.jsox";
+import { Btn, showToast } from "../ui.jsox";
+import { createViewButton } from "./view-options.jsox";
+
+defineScreen("fridge-setup", (root) => {
+  const titleEl = <h2> {}
+  const leadEl = <p> { .className = "lead" }
+  const body = <div> {}
+  const viewBtn = createViewButton();
+  viewBtn.className = "pill view-corner";
+  [root] {
+    .className = "panel has-view"
+    [viewBtn]
+    [titleEl]
+    [leadEl]
+    [body]
+  }
+
+  function page(title, lead, content) {
+    titleEl.textContent = title;
+    leadEl.textContent = lead;
+    body.replaceChildren();
+    if (content) {
+      [body] { [content] }
+    }
+  }
+
+  function sync() {
+    if ($setup.get().step === 0) {
+      const content = <div> {
+        .className = "row"
+        [Btn("Set up the family", "btn wide", () => {
+          setSetup({ step: 1 });
+        })]
+      }
+      page("Chore Fridge", "A giant chore board for the kitchen. You add the kids, then add daily, weekly, and one-off tasks. Nothing is pre-filled.", content);
+      return;
+    }
+    if ($setup.get().step === 1) {
+      const nameInput = <input> {
+        .value = $setup.get().familyName
+        .autocomplete = "off"
+      }
+      const content = <div> {
+        <div> {
+          .className = "field"
+          <label> { ["Name"] }
+          [nameInput]
+        }
+        <div> {
+          .className = "row"
+          [Btn("Next", "btn wide", () => {
+            setSetup({ familyName: nameInput.value.trim() || "Our Family", step: 2 });
+          })]
+        }
+      }
+      page("Family name", "This sits at the top of the fridge board.", content);
+      return;
+    }
+    if ($setup.get().step === 2) {
+      const kidInput = <input> {
+        .placeholder = "Kid's name"
+        .autocomplete = "off"
+      }
+      const list = <div> { .className = "list" }
+      $setup.get().kids.forEach((kid, i) => {
+        [list] {
+          <div> {
+            .className = "item"
+            <div> { .className = "grow"; [kid.emoji + " " + kid.name] }
+            <button> {
+              .type = "button"
+              .className = "tiny"
+              ["Remove"]
+              .onclick = () => {
+                setSetup({ kids: $setup.get().kids.filter((_, index) => index !== i) });
+              }
+            }
+          }
+        }
+      });
+      const content = <div> {
+        [list]
+        <div> {
+          .className = "field"
+          <label> { ["Kid's name"] }
+          [kidInput]
+        }
+        <div> {
+          .className = "row"
+          [Btn("Add kid", "btn ghost wide", () => {
+            const name = kidInput.value.trim();
+            if (!name) {
+              showToast("Type a name first");
+              return;
+            }
+            setSetup({ kids: [...$setup.get().kids, {
+              id: uid(),
+              name,
+              emoji: KID_EMOJIS[$setup.get().kids.length % KID_EMOJIS.length],
+              color: COLORS[$setup.get().kids.length % COLORS.length],
+            }] });
+          })]
+          <button> {
+            .type = "button"
+            .className = "btn wide"
+            .disabled = $setup.get().kids.length === 0
+            ["Next"]
+            .onclick = () => {
+              if (!$setup.get().kids.length) return;
+              setSetup({ step: 3 });
+            }
+          }
+        }
+      }
+      page("Who is on the board?", "Add each kid. You can change colors and names later.", content);
+      return;
+    }
+    const pinInput = <input> {
+      .autocomplete = "off"
+      .placeholder = "1234"
+    }
+    const content = <div> {
+      <div> {
+        .className = "field"
+        <label> { ["4-digit PIN"] }
+        [pinInput]
+      }
+      <div> {
+        .className = "row"
+        [Btn("Open the board", "btn wide", () => {
+          const result = finishSetup(pinInput.value);
+          if (result.error) {
+            showToast(result.error);
+            return;
+          }
+
+        })]
+      }
+    }
+    page("Parent lock", "Optional. Keeps kids out of family settings. Tasks are added in Parent.", content);
+  }
+
+  return sync;
+}, [$setup]);

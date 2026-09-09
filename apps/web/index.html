@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#cfd8de">
+  <title>Chore Fridge</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧲</text></svg>">
+</head>
+<body>
+  <script>
+    (function () {
+      var appearance = "system";
+      var look = "classic";
+      var zoom = 100;
+      var looks = { modern: 1, classic: 1, business: 1, crayon: 1, contrast: 1, lego: 1, cyberpunk: 1 };
+      var colors = {
+        modern: ["#f3f6f8", "#101b23"],
+        classic: ["#cfd8de", "#2b3338"],
+        business: ["#d5dee8", "#1a2330"],
+        crayon: ["#f2d48a", "#3a2412"],
+        contrast: ["#ffffff", "#000000"],
+        lego: ["#f5cd2f", "#1a1a1a"],
+        cyberpunk: ["#c8b8e8", "#0b0714"]
+      };
+      try {
+        var view = JSON.parse(localStorage.getItem("chore-fridge-view") || "null");
+        if (view && typeof view === "object") {
+          var nextAppearance = view.appearance || view.theme;
+          if (nextAppearance === "light" || nextAppearance === "dark" || nextAppearance === "system") {
+            appearance = nextAppearance;
+          }
+          if (looks[view.look]) look = view.look;
+          var nextZoom = Number(view.zoom);
+          if (nextZoom >= 50 && nextZoom <= 150) zoom = nextZoom;
+        } else {
+          var state = JSON.parse(localStorage.getItem("chore-fridge-v2") || "null");
+          if (state && state.nightMode === "on") appearance = "dark";
+          else if (state && state.nightMode === "off") appearance = "light";
+        }
+      } catch (err) {}
+      var dark = appearance === "dark";
+      if (appearance === "system") {
+        dark = !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      }
+      var html = document.documentElement;
+      html.classList.toggle("night", dark);
+      html.setAttribute("data-look", look);
+      document.body.classList.toggle("night", dark);
+      document.body.setAttribute("data-look", look);
+      html.style.zoom = String(zoom / 100);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", colors[look][dark ? 1 : 0]);
+    })();
+  </script>
+  <script type="module" src="/src/main.jsox"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+import { $setupDone } from "./stores/family.js";
+import { $ui } from "./stores/navigation.js";
+import { tick } from "./stores/clock.js";
+import { startSync, $syncError } from "./stores/sync.js";
+import { defineComponent } from "@js-ox/web-components";
+import { computed } from "nanostores";
+import { showToast, closeModal } from "./ui.jsox";
+import { applyTheme } from "./view.js";
+import "./views/setup.jsox";
+import "./views/board.jsox";
+import "./views/pin.jsox";
+import "./views/parent.jsox";
+
+const $screen = computed([$setupDone, $ui], (setupDone, navigation) =>
+  !setupDone ? "setup" :
+    !navigation.parentUnlocked && (navigation.view === "parent" || (navigation.view === "pin" && navigation.pinMode === "set")) ? "board" : navigation.view
+);
+
+[defineComponent("chore-fridge")] {
+  .connected = function () {
+    if (!this.children.length) {
+      this.id = "app";
+      [this] {
+        <fridge-setup> { .hidden = true }
+        <fridge-board> { .hidden = true }
+        <fridge-pin> { .hidden = true }
+        <fridge-parent> { .hidden = true }
+      }
+    }
+    this.unsubscribe = $screen.subscribe((current) => {
+      for (const screen of this.children) {
+        const overlay = current === "parent" || current === "pin";
+        const visible = screen.localName === "fridge-" + current ||
+          (overlay && screen.localName === "fridge-board");
+        screen.hidden = !visible;
+        screen.inert = overlay && screen.localName === "fridge-board";
+        if (!screen.hidden) screen.syncDOM();
+      }
+      if (current === "parent") queueMicrotask(() => this.querySelector("fridge-parent .settings-close")?.focus());
+      if (current === "pin") queueMicrotask(() => this.querySelector("fridge-pin")?.focus());
+    });
+    this.stopLock = $ui.listen((next, previous) => {
+      if (previous.parentUnlocked && !next.parentUnlocked) closeModal();
+    });
+    this.stopSync = startSync();
+    this.stopErrors = $syncError.listen(message => { if (message) showToast(message); });
+    this.pollTimer = setInterval(() => {
+      applyTheme();
+
+    }, 5000);
+    this.dayTimer = setInterval(tick, 60000);
+  }
+  .disconnected = function () {
+    this.unsubscribe();
+    this.stopSync();
+    this.stopLock();
+    this.stopErrors();
+    clearInterval(this.pollTimer);
+    clearInterval(this.dayTimer);
+  }
+  .register()
+}

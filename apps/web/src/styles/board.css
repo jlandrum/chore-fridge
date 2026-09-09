@@ -1,0 +1,433 @@
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+
+  @media (max-width: 700px) {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  h1 {
+    margin: 0;
+    font-size: 34px;
+    letter-spacing: var(--letter);
+    line-height: 1;
+
+    @media (max-width: 700px) { font-size: 26px; }
+  }
+
+  .date {
+    color: var(--muted);
+    font-size: 18px;
+  }
+}
+
+.top-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.top-balances {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pill {
+  min-height: 56px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: var(--border);
+  background: var(--pill-bg);
+  box-shadow: var(--pill-shadow);
+  font-size: 20px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  &:active { transform: translateY(1px); }
+}
+
+.stars-pill { color: var(--stars-fg); background: var(--stars-bg); }
+
+.gold-pill {
+  color: var(--gold-pill-fg);
+  background: var(--gold-pill-bg);
+}
+
+.currency-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.12em;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.currency-icon {
+  position: relative;
+  width: 1.15em;
+  height: 1.15em;
+  display: block;
+  background-color: currentColor;
+  /* SVG masks need transparent holes, not white painted details. */
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+}
+
+/* Classic silhouettes; each look overrides mask-image in its theme file. */
+.currency-icon.star {
+  color: var(--star);
+  -webkit-mask-image: url("../assets/currencies/classic/star.svg");
+  mask-image: url("../assets/currencies/classic/star.svg");
+}
+
+.currency-icon.gold {
+  color: var(--currency-coin);
+  -webkit-mask-image: url("../assets/currencies/classic/star.svg");
+  mask-image: url("../assets/currencies/classic/star.svg");
+}
+
+.currency-icon.gold::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .4) 50%, transparent 65%);
+  background-size: 220% 100%;
+  animation: gold-shimmer 2.2s linear infinite;
+}
+
+.currency-icon.coin {
+  color: var(--currency-coin);
+  -webkit-mask-image: url("../assets/currencies/classic/coin.svg");
+  mask-image: url("../assets/currencies/classic/coin.svg");
+}
+
+.currency-icon.dollar {
+  color: var(--currency-dollar);
+  -webkit-mask-image: url("../assets/currencies/classic/dollar.svg");
+  mask-image: url("../assets/currencies/classic/dollar.svg");
+}
+
+.currency-icon.hours {
+  color: var(--ink);
+  -webkit-mask-image: url("../assets/currencies/classic/hours.svg");
+  mask-image: url("../assets/currencies/classic/hours.svg");
+}
+
+@keyframes gold-shimmer {
+  0% { background-position: 120% 0; }
+  100% { background-position: -20% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .currency-icon.gold::after { animation: none; display: none; }
+}
+
+.workspace {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @media (max-width: 700px) { overflow: visible; }
+}
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.board {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: stretch;
+
+  @media (max-width: 700px) {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    min-height: 0;
+    height: auto;
+  }
+
+  @media (orientation: portrait) and (min-height: 1100px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.kid {
+  background: var(--paper);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: var(--stripe-h);
+    background: var(--kid);
+  }
+
+  @media (max-width: 700px) {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    flex: none;
+  }
+}
+
+.kid-head {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 20px 18px 8px;
+  gap: 8px;
+}
+
+.kid-name {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: var(--letter);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+
+  .emoji { font-size: 34px; line-height: 1; flex-shrink: 0; }
+  > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+
+  @media (max-width: 700px) { font-size: 22px; }
+}
+
+.kid-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.kid-balance,
+.kid-completion {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.progress {
+  height: 8px;
+  margin: 0 18px 10px;
+  background: var(--track);
+  border-radius: 99px;
+  overflow: hidden;
+
+  > span {
+    display: block;
+    height: 100%;
+    background: var(--kid);
+    width: 0;
+    transition: width .25s ease;
+  }
+}
+
+.chores {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 6px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+
+  @media (max-width: 700px) {
+    flex: none;
+    overflow: visible;
+    min-height: 0;
+  }
+}
+
+.chore {
+  min-height: var(--hit);
+  border-radius: var(--card-radius);
+  border: var(--border);
+  background: var(--chore-bg);
+  box-shadow: var(--chore-shadow);
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  text-align: left;
+
+  &:active { transform: translateY(1px); }
+
+  &:disabled,
+  &.locked { opacity: .45; }
+
+  &.gold { box-shadow: 0 0 0 3px var(--gold), var(--chore-shadow); }
+
+  &.done {
+    background: var(--ok-soft);
+    box-shadow: var(--chore-done-shadow);
+
+    &.gold { box-shadow: 0 0 0 3px var(--gold), var(--chore-done-shadow); }
+    .title { text-decoration: line-through; opacity: .72; }
+    .stamp { opacity: .9; }
+    .mark {
+      background: var(--ok);
+      border-color: var(--ok);
+      color: white;
+    }
+  }
+
+  .mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 4px solid var(--kid);
+    display: grid;
+    place-items: center;
+    font-size: 28px;
+    background: var(--mark-bg);
+  }
+
+  .copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .title {
+    display: block;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--muted);
+    line-height: 1;
+  }
+
+  .kind { flex-shrink: 0; }
+
+  .pts {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .stamp {
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    color: var(--stamp);
+    border: 3px solid var(--stamp);
+    padding: 4px 6px;
+    border-radius: 6px;
+    opacity: 0;
+  }
+
+  @media (max-width: 700px) {
+    min-height: 64px;
+    padding: 8px 10px;
+    grid-template-columns: 44px 1fr;
+
+    .mark {
+      width: 40px;
+      height: 40px;
+      font-size: 22px;
+      border-width: 3px;
+    }
+
+    .title {
+      font-size: 18px;
+      white-space: normal;
+    }
+
+    .stamp,
+    &.done .stamp { display: none; }
+  }
+
+  @media (orientation: portrait) and (min-height: 1100px) {
+    min-height: 96px;
+  }
+}
+
+.empty {
+  margin: auto;
+  text-align: center;
+  color: var(--muted);
+  font-size: 22px;
+  padding: 24px 10px;
+
+  .big { font-size: 48px; display: block; margin-bottom: 8px; }
+}
+
+.add-chore {
+  min-height: 64px;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 3px var(--line);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--muted);
+  flex-shrink: 0;
+
+  &:active { transform: translateY(1px); }
+}
+
+/* Keep marks legible on the saturated balance pills in every appearance. */
+.stars-pill .currency-icon.star { color: inherit; }
+.gold-pill .currency-icon.gold { color: inherit; }
+html[data-look="contrast"] .currency-icon.gold::after { display: none; }
