@@ -1,5 +1,7 @@
 # Chore Fridge v2 roadmap
 
+v2 is the live board on `main`. Unchecked items below move to [v3](v3.md).
+
 - [ ] Child-specific options, including a theme the child can choose for only their card
 - [x] Parent Mode lock/unlock, separate Settings, and optional task/redemption locks
 - [x] New display modes

@@ -2,6 +2,8 @@
 
 Chore Fridge is a self-hosted household chore board designed for a smart fridge or wall-mounted tablet. It provides large tap targets, separate kid columns, recurring chores, rewards, stars, and a parent PIN.
 
+v2 is what the fridge runs today (`main`). v3 is a fridge experience station: family-member accounts, a card shell, stackable themes, server subscriptions, and a native app. See [docs/v3.md](docs/v3.md) and the `feature/v3` branch.
+
 The UI is written in [JSOX 0.2](https://github.com/javascript-ox/jsox) and compiled to ordinary JavaScript. Native web components use `@js-ox/web-components` with light DOM so the existing themes apply throughout the app. Browsers only receive the compiled application.
 
 ## Run locally
