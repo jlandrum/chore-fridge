@@ -146,11 +146,39 @@
   gap: 8px;
 }
 
-.cost-lines { display: grid; gap: 12px; }
+.cost-lines { display: grid; gap: 8px; }
 
 .cost-line {
   display: grid;
+  grid-template-columns: minmax(8rem, 1fr) 5.5rem 2.75rem;
   gap: 8px;
+  align-items: end;
+}
+
+.cost-line .field {
+  margin: 0;
+  position: relative;
+}
+
+.cost-line .field label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.cost-line select,
+.cost-line input {
+  min-height: 48px;
+  font-size: 18px;
+  padding: 0 10px;
+}
+
+.cost-remove,
+.cost-add {
+  min-width: 2.75rem;
+  min-height: 48px;
 }
 
 .cost-marks {

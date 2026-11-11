@@ -11,6 +11,10 @@ User-facing changes and upgrade notes are recorded here. Move the Unreleased ent
 - Settings → Ledger shows one day's journal: who earned, spent, or had a payment returned, and for which task or reward. Older reward entries that were recorded before this change are labeled Reward.
 - The board can move to a past day so a missed daily list can be completed. That day is the accounting day in the ledger. Shop spending still uses the current calendar day.
 
+### Changed
+
+- Reward cost rows are a currency menu, an amount, and a minus to remove a line.
+
 ### Fixed
 
 - Redeeming a reward now spends the same balance the shop shows. Legacy gold chores keep the one gold star each completion awarded, and an undo that failed to take that star back is corrected when the server starts. A household can see a lower gold balance after the correction. A reward that costs more than that balance stays unavailable instead of playing the redemption animation.

@@ -34,27 +34,49 @@ export function openRewardForm(existing = null) {
     readLines();
     costList.replaceChildren();
     lines.forEach((line, index) => {
+      const labelText = index === 0 ? "Cost" : "Cost " + (index + 1);
       const amountInput = <input> {
         .type = "number"
         .min = "1"
         .step = "1"
         .value = String(line.amount || 1)
-        .setAttribute("aria-label", index === 0 ? "Cost" : "Cost " + (index + 1))
+        .setAttribute("aria-label", labelText)
         .oninput = () => { line.amount = Number(amountInput.value); }
       }
       line.input = amountInput;
       const available = options.filter((item) => item.value === line.currency || !usedCurrencies(index).has(item.value));
-      const picker = Choices(available, line.currency, (value) => { line.currency = value; renderCosts(); }, {className:"row task-currency"});
+      const select = <select> {
+        .setAttribute("aria-label", labelText + " currency")
+        .onchange = () => { line.currency = select.value; renderCosts(); }
+      }
+      for (const item of available) {
+        const option = document.createElement("option");
+        option.value = item.value;
+        option.textContent = item.label;
+        if (item.value === line.currency) option.selected = true;
+        select.append(option);
+      }
+      const minus = Btn("−", "tiny cost-remove", () => { if (lines.length < 2) return; lines.splice(index, 1); renderCosts(); });
+      minus.setAttribute("aria-label", "Remove " + labelText);
+      minus.disabled = lines.length < 2;
       const row = <div> {
         .className = "cost-line"
-        <div> { .className = "field"; <label> { [index === 0 ? "Cost" : "Cost " + (index + 1)] }; [amountInput] }
-        [picker]
+        [select]
+        <div> { .className = "field"; <label> { [labelText] }; [amountInput] }
+        [minus]
       }
-      if (lines.length > 1) row.append(Btn("Remove", "tiny", () => { lines.splice(index, 1); renderCosts(); }));
       costList.append(row);
     });
   }
   renderCosts();
+  const addCost = Btn("+", "tiny cost-add", () => {
+    const used = usedCurrencies(-1);
+    const next = options.find((item) => !used.has(item.value));
+    if (!next) { showToast("Every currency is already on this reward"); return; }
+    lines.push({currency: next.value, amount: 1});
+    renderCosts();
+  });
+  addCost.setAttribute("aria-label", "Add currency");
   const family = formToggle("Family reward", "Anyone can chip in toward this cost. It is redeemed when the payments reach the cost.", "Family reward", existing?.pooled, (on) => { if (on) exchange.set(false); updateTabs(); });
   const exchange = formToggle("Currency Exchange", "Give another currency when this reward is redeemed.", "Currency Exchange", existing?.currencyExchange && !existing?.pooled, () => updateTabs());
   const daily = formToggle("Only allow one redemption per day", "Each child can redeem this once per calendar day. A family reward can be completed once per day for the whole household.", "Only allow one redemption per day", existing?.oncePerDay);
@@ -65,15 +87,9 @@ export function openRewardForm(existing = null) {
       <div> { .className = "field task-title"; <label> { ["Reward"] }; [titleInput] }
       <div> { .className = "field task-emoji"; <label> { ["Emoji"] }; [emoji.trigger] }
     }
+    <p> { .className = "view-label"; ["Cost"] }
     [costList]
-    <p> { .className = "view-label"; ["Currency to spend"] }
-    [Btn("Add currency", "btn ghost", () => {
-      const used = usedCurrencies(-1);
-      const next = options.find((item) => !used.has(item.value));
-      if (!next) { showToast("Every currency is already on this reward"); return; }
-      lines.push({currency: next.value, amount: 1});
-      renderCosts();
-    })]
+    [addCost]
   }
   const advanced = <div> {
     .className = "task-panel"

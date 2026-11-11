@@ -626,7 +626,7 @@ test('a shop reward can spend two currencies at once', async () => {
     openRewardForm();
     field('Reward', 'Movie night');
     field('Cost', '5');
-    click('Add currency', modal);
+    modal.querySelector('[aria-label="Add currency"]').click();
     field('Cost 2', '2');
     click('Save', modal);
     const reward = rewards.$rewards.get().find(item => item.title === 'Movie night');
