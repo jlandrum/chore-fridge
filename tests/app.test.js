@@ -27,6 +27,17 @@ function click(label, scope = active()) {
   assert.equal(button.disabled, false, `Button enabled: ${label}`);
   button.click();
 }
+function tapFamily() {
+  const button = active().querySelector('.family-name');
+  assert.ok(button, 'Family name unlocks Parent Mode');
+  button.click();
+}
+function openLook() {
+  const button = active().querySelector('[aria-label="View options"]');
+  assert.ok(button, 'View options');
+  assert.equal(button.disabled, false);
+  button.click();
+}
 function field(label, value, scope = modal) {
   const wrapper = [...scope.querySelectorAll('.field')].find(node => node.querySelector('label')?.textContent === label);
   assert.ok(wrapper, `Field exists: ${label}`);
@@ -53,7 +64,7 @@ test('onboarding, PIN, task editing, completion, rewards, themes, and reconnect'
   assert.equal(active().localName, 'fridge-board');
   assert.match(active().textContent, /Test Household/);
   assert.equal(active().querySelectorAll('fridge-kid').length, 1);
-  click('Unlock Parent Mode');
+  tapFamily();
   for (const digit of '0000') click(digit);
   assert.equal(active().localName, 'fridge-pin');
   for (const digit of '1234') click(digit);
@@ -88,15 +99,31 @@ test('onboarding, PIN, task editing, completion, rewards, themes, and reconnect'
   assert.equal(balances.starsFor(family.$kids.get()[0].id), 0);
   rewards.saveReward({ ...rewards.$rewards.get()[0], title:'Updated treat' });
   assert.match(active().querySelector('.reward').textContent, /Updated treat/);
-  click('View');
+  openLook();
   click('Dark', modal);
+  click('Cyberpunk', modal);
+  assert.equal(document.documentElement.dataset.look, 'cyberpunk');
+  click('Holidays', modal);
+  assert.equal(document.documentElement.dataset.look, 'holidays');
+  const clock = await import('../apps/web/src/stores/clock.js');
+  const { todayKey } = await import('@chore-fridge/domain/dates');
+  const originalDay = clock.$boardDay.get();
+  clock.$boardDay.set('2026-12-25');
+  view.applyTheme();
+  assert.equal(document.documentElement.dataset.season, 'winter');
+  assert.equal(document.documentElement.dataset.holiday, 'christmas-day');
+  clock.$boardDay.set('2026-11-11');
+  view.applyTheme();
+  assert.equal(document.documentElement.dataset.season, 'fall');
+  assert.equal(document.documentElement.dataset.holiday, 'veterans');
+  clock.$boardDay.set(originalDay || todayKey());
   click('Cyberpunk', modal);
   assert.equal(document.documentElement.dataset.look, 'cyberpunk');
   assert.equal(document.documentElement.classList.contains('night'), true);
   modal.querySelector('[aria-label="Zoom in"]').click();
   assert.equal(view.getView().zoom, 110);
   click('Done', modal);
-  click('View');
+  openLook();
   assert.equal(modal.querySelector('.zoom-val').textContent, '110%');
   click('Done', modal);
   const childCount = app.children.length;
@@ -211,7 +238,7 @@ test('multiple view controls stay synchronized and removed controls unsubscribe'
   two.remove();
 });
 
-test('board layouts switch between classic columns, gallery cards, and slide-to-shop', () => {
+test('board layouts switch between classic columns, gallery cards, slide-to-shop, and compact cards', () => {
   view.setLayout('classic');
   assert.equal(document.documentElement.dataset.layout, 'classic');
   assert.equal(active().querySelector('fridge-shop').hidden, true);
@@ -233,6 +260,24 @@ test('board layouts switch between classic columns, gallery cards, and slide-to-
   assert.equal(active().querySelector('.workspace').classList.contains('shop-open'), false);
   assert.equal(JSON.parse(localStorage.getItem(view.VIEW_KEY)).layout, 'slide');
   view.setLayout('classic');
+  assert.equal(active().querySelector('fridge-shop').hidden, true);
+  view.setLayout('compact');
+  try {
+    assert.equal(document.documentElement.dataset.layout, 'compact');
+    assert.equal(active().querySelector('fridge-shop').hidden, false);
+    const storeBtn = [...active().querySelectorAll('button')].find(node => node.textContent.trim() === 'Visit Store' || node.textContent.trim() === 'Home');
+    assert.ok(storeBtn, 'Visit Store or Home');
+    if (storeBtn.textContent.trim() === 'Visit Store') storeBtn.click();
+    assert.ok(active().querySelector('fridge-shop').classList.contains('is-current'));
+    click('Home');
+    const cards = [...active().querySelectorAll('fridge-kid')];
+    if (cards.length) {
+      assert.equal(active().querySelector('fridge-shop').classList.contains('is-current'), false);
+      assert.ok(cards[0].classList.contains('is-current'));
+    }
+  } finally {
+    view.setLayout('classic');
+  }
   assert.equal(active().querySelector('fridge-shop').hidden, true);
 });
 
@@ -305,12 +350,12 @@ test('archive and restore controls retain earned credit on a versioned board', a
 test('parent unlock lasts across navigation, explicit lock closes editors, and PIN changes relock', () => {
   family.setPin('2468');
   navigation.lockParent();
-  click('Unlock Parent Mode');
+  tapFamily();
   click('1');
   click('Back to board');
   assert.equal(navigation.$ui.get().pinBuf,'');
   assert.equal(navigation.$ui.get().parentUnlocked,false);
-  click('Unlock Parent Mode');
+  tapFamily();
   for (const digit of '0000') click(digit);
   assert.equal(navigation.$ui.get().parentUnlocked,false);
   for (const digit of '2468') click(digit);
@@ -398,7 +443,7 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   navigation.setUI({view:'parent'});
   assert.equal(active().localName,'fridge-board');
   navigation.setUI({view:'board'});
-  click('Unlock Parent Mode');
+  tapFamily();
   for (const digit of '2468') click(digit);
   click('Settings');
   click('Chores');
@@ -410,12 +455,12 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.equal(modal.hidden,true);
   assert.equal(modal.children.length,0);
   family.setPin('');
-  click('Unlock Parent Mode');
+  tapFamily();
   assert.equal(active().localName,'fridge-board');
   click('Settings');
   assert.equal(active().localName,'fridge-parent');
   click('Close');
-  click('Lock Parent Mode');
+  tapFamily();
   assert.equal(navigation.$ui.get().parentUnlocked,false);
 });
 
@@ -425,7 +470,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
   const task = {id:'gated-task',title:'Task',kidIds:['gated-kid'],points:2,repeat:'daily',minCount:1,maxCount:1};
   sync.applySnapshot({...sync.defaultState(),setupDone:true,kids:[{id:'gated-kid',name:'Alex'}],chores:[task,{...task,id:'gated-count',title:'Counted task',maxCount:3}]});
   navigation.lockParent();
-  click('Unlock Parent Mode');
+  tapFamily();
   assert.equal(active().localName,'fridge-board');
   click('Settings');
   click('General');
@@ -438,7 +483,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
   assert.equal(family.$requireParentModeForCompletion.get(),true);
   assert.equal(sync.serializeHousehold().requireParentModeForCompletion,true);
   click('Close');
-  click('Lock Parent Mode');
+  tapFamily();
   const revision = changes.$revision.get();
   for (const row of active().querySelectorAll('fridge-chore')) {
     row.querySelector('button').click();
@@ -447,7 +492,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
   assert.deepEqual(chores.$completions.get(),{});
   assert.deepEqual(chores.$counts.get(),{});
   assert.equal(changes.$revision.get(),revision);
-  click('Unlock Parent Mode');
+  tapFamily();
   await pauseTap();
   const plain = [...active().querySelectorAll('fridge-chore')].find(row => !row.textContent.includes('Counted task'));
   plain.querySelector('button').click();
@@ -456,7 +501,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
   const counted = [...active().querySelectorAll('fridge-chore')].find(row => row.textContent.includes('Counted task'));
   counted.querySelector('button').click();
   assert.equal(chores.countFor(chores.$chores.get()[1],'gated-kid'),1);
-  click('Lock Parent Mode');
+  tapFamily();
   const lockedRevision = changes.$revision.get();
   const creditsBefore = balances.starsFor('gated-kid');
   plain.querySelector('button').click();
@@ -467,7 +512,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
   assert.equal(chores.countFor(chores.$chores.get()[1],'gated-kid'),1);
   assert.equal(balances.starsFor('gated-kid'),creditsBefore);
   assert.equal(changes.$revision.get(),lockedRevision);
-  click('Unlock Parent Mode');
+  tapFamily();
   await pauseTap();
   plain.querySelector('button').click();
   assert.equal(chores.isDone(chores.$chores.get()[0],'gated-kid'),false);
@@ -480,7 +525,7 @@ test('completion setting blocks normal and counted tasks while locked and displa
   control.checked = false;
   control.dispatchEvent(new Event('change',{bubbles:true}));
   click('Close');
-  click('Lock Parent Mode');
+  tapFamily();
   await pauseTap();
   counted.querySelector('button').click();
   assert.equal(chores.countFor(chores.$chores.get()[1],'gated-kid'),1);
@@ -499,7 +544,7 @@ test('redemption toggle independently blocks spending while locked and shows a m
   assert.equal(family.$requireParentModeForCompletion.get(),true);
   assert.equal(family.$requireParentModeForRedemptions.get(),true);
   click('Close');
-  click('Lock Parent Mode');
+  tapFamily();
   const revision = changes.$revision.get();
   active().querySelector('.reward').click();
   assert.equal(toastEl.textContent,'Unlock Parent Mode to redeem rewards.');
@@ -508,7 +553,7 @@ test('redemption toggle independently blocks spending while locked and shows a m
   assert.equal(changes.$revision.get(),revision);
   assert.equal(balances.starsFor('reward-kid'),10);
   assert.equal(balances.goldFor('reward-kid'),1);
-  click('Unlock Parent Mode');
+  tapFamily();
   assert.equal(rewards.redeemReward('gold','reward-kid').ok,true);
   assert.equal(balances.goldFor('reward-kid'),0);
   click('Settings');
@@ -516,7 +561,7 @@ test('redemption toggle independently blocks spending while locked and shows a m
   active().querySelector('input[aria-label="Require Parent Mode for redemptions"]').click();
   assert.equal(family.$requireParentModeForCompletion.get(),true);
   click('Close');
-  click('Lock Parent Mode');
+  tapFamily();
   assert.equal(rewards.redeemReward('stars','reward-kid').ok,true);
   assert.equal(balances.starsFor('reward-kid'),8);
 });

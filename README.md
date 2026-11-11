@@ -95,7 +95,7 @@ The Node server lets all devices on the permitted local network share one board.
 
 ## Parent controls
 
-Use **Unlock Parent Mode** to enter the PIN and unlock this page. Unlocking keeps you on the board. Open **Settings** separately, and use **Lock Parent Mode** when finished. Reloading starts locked, and a PIN change relocks other open pages when synchronized. Without a PIN, unlocking takes effect immediately.
+Tap the **family name** in the board banner to enter the PIN and unlock Parent Mode, or to lock it again. Unlocking keeps you on the board. Open **Settings** separately. Reloading starts locked, and a PIN change relocks other open pages when synchronized. Without a PIN, unlocking takes effect immediately. Settings still has **Lock Parent Mode**.
 
 The board date under the household name can step back to a missed day. Completing chores there records that day. **Today** returns to the current calendar day. The shop still spends for today.
 
@@ -109,11 +109,11 @@ The household name, shop sayings, Parent PIN, and destructive household reset co
 
 ## Display options
 
-Use **View** from setup or the board, or open **Settings → Display**, to adjust this device's display:
+Use the paintbrush next to the board date, **View** during setup, or **Settings → Display**, to adjust this device's display:
 
 - Appearance: Light, Dark, or System (follows the device's color preference).
-- Board: Classic columns, Gallery cards (including the shop), or Slide to Buy. Slide to Buy shows a large shopkeeper, a saying of the day, then the shop items.
-- Theme: Modern (v2), Classic (V1), Business, Crayon, High contrast, Lego, or Cyberpunk.
+- Board: Classic columns, Gallery cards (including the shop), Slide to Buy, or Compact (one full-screen person card at a time, plus the shop as a tile; Visit Store / Home). Slide to Buy shows a large shopkeeper, a saying of the day, then the shop items.
+- Theme: Modern (v2), Classic (V1), Business, Crayon, High contrast, Lego, Cyberpunk, or Holidays (seasonal colors and holiday extras).
 - Zoom: 50–150% in 10% steps.
 
 Changes apply immediately and are remembered in this browser. Display preferences are independent of the shared household state, so each fridge, tablet, or computer can use its own settings. Existing explicit bright/dim preferences are migrated from browser storage; automatic appearance now follows the system instead of dimming after 8 p.m.

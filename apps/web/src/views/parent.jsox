@@ -443,7 +443,7 @@ function HelpTab() {
         [" this app has no server authentication. Do not expose port 8080 to the internet; allow access only from devices on a trusted home network. Settings → Advanced can turn on MCP for local clients; it stays off until you enable it."]
       }
       <p> {
-        ["Use Lock Parent Mode when you are finished. Returning to the board keeps settings unlocked on this page until you lock them or reload. Change the PIN in Settings → General while unlocked."]
+        ["Tap the family name on the board to lock or unlock Parent Mode. Returning to the board keeps settings unlocked on this page until you lock them or reload. Change the PIN in Settings → General while unlocked."]
       }
     }
   }

@@ -101,7 +101,107 @@ html[data-layout="slide"] .slide-go-shop {
   html[data-layout="slide"] .slide-go-shop { animation: none; }
 }
 
+html[data-layout="compact"],
+html[data-layout="compact"] body,
+html[data-layout="compact"] #app {
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+html[data-layout="compact"] #app {
+  padding: 10px 10px 8px;
+}
+
+html[data-layout="compact"] .screen { overflow: hidden; }
+
+html[data-layout="compact"] .workspace {
+  overflow: hidden;
+}
+
+html[data-layout="compact"] .stage {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+html[data-layout="compact"] .board,
+html[data-layout="compact"] .shop {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+html[data-layout="compact"] .board {
+  display: grid;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+}
+
+html[data-layout="compact"] .kid {
+  display: none;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+html[data-layout="compact"] .kid.is-current { display: flex; }
+
+html[data-layout="compact"] .shop {
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--paper);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+html[data-layout="compact"] .shop.is-current {
+  display: flex;
+  z-index: 1;
+}
+
+html[data-layout="compact"] .shop-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+html[data-layout="compact"] .chores {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
 @media (max-width: 700px) {
+  html[data-layout="compact"],
+  html[data-layout="compact"] body,
+  html[data-layout="compact"] #app {
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  html[data-layout="compact"] #app {
+    padding: 8px 8px 6px;
+  }
+
+  html[data-layout="compact"] .screen,
+  html[data-layout="compact"] .workspace {
+    overflow: hidden;
+  }
+
+  html[data-layout="compact"] .kid.is-current {
+    height: 100%;
+    max-height: none;
+    overflow: hidden;
+    flex: 1;
+  }
+
   html[data-layout="gallery"] .stage {
     display: flex;
     flex-direction: column;

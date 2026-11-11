@@ -1,30 +1,40 @@
 .top {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.banner {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
-  flex-shrink: 0;
-
-  @media (max-width: 700px) {
-    flex-wrap: wrap;
-    align-items: flex-start;
-  }
-}
-
-.brand {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  width: 100%;
   min-width: 0;
+  padding: 10px 14px;
+  border-radius: var(--panel-radius);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  border: var(--border);
 
-  h1 {
+  .family-name {
     margin: 0;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
     font-size: 34px;
+    font-weight: 800;
     letter-spacing: var(--letter);
-    line-height: 1;
+    line-height: 1.1;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
 
-    @media (max-width: 700px) { font-size: 26px; }
+    @media (max-width: 700px) { font-size: 24px; }
   }
 
   .date {
@@ -51,17 +61,46 @@
   font-size: 16px;
 }
 
+.board-look-btn {
+  min-width: 40px;
+  padding: 0 8px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.top-meta {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .top-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
-  flex-shrink: 0;
+}
+
+.holiday-greeting {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: var(--letter);
+  color: var(--stamp);
 }
 
 .top-balances {
   display: flex;
-  gap: 10px;
+  flex-wrap: nowrap;
+  gap: 8px;
   align-items: center;
+  flex: 0 0 auto;
 }
 
 .pill {

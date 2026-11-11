@@ -1,0 +1,75 @@
+import { holidayMoment } from "@chore-fridge/domain/holidays";
+import { $boardDay, boardDate } from "../stores/clock.js";
+import { $view, getView } from "../view.js";
+import { defineScreen } from "./screen.jsox";
+
+const GROUND = {
+  fall: "🍂🍁🍃🍂🍁🍂🍃🍁",
+  spring: "🌸🌿🌼🌱🌸🌿",
+  summer: "🌾☀️🌼🌾",
+  winter: "❄️✨❄️✨❄️",
+};
+
+function flakes() {
+  const layer = <div> { .className = "holiday-snow" }
+  for (let i = 0; i < 10; i += 1) {
+    const flake = <span> { .className = "holiday-flake"; ["❄"] }
+    flake.style.left = (6 + i * 9) + "%";
+    flake.style.animationDelay = (i * 0.7) + "s";
+    flake.style.animationDuration = (10 + (i % 5)) + "s";
+    layer.append(flake);
+  }
+  return layer;
+}
+
+function tree(lit) {
+  const wrap = <div> { .className = "holiday-tree-wrap" }
+  wrap.append(<div> { .className = "holiday-tree"; ["🎄"] });
+  if (!lit) return wrap;
+  const spots = [[18, 28, "#e25a4c"], [42, 18, "#f0c040"], [28, 48, "#6ecbff"], [50, 42, "#e25a4c"], [22, 62, "#f0c040"]];
+  for (const [x, y, color] of spots) {
+    const light = <span> { .className = "holiday-light" }
+    light.style.left = x + "px";
+    light.style.top = y + "px";
+    light.style.color = color;
+    light.style.background = color;
+    wrap.append(light);
+  }
+  return wrap;
+}
+
+defineScreen("fridge-holiday-decor", (root) => {
+  root.setAttribute("aria-hidden", "true");
+  return () => {
+    const look = getView().look;
+    const moment = holidayMoment(boardDate());
+    root.className = "holiday-decor";
+    root.classList.toggle("off", look !== "holidays");
+    if (look !== "holidays") {
+      root.replaceChildren();
+      return;
+    }
+    root.classList.add("holiday-" + moment.season);
+    if (moment.holiday) root.classList.add("holiday-" + moment.holiday);
+    if (moment.holiday === "christmas-day") root.classList.add("holiday-christmas");
+    const layers = [];
+    const ground = GROUND[moment.season];
+    if (ground) layers.push(<div> { .className = "holiday-ground"; [ground] });
+    if (moment.holiday === "veterans" || moment.holiday === "independence" || moment.holiday === "memorial") {
+      layers.push(<div> { .className = "holiday-bunting" });
+    }
+    if (moment.holiday === "thanksgiving") layers.push(<div> { .className = "holiday-figure"; ["🦃"] });
+    if (moment.holiday === "halloween") layers.push(<div> { .className = "holiday-figure"; ["🎃"] });
+    if (moment.holiday === "valentine") layers.push(<div> { .className = "holiday-figure"; ["💝"] });
+    if (moment.holiday === "st-patrick") layers.push(<div> { .className = "holiday-figure"; ["☘️"] });
+    if (moment.holiday === "christmas" || moment.holiday === "christmas-day" || moment.season === "winter") {
+      layers.push(flakes());
+    }
+    if (moment.holiday === "christmas" || moment.holiday === "christmas-day") {
+      layers.push(tree(moment.holiday === "christmas-day"));
+    }
+    root.replaceChildren(...layers);
+  };
+}, [$view, $boardDay]);
+
+export function HolidayDecor() { return <fridge-holiday-decor> }

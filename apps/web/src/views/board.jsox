@@ -2,62 +2,97 @@ import { $familyName, $currencies } from "../stores/family.js";
 import { $balances, familyAmount } from "../stores/balances.js";
 import { enabledCurrencies } from "@chore-fridge/domain/currencies";
 import { $ui, openParent, lockParent, openSettings } from "../stores/navigation.js";
-import { $boardDay, $clock, shiftBoardDay, showTodayBoard } from "../stores/clock.js";
+import { $view, getView } from "../view.js";
+import { $compactOnStore, goCompactHome, goCompactStore } from "../components/workspace.jsox";
+import { $boardDay, $clock, boardDate, shiftBoardDay, showTodayBoard } from "../stores/clock.js";
 import { parseDay, prettyDate, todayKey } from "@chore-fridge/domain/dates";
+import { holidayGreeting } from "@chore-fridge/domain/holidays";
 import { defineScreen } from "../components/screen.jsox";
 import { Workspace } from "../components/workspace.jsox";
 import { Btn, CurrencyMark } from "../ui.jsox";
-import { createViewButton } from "./view-options.jsox";
+import { openViewOptions } from "./view-options.jsox";
 
 defineScreen("fridge-board", (root) => {
-  const titleEl = <h1> {}
+  const titleEl = <button> {
+    .type = "button"
+    .className = "family-name"
+    .onclick = () => $ui.get().parentUnlocked ? lockParent() : openParent()
+  }
   const dateEl = <div> { .className = "date" }
   const nextDay = Btn("Next", "btn ghost board-day-btn", () => shiftBoardDay(1));
+  const lookBtn = Btn("🖌️", "btn ghost board-day-btn board-look-btn", openViewOptions);
+  lookBtn.setAttribute("aria-label", "View options");
   const todayBtn = Btn("Today", "btn ghost board-day-btn", showTodayBoard);
   const dayNav = <div> {
     .className = "board-day"
     [Btn("Prev", "btn ghost board-day-btn", () => shiftBoardDay(-1))]
     [dateEl]
     [nextDay]
+    [lookBtn]
     [todayBtn]
   }
   const totalsEl = <div> { .className = "top-balances" }
-  const parentButton = Btn("Unlock Parent Mode", "pill", () => $ui.get().parentUnlocked ? lockParent() : openParent());
+  const storeButton = Btn("Visit Store", "pill", () => $compactOnStore.get() ? goCompactHome() : goCompactStore());
+  const greetingEl = <div> { .className = "holiday-greeting"; .hidden = true }
   const settingsButton = Btn("Settings", "pill settings-button", openSettings);
+  function fitGreeting() {
+    const text = getView().look === "holidays" ? holidayGreeting(parseDay($boardDay.get()) || boardDate()) : "";
+    if (!text) {
+      greetingEl.textContent = "";
+      greetingEl.hidden = true;
+      return;
+    }
+    greetingEl.textContent = text;
+    greetingEl.hidden = false;
+    if (greetingEl.clientWidth > 0) greetingEl.hidden = greetingEl.scrollWidth > greetingEl.clientWidth + 1;
+  }
   [root] {
     .className = "screen"
     <header> {
       .className = "top"
       <div> {
-        .className = "brand"
+        .className = "banner"
         [titleEl]
         [dayNav]
       }
       <div> {
-        .className = "top-actions"
+        .className = "top-meta"
         [totalsEl]
-        [createViewButton()]
-        [parentButton]
+        [greetingEl]
+        [storeButton]
+      }
+      <div> {
+        .className = "top-actions"
         [settingsButton]
       }
     }
     [Workspace()]
   }
+  const meta = greetingEl.parentElement;
+  if (typeof ResizeObserver === "function" && meta) new ResizeObserver(() => fitGreeting()).observe(meta);
+  globalThis.window?.addEventListener?.("resize", fitGreeting);
 
   return [
     [[$ui], () => {
       const unlocked = $ui.get().parentUnlocked;
-      parentButton.textContent = unlocked ? "Lock Parent Mode" : "Unlock Parent Mode";
+      titleEl.setAttribute("aria-label", unlocked ? "Lock Parent Mode" : "Unlock Parent Mode");
       settingsButton.hidden = !unlocked;
     }],
-    [[$familyName], () => { titleEl.textContent = $familyName.get(); }],
-    [[$clock, $boardDay], () => {
+    [[$familyName], () => { titleEl.textContent = $familyName.get() || "Family"; }],
+    [[$view, $compactOnStore], () => {
+      const compact = getView().layout === "compact";
+      storeButton.hidden = !compact;
+      storeButton.textContent = $compactOnStore.get() ? "Home" : "Visit Store";
+      fitGreeting();
+    }],
+    [[$view, $clock, $boardDay], () => {
       const day = $boardDay.get();
-      const date = parseDay(day) || new Date();
+      const date = parseDay(day) || boardDate();
       dateEl.textContent = prettyDate(date);
       dateEl.dataset.day = day;
       nextDay.disabled = day >= todayKey();
       todayBtn.hidden = day === todayKey();
+      fitGreeting();
     }],
     [[$balances, $currencies], () => {
       totalsEl.replaceChildren();
@@ -67,6 +102,7 @@ defineScreen("fridge-board", (root) => {
         pill.append(CurrencyMark(currency.id), " " + amount);
         totalsEl.append(pill);
       }
+      fitGreeting();
     }],
   ];
 });

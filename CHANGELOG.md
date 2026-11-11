@@ -10,10 +10,13 @@ User-facing changes and upgrade notes are recorded here. Move the Unreleased ent
 - A reward can cost more than one currency at once. Redeeming spends every listed amount. A family reward can collect those currencies separately. Older rewards still use a single cost.
 - Settings → Ledger shows one day's journal: who earned, spent, or had a payment returned, and for which task or reward. Older reward entries that were recorded before this change are labeled Reward.
 - The board can move to a past day so a missed daily list can be completed. That day is the accounting day in the ledger. Shop spending still uses the current calendar day.
+- A Holidays theme follows the season and marks days such as Veterans Day, Thanksgiving, Halloween, and Christmas. Christmas stays snowy in December, and the tree lights up on Christmas Day. Prev and Next on the board change the look to match the selected day. A holiday greeting sits between the totals and Visit Store when there is room.
+- Compact board layout shows one person as a full-screen card, with the shop as another tile. Visit Store and Home sit next to View. Swipe between people and the shop.
 
 ### Changed
 
 - Reward cost rows are a currency menu, an amount, and a minus to remove a line.
+- The board header is a full-width banner for the household name and date, with family totals on the next row so they no longer sit on top of the title on a small screen. Tap the family name to unlock or lock Parent Mode. A paintbrush next to Next opens view options.
 
 ### Fixed
 

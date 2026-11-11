@@ -9,6 +9,7 @@ import { defaultState } from '@chore-fridge/domain/state';
 import { applyCommand } from '@chore-fridge/domain/commands';
 import { balancesFor } from '@chore-fridge/domain/balances';
 import { dayView } from '@chore-fridge/domain/day-view';
+import { todayKey } from '@chore-fridge/domain/dates';
 
 const now = new Date('2026-11-10T12:00:00').getTime();
 const day = '2026-11-10';
@@ -140,7 +141,7 @@ test('contributions, returns, and removals are journaled against the reward', as
     assert.equal(goldRow.stars, 0);
     assert.equal(goldRow.currency, 'gold');
     app.storage.command({id:'drop', type:'reward.remove', payload:{id:'family'}});
-    const refund = app.storage.ledger.list(day).filter(entry => entry.kind === 'contribution-return' && entry.commandId === 'drop');
+    const refund = app.storage.ledger.list(todayKey()).filter(entry => entry.kind === 'contribution-return' && entry.commandId === 'drop');
     assert.equal(refund.length, 1);
     assert.equal(refund[0].stars, 5);
     assert.equal(refund[0].rewardId, 'family');

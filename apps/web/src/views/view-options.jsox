@@ -9,6 +9,7 @@ const appearances = ["light", "dark", "system"].map((value) => ({
 }));
 const looks = [
   ["modern", "Modern (v2)"],
+  ["holidays", "Holidays"],
   ["classic", "Classic (V1)"], ["business", "Business"], ["crayon", "Crayon"],
   ["contrast", "High contrast"], ["lego", "Lego"], ["cyberpunk", "Cyberpunk"],
 ].map(([value, label]) => ({ value, label, className: "look-" + value }));
@@ -16,6 +17,7 @@ const layouts = [
   { value: "classic", label: "Classic" },
   { value: "gallery", label: "Gallery" },
   { value: "slide", label: "Slide to Buy" },
+  { value: "compact", label: "Compact" },
 ];
 
 [defineComponent("fridge-view-controls")] {

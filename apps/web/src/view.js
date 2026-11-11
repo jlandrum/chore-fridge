@@ -1,4 +1,6 @@
 import { atom } from "nanostores";
+import { holidayMoment } from "@chore-fridge/domain/holidays";
+import { $boardDay, boardDate } from "./stores/clock.js";
 
 export const VIEW_KEY = "chore-fridge-view";
 export const ZOOM_MIN = 50;
@@ -19,12 +21,14 @@ export const LOOKS = {
   contrast: true,
   lego: true,
   cyberpunk: true,
+  holidays: true,
 };
 
 export const LAYOUTS = {
   classic: true,
   gallery: true,
   slide: true,
+  compact: true,
 };
 
 const STATE_KEY = "chore-fridge-v2";
@@ -39,6 +43,7 @@ const THEME_COLORS = {
   contrast: { light: "#ffffff", dark: "#000000" },
   lego: { light: "#f5cd2f", dark: "#1a1a1a" },
   cyberpunk: { light: "#c8b8e8", dark: "#0b0714" },
+  holidays: { light: "#f3e6c8", dark: "#1d3557" },
 };
 
 export const $view = atom(null);
@@ -117,6 +122,15 @@ export function applyTheme() {
   html.classList.toggle("night", on);
   html.setAttribute("data-look", look);
   html.setAttribute("data-layout", LAYOUTS[view.layout] ? view.layout : "classic");
+  if (look === "holidays") {
+    const moment = holidayMoment(boardDate());
+    html.setAttribute("data-season", moment.season);
+    if (moment.holiday) html.setAttribute("data-holiday", moment.holiday);
+    else html.removeAttribute("data-holiday");
+  } else {
+    html.removeAttribute("data-season");
+    html.removeAttribute("data-holiday");
+  }
   writePalette(html, "modern", view.modernColor || "#146879", on);
   if (document.body) {
     document.body.classList.toggle("night", on);
@@ -228,6 +242,7 @@ export function watchView() {
     if (mq.addEventListener) mq.addEventListener("change", onChange);
     else if (mq.addListener) mq.addListener(onChange);
   }
+  $boardDay.listen(() => applyTheme());
   window.addEventListener("storage", (event) => {
     if (event.key !== VIEW_KEY) return;
     $view.set(null);

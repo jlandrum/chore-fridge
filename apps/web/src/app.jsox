@@ -10,6 +10,7 @@ import "./views/setup.jsox";
 import "./views/board.jsox";
 import "./views/pin.jsox";
 import "./views/parent.jsox";
+import { HolidayDecor } from "./components/holiday-decor.jsox";
 
 const $screen = computed([$setupDone, $ui], (setupDone, navigation) =>
   !setupDone ? "setup" :
@@ -21,6 +22,7 @@ const $screen = computed([$setupDone, $ui], (setupDone, navigation) =>
     if (!this.children.length) {
       this.id = "app";
       [this] {
+        [HolidayDecor()]
         <fridge-setup> { .hidden = true }
         <fridge-board> { .hidden = true }
         <fridge-pin> { .hidden = true }
@@ -29,6 +31,7 @@ const $screen = computed([$setupDone, $ui], (setupDone, navigation) =>
     }
     this.unsubscribe = $screen.subscribe((current) => {
       for (const screen of this.children) {
+        if (screen.localName === "fridge-holiday-decor") continue;
         const overlay = current === "parent" || current === "pin";
         const visible = screen.localName === "fridge-" + current ||
           (overlay && screen.localName === "fridge-board");
