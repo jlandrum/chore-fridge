@@ -4,8 +4,16 @@ import { CURRENCY_IDS, currencyId, emptyAmounts, spentFor } from "./currencies.j
 
 export function creditValue(entry) {
   const amounts = emptyAmounts();
-  const id = currencyId(entry);
-  amounts[id] = (Number(entry.units) || 0) * (Number(entry.points) || 0);
+  const units = Number(entry?.units) || 0;
+  const points = Number(entry?.points) || 0;
+  // Recorded allocations from before the currency list paid points as stars and one gold star per completion.
+  // A chore that is only marked gold still pays its points as gold; that object has no task id.
+  if (entry?.taskId && entry.gold && !CURRENCY_IDS.includes(entry.currency)) {
+    amounts.star = units * points;
+    amounts.gold = units;
+  } else {
+    amounts[currencyId(entry)] = units * points;
+  }
   amounts.stars = amounts.star;
   return amounts;
 }

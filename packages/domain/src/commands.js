@@ -1,4 +1,4 @@
-import { alreadyRedeemed, redemptionKey, rewardValidation } from './rewards.js';
+import { alreadyRedeemed, poolComplete, poolPaidIn, redemptionKey, rewardCosts, rewardValidation, shareAmount } from './rewards.js';
 import { todayKey } from './dates.js';
 import { initializeTaskHistory, evolveTaskHistory } from './task-history.js';
 import { validDay } from './day-view.js';
@@ -11,6 +11,30 @@ import { upsert } from './records.js';
 
 function requireValue(condition, message) {
   if (!condition) throw Object.assign(new Error(message), { statusCode:409 });
+}
+
+function refundPool(state, reward) {
+  const pool = state.rewardContributions?.[reward.id] || {};
+  const fallback = currencyId(reward);
+  for (const [kidId, share] of Object.entries(pool)) {
+    if (share && typeof share === 'object') {
+      for (const [currency, amount] of Object.entries(share)) if (amount) addSpent(state, currency, kidId, -amount);
+    } else if (share) addSpent(state, fallback, kidId, -share);
+  }
+  if (state.rewardContributions) delete state.rewardContributions[reward.id];
+}
+
+function addPoolShare(pool, kidId, currency, amount, multi) {
+  if (!multi) {
+    pool[kidId] = shareAmount(pool[kidId], currency) + amount;
+    if (pool[kidId] <= 0) delete pool[kidId];
+    return;
+  }
+  const share = typeof pool[kidId] === 'number' ? { [currency]: pool[kidId] } : { ...(pool[kidId] || {}) };
+  share[currency] = (share[currency] || 0) + amount;
+  if (share[currency] <= 0) delete share[currency];
+  if (Object.keys(share).length) pool[kidId] = share;
+  else delete pool[kidId];
 }
 
 // Pure application service: HTTP and future MCP adapters use these same rules.
@@ -43,13 +67,40 @@ export function applyCommand(current, command, now = Date.now()) {
     }
     case 'reward.save': {
       requireValue(p.title.trim(), 'Reward needs a name');
-      const validation = rewardValidation(p);
+      const existing = state.rewards.find(reward => reward.id === p.id);
+      const pooled = 'pooled' in p ? !!p.pooled : !!existing?.pooled;
+      const next = {emoji:'🎁',...p,title:p.title.trim(),pooled};
+      if ('costs' in p && Array.isArray(p.costs) && p.costs.length) next.costs = rewardCosts({costs:p.costs});
+      else if (existing && rewardCosts(existing).length && !('cost' in p) && !('currency' in p) && !('gold' in p)) next.costs = rewardCosts(existing);
+      else next.costs = rewardCosts(next);
+      requireValue(next.costs.length, 'Cost must be a positive whole number');
+      next.cost = next.costs[0].amount;
+      next.currency = next.costs[0].currency;
+      next.gold = next.currency === 'gold';
+      const validation = rewardValidation(next);
       requireValue(!validation, validation);
-      const currency = currencyId(p);
-      state.rewards = upsert(state.rewards, {emoji:'🎁',...p,title:p.title.trim(),currency,gold:currency === 'gold'});
+      const pool = state.rewardContributions?.[p.id] || {};
+      const paidAny = Object.keys(pool).length;
+      requireValue(!(!pooled && paidAny), 'Return the open payments before turning this into a single-person reward');
+      for (const row of next.costs) {
+        requireValue(row.amount >= poolPaidIn(pool, row.currency), 'Cost cannot be less than the amount already paid');
+      }
+      state.rewards = upsert(state.rewards, next);
+      if (pooled && paidAny && poolComplete(next, pool)) {
+        delete state.rewardContributions[p.id];
+        const records = state.rewardRedemptions ||= {};
+        const key = redemptionKey(p.id, '*', todayKey(new Date(now)));
+        records[key] = (records[key] || 0) + 1;
+        result.completed = true;
+      }
       break;
     }
-    case 'reward.remove': state.rewards = state.rewards.filter(reward => reward.id !== p.id); break;
+    case 'reward.remove': {
+      const reward = state.rewards.find(item => item.id === p.id);
+      if (reward) refundPool(state, reward);
+      state.rewards = state.rewards.filter(item => item.id !== p.id);
+      break;
+    }
     case 'settings.update':
       for (const key of ['requireParentModeForCompletion','requireParentModeForRedemptions','mcpEnabled']) {
         if (key in p) state[key] = p[key];
@@ -71,9 +122,72 @@ export function applyCommand(current, command, now = Date.now()) {
       state.setupDone = true;
       break;
     case 'household.reset': state = defaultState(); break;
+    case 'reward.contribute': {
+      const reward = state.rewards.find(item => item.id === p.rewardId);
+      requireValue(reward, 'Missing reward');
+      requireValue(reward.pooled, 'This reward is paid by one person');
+      const validation = rewardValidation(reward);
+      requireValue(!validation, validation);
+      requireValue(Number.isSafeInteger(p.amount) && p.amount >= 1, 'Enter a whole number');
+      const costs = rewardCosts(reward);
+      const currency = p.currency || (costs.length === 1 ? costs[0].currency : null);
+      requireValue(currency && costs.some((row) => row.currency === currency), 'Choose a currency');
+      const day = p.day || todayKey(new Date(now));
+      if (reward.oncePerDay) {
+        requireValue(day === todayKey(new Date(now)), 'Daily rewards must be redeemed for today');
+        requireValue(!alreadyRedeemed(state.rewardRedemptions, reward.id, '*', day), 'Already redeemed today');
+      }
+      const balance = balancesFor(state)[p.kidId];
+      requireValue(balance, 'Unknown kid');
+      requireValue(amountFor(balance, currency) >= p.amount, 'Not enough credit');
+      const pools = state.rewardContributions ||= {};
+      const pool = { ...(pools[reward.id] || {}) };
+      const row = costs.find((item) => item.currency === currency);
+      requireValue(p.amount <= row.amount - poolPaidIn(pool, currency), 'That is more than the remaining cost');
+      addSpent(state, currency, p.kidId, p.amount);
+      addPoolShare(pool, p.kidId, currency, p.amount, costs.length > 1);
+      if (poolComplete(reward, pool)) {
+        delete pools[reward.id];
+        const records = state.rewardRedemptions ||= {};
+        // "*" is the household completion. A kid id cannot be "*".
+        const key = redemptionKey(reward.id, '*', day);
+        records[key] = (records[key] || 0) + 1;
+        result.completed = true;
+      } else pools[reward.id] = pool;
+      result.reward = reward;
+      break;
+    }
+    case 'reward.return': {
+      const reward = state.rewards.find(item => item.id === p.rewardId);
+      requireValue(reward, 'Missing reward');
+      const pools = state.rewardContributions ||= {};
+      const pool = { ...(pools[reward.id] || {}) };
+      const share = pool[p.kidId];
+      requireValue(share, 'Nothing to return');
+      const costs = rewardCosts(reward);
+      const multi = costs.length > 1 || (share && typeof share === 'object');
+      if (p.amount == null) {
+        if (share && typeof share === 'object') {
+          for (const [currency, amount] of Object.entries(share)) if (amount) addSpent(state, currency, p.kidId, -amount);
+        } else addSpent(state, currencyId(reward), p.kidId, -share);
+        delete pool[p.kidId];
+      } else {
+        const currency = p.currency || (typeof share === 'number' ? currencyId(reward) : Object.keys(share)[0]);
+        requireValue(currency, 'Choose a currency');
+        const have = shareAmount(share, currency);
+        requireValue(Number.isSafeInteger(p.amount) && p.amount >= 1 && p.amount <= have, 'That amount is not in this reward');
+        addSpent(state, currency, p.kidId, -p.amount);
+        addPoolShare(pool, p.kidId, currency, -p.amount, multi);
+      }
+      if (Object.keys(pool).length) pools[reward.id] = pool;
+      else delete pools[reward.id];
+      result.reward = reward;
+      break;
+    }
     case 'reward.redeem': {
       const reward = state.rewards.find(item => item.id === p.rewardId);
       requireValue(reward, 'Missing reward');
+      requireValue(!reward.pooled, 'Family rewards are paid in parts');
       const day = p.day || todayKey(new Date(now));
       if (reward.oncePerDay) {
         requireValue(day === todayKey(new Date(now)), 'Daily rewards must be redeemed for today');
@@ -83,9 +197,10 @@ export function applyCommand(current, command, now = Date.now()) {
       requireValue(!validation, validation);
       const balance = balancesFor(state)[p.kidId];
       requireValue(balance, 'Unknown kid');
-      const currency = currencyId(reward);
-      requireValue(amountFor(balance, currency) >= reward.cost, 'Not enough credit');
-      addSpent(state, currency, p.kidId, reward.cost);
+      for (const row of rewardCosts(reward)) {
+        requireValue(amountFor(balance, row.currency) >= row.amount, 'Not enough credit');
+      }
+      for (const row of rewardCosts(reward)) addSpent(state, row.currency, p.kidId, row.amount);
       if (reward.currencyExchange) {
         const earned = state.exchangeEarned ||= {};
         const bucket = earned[reward.exchangeCurrency] ||= {};

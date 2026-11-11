@@ -2,8 +2,8 @@ import { $familyName, $currencies } from "../stores/family.js";
 import { $balances, familyAmount } from "../stores/balances.js";
 import { enabledCurrencies } from "@chore-fridge/domain/currencies";
 import { $ui, openParent, lockParent, openSettings } from "../stores/navigation.js";
-import { $clock } from "../stores/clock.js";
-import { prettyDate } from "@chore-fridge/domain/dates";
+import { $boardDay, $clock, shiftBoardDay, showTodayBoard } from "../stores/clock.js";
+import { parseDay, prettyDate, todayKey } from "@chore-fridge/domain/dates";
 import { defineScreen } from "../components/screen.jsox";
 import { Workspace } from "../components/workspace.jsox";
 import { Btn, CurrencyMark } from "../ui.jsox";
@@ -12,6 +12,15 @@ import { createViewButton } from "./view-options.jsox";
 defineScreen("fridge-board", (root) => {
   const titleEl = <h1> {}
   const dateEl = <div> { .className = "date" }
+  const nextDay = Btn("Next", "btn ghost board-day-btn", () => shiftBoardDay(1));
+  const todayBtn = Btn("Today", "btn ghost board-day-btn", showTodayBoard);
+  const dayNav = <div> {
+    .className = "board-day"
+    [Btn("Prev", "btn ghost board-day-btn", () => shiftBoardDay(-1))]
+    [dateEl]
+    [nextDay]
+    [todayBtn]
+  }
   const totalsEl = <div> { .className = "top-balances" }
   const parentButton = Btn("Unlock Parent Mode", "pill", () => $ui.get().parentUnlocked ? lockParent() : openParent());
   const settingsButton = Btn("Settings", "pill settings-button", openSettings);
@@ -22,7 +31,7 @@ defineScreen("fridge-board", (root) => {
       <div> {
         .className = "brand"
         [titleEl]
-        [dateEl]
+        [dayNav]
       }
       <div> {
         .className = "top-actions"
@@ -42,7 +51,14 @@ defineScreen("fridge-board", (root) => {
       settingsButton.hidden = !unlocked;
     }],
     [[$familyName], () => { titleEl.textContent = $familyName.get(); }],
-    [[$clock], () => { dateEl.textContent = prettyDate(); }],
+    [[$clock, $boardDay], () => {
+      const day = $boardDay.get();
+      const date = parseDay(day) || new Date();
+      dateEl.textContent = prettyDate(date);
+      dateEl.dataset.day = day;
+      nextDay.disabled = day >= todayKey();
+      todayBtn.hidden = day === todayKey();
+    }],
     [[$balances, $currencies], () => {
       totalsEl.replaceChildren();
       for (const currency of enabledCurrencies($currencies.get())) {

@@ -2,7 +2,7 @@ import { $chores, $completions, $counts, isDone, choresForKid } from "../stores/
 import { $balances, amountForKid } from "../stores/balances.js";
 import { $currencies } from "../stores/family.js";
 import { enabledCurrencies } from "@chore-fridge/domain/currencies";
-import { $clock } from "../stores/clock.js";
+import { $boardDay, $clock } from "../stores/clock.js";
 import { $view, isDark, writePalette } from "../view.js";
 import { defineScreen } from "./screen.jsox";
 import { updateList } from "./list.js";
@@ -86,4 +86,4 @@ defineScreen("fridge-kid", (root) => {
     if (metaEl.lastChild !== completionEl) metaEl.append(completionEl);
     barEl.style.width = pct + "%";
   };
-}, [$chores, $completions, $counts, $balances, $currencies, $clock, $view]);
+}, [$chores, $completions, $counts, $balances, $currencies, $clock, $boardDay, $view]);

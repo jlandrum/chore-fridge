@@ -30,7 +30,11 @@ export function dayView(state,day,totals) {
       }
       if (state.completions[key] > 0) anyToday = true;
       const entries = keys.flatMap(key => state.creditProjection?.[key] || []);
-      if (entries.length) creditProjection[key] = entries.map(({taskId,versionId,kidId,units,points,gold}) => ({taskId,versionId,kidId,units,points,gold}));
+      if (entries.length) creditProjection[key] = entries.map((entry) => {
+        const copy = {taskId:entry.taskId,versionId:entry.versionId,kidId:entry.kidId,units:entry.units,points:entry.points,gold:entry.gold};
+        if (CURRENCY_IDS.includes(entry.currency)) copy.currency = entry.currency;
+        return copy;
+      });
     }
     if (isOnce(task) && !anyToday) pastOnce.push(task.id);
   }
@@ -52,7 +56,9 @@ export function dayView(state,day,totals) {
     total.star = total.star || total.stars || 0;
     total.stars = total.star;
   }
+  // Open family-reward payments are current progress, so this view keeps every pool.
   return {version:1,requireParentModeForRedemptions:!!state.requireParentModeForRedemptions,requireParentModeForCompletion:!!state.requireParentModeForCompletion,mcpEnabled:!!state.mcpEnabled,dayScoped:true,day,updatedAt:state.updatedAt,familyName:state.familyName,pin:state.pin,setupDone:state.setupDone,sayings:householdSayings(state.sayings),currencies:normalizeCurrencies(state.currencies),
     rewardRedemptions:Object.fromEntries(Object.entries(state.rewardRedemptions || {}).filter(([key]) => key.startsWith(day + ':'))),exchangeEarned:{},
+    rewardContributions:structuredClone(state.rewardContributions || {}),
     kids:state.kids,chores:state.chores,rewards:state.rewards,completions,counts,creditProjection,balanceCarry,pastOnce,spent:{},goldSpent:{},currencySpent:{}};
 }

@@ -146,6 +146,20 @@
   gap: 8px;
 }
 
+.cost-lines { display: grid; gap: 12px; }
+
+.cost-line {
+  display: grid;
+  gap: 8px;
+}
+
+.cost-marks {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 700px) {
   .task-form-layout {
     flex-direction: column;

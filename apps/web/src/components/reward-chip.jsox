@@ -1,20 +1,232 @@
 import { todayKey } from '@chore-fridge/domain/dates';
-import { alreadyRedeemed } from '@chore-fridge/domain/rewards';
-import { $rewardRedemptions } from '../stores/rewards.js';
-import { $kids } from "../stores/family.js";
-import { redeemReward, redemptionError } from "../stores/rewards.js";
+import { alreadyRedeemed, poolPaid, poolPaidIn, rewardCosts, shareAmount } from '@chore-fridge/domain/rewards';
+import { $rewardContributions, $rewardRedemptions, $rewards } from '../stores/rewards.js';
+import { COLORS, $kids } from "../stores/family.js";
+import { contributeReward, redeemReward, redemptionError, returnContribution } from "../stores/rewards.js";
 import { amountForKid } from "../stores/balances.js";
-import { currencyId } from "@chore-fridge/domain/currencies";
-import { showToast, burst, openModal, closeModal, Btn, CurrencyMark } from "../ui.jsox";
+import { showToast, burst, openModal, closeModal, Btn, CostMarks, CurrencyMark } from "../ui.jsox";
 
-export function askWho(reward) {
+function kidColor(kid, index) {
+  return kid.color || COLORS[index % COLORS.length];
+}
+
+function polar(cx, cy, radius, angle) {
+  const rad = (angle - 90) * Math.PI / 180;
+  return [cx + radius * Math.cos(rad), cy + radius * Math.sin(rad)];
+}
+
+function slicePath(cx, cy, radius, start, end) {
+  const large = end - start > 180 ? 1 : 0;
+  const [x1, y1] = polar(cx, cy, radius, start);
+  const [x2, y2] = polar(cx, cy, radius, end);
+  return "M " + cx + " " + cy + " L " + x1 + " " + y1 + " A " + radius + " " + radius + " 0 " + large + " 1 " + x2 + " " + y2 + " Z";
+}
+
+function addSlice(svg, color, cx, cy, radius, start, sweep) {
+  if (sweep < 0.4) return;
+  if (sweep >= 359.6) {
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", String(cx));
+    circle.setAttribute("cy", String(cy));
+    circle.setAttribute("r", String(radius));
+    circle.setAttribute("fill", color);
+    svg.append(circle);
+    return;
+  }
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", slicePath(cx, cy, radius, start, start + sweep));
+  path.setAttribute("fill", color);
+  svg.append(path);
+}
+
+function poolPie(kids, amounts, cost) {
+  const size = 84;
+  const cx = 42;
+  const cy = 42;
+  const radius = 38;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "pool-pie");
+  svg.setAttribute("viewBox", "0 0 " + size + " " + size);
+  svg.setAttribute("width", String(size));
+  svg.setAttribute("height", String(size));
+  svg.setAttribute("aria-hidden", "true");
+  const total = Math.max(Number(cost) || 0, 1);
+  let angle = 0;
+  kids.forEach((kid, index) => {
+    const share = amounts[kid.id] || 0;
+    if (!share) return;
+    const sweep = Math.min(360 - angle, (share / total) * 360);
+    addSlice(svg, kidColor(kid, index), cx, cy, radius, angle, sweep);
+    angle += sweep;
+  });
+  addSlice(svg, "var(--line)", cx, cy, radius, angle, 360 - angle);
+  return svg;
+}
+
+function askPool(reward) {
   const error = redemptionError();
   if (error) { showToast(error); return; }
+  const current = $rewards.get().find((item) => item.id === reward.id) || reward;
+  const costs = rewardCosts(current);
+  const kids = $kids.get();
+  const pool = $rewardContributions.get()[current.id] || {};
+  const totalCost = costs.reduce((sum, row) => sum + row.amount, 0) || current.cost;
+  const paidUnits = poolPaid(pool);
+  const remainingUnits = totalCost - paidUnits;
+  const inputs = [];
+  const pieHold = <div> { .className = "pool-pie-wrap" }
+  const pieLabel = <span> { .className = "pool-pie-label" }
+  const legend = <div> { .className = "pool-legend" }
+  const summary = <p> { .className = "lead" }
+  const action = Btn("Pay", "btn wide", () => submit());
+  function kidUnits(kidId, extra = {}) {
+    return costs.reduce((sum, row) => sum + shareAmount(pool[kidId], row.currency) + (extra[row.currency] || 0), 0);
+  }
+  function plannedPayments() {
+    const payments = [];
+    for (const item of inputs) {
+      if (item.input.value === "" || item.input.value == null) continue;
+      payments.push({kid: item.kid, currency: item.currency, amount: Number(item.input.value)});
+    }
+    return payments;
+  }
+  function refreshPreview() {
+    const extra = {};
+    const amounts = {};
+    for (const kid of kids) amounts[kid.id] = kidUnits(kid.id);
+    for (const {kid, currency, input} of inputs) {
+      const value = Number(input.value);
+      if (!Number.isSafeInteger(value) || value < 1) continue;
+      extra[currency] = (extra[currency] || 0) + value;
+      amounts[kid.id] += value;
+    }
+    const nextPaid = Object.values(amounts).reduce((sum, value) => sum + value, 0);
+    pieHold.replaceChildren(poolPie(kids, amounts, totalCost), pieLabel);
+    pieLabel.textContent = Math.min(nextPaid, totalCost) + "/" + totalCost;
+    legend.replaceChildren();
+    kids.forEach((kid, index) => {
+      const share = amounts[kid.id] || 0;
+      if (!share) return;
+      legend.append(
+        <span> {
+          <i> { .className = "pool-swatch"; .style.background = kidColor(kid, index) }
+          [(kid.emoji ? kid.emoji + " " : "") + kid.name + " " + share]
+        }
+      );
+    });
+    const added = nextPaid - paidUnits;
+    const covers = costs.every((row) => (extra[row.currency] || 0) >= row.amount - poolPaidIn(pool, row.currency));
+    action.textContent = added > 0 && covers ? "Redeem" : "Pay";
+  }
+  function submit() {
+    const payments = plannedPayments();
+    if (!payments.length) { showToast("Enter an amount"); return; }
+    const extra = {};
+    for (const {kid, currency, amount} of payments) {
+      if (!Number.isSafeInteger(amount) || amount < 1) { showToast("Enter a whole number"); return; }
+      extra[currency] = (extra[currency] || 0) + amount;
+      if (amountForKid(kid.id, currency) < amount) { showToast("Not enough credit yet"); return; }
+    }
+    for (const row of costs) {
+      if ((extra[row.currency] || 0) > row.amount - poolPaidIn(pool, row.currency)) {
+        showToast("That is more than the remaining cost");
+        return;
+      }
+    }
+    let completed = false;
+    for (const {kid, currency, amount} of payments) {
+      const result = contributeReward(current.id, kid.id, amount, currency);
+      if (result.error) { showToast(result.error); askPool(current); return; }
+      completed = !!result.completed;
+    }
+    if (completed) {
+      closeModal();
+      burst();
+      showToast(current.title + " is paid for.");
+      return;
+    }
+    askPool(current);
+  }
+  const rows = <div> { .className = "pool-list" }
+  kids.forEach((kid, index) => {
+    const share = pool[kid.id];
+    const hasShare = typeof share === "number" ? share > 0 : !!(share && Object.values(share).some((value) => value > 0));
+    const fields = <div> { .className = "pool-fields" }
+    costs.forEach((row, costIndex) => {
+      const input = <input> {
+        .type = "number"
+        .min = "1"
+        .step = "1"
+        .value = ""
+        .setAttribute("aria-label", kid.name + (costs.length > 1 ? " " + row.currency + " payment" : " payment"))
+        .oninput = refreshPreview
+      }
+      inputs.push({kid, currency: row.currency, input});
+      const label = costIndex === 0 ? kid.name : kid.name + " " + row.currency;
+      fields.append(<div> { .className = "field"; <label> { [label] }; [input] });
+    });
+    const meta = <p> { .className = "pool-kid-meta" }
+    costs.forEach((row, costIndex) => {
+      if (costIndex) meta.append(" ");
+      meta.append(CurrencyMark(row.currency), " " + amountForKid(kid.id, row.currency));
+      const paid = shareAmount(share, row.currency);
+      if (paid) meta.append(" · " + paid);
+    });
+    const row = <div> {
+      .className = "pool-kid" + (costs.length > 1 ? " pool-kid-multi" : "")
+      <p> {
+        .className = "pool-kid-name"
+        <i> { .className = "pool-swatch"; .style.background = kidColor(kid, index) }
+        [(kid.emoji ? kid.emoji + " " : "") + kid.name]
+      }
+      [meta]
+      [fields]
+    }
+    if (hasShare) row.append(Btn("Return", "tiny", () => {
+      const result = returnContribution(current.id, kid.id);
+      if (result.error) { showToast(result.error); return; }
+      askPool(current);
+    }));
+    rows.append(row);
+  });
+  summary.append("Anyone can chip in. Costs ", CostMarks(costs), ". Paid " + paidUnits + ". Remaining " + remainingUnits + ".");
+  pieHold.append(pieLabel);
+  openModal(
+    <div> {
+      .className = "pool-dialog"
+      <h3> { [current.emoji + " " + current.title] }
+      <div> {
+        .className = "pool-head"
+        [pieHold]
+        <div> { .className = "pool-copy"; [summary]; [legend] }
+      }
+      [rows]
+      <div> {
+        .className = "row pool-footer"
+        [Btn("Cancel", "btn ghost wide", closeModal)]
+        [action]
+      }
+    }
+  );
+  refreshPreview();
+}
+
+export function askWho(reward) {
+  if (reward.pooled) { askPool(reward); return; }
+  const error = redemptionError();
+  if (error) { showToast(error); return; }
+  const costs = rewardCosts(reward);
   const choices = <div> { .className = "row" }
   for (const kid of $kids.get()) {
-    const have = amountForKid(kid.id, currencyId(reward));
     const claimed = reward.oncePerDay && alreadyRedeemed($rewardRedemptions.get(), reward.id, kid.id, todayKey());
-    const disabled = have < reward.cost || claimed;
+    const short = costs.some((row) => amountForKid(kid.id, row.currency) < row.amount);
+    const disabled = short || claimed;
+    const have = <span> { .className = "choice-have" }
+    if (claimed) have.append(" Already redeemed today");
+    else costs.forEach((row, index) => {
+      if (index) have.append(" ");
+      have.append(CurrencyMark(row.currency), " " + amountForKid(kid.id, row.currency));
+    });
     [choices] {
       <button> {
         .type = "button"
@@ -22,8 +234,7 @@ export function askWho(reward) {
         .disabled = disabled
         [kid.emoji + " " + kid.name]
         <br> { }
-        [CurrencyMark(currencyId(reward))]
-        [claimed ? " Already redeemed today" : " " + have]
+        [have]
         .onclick = () => {
           const result = redeemReward(reward.id, kid.id);
           if (result.error) {
@@ -43,8 +254,7 @@ export function askWho(reward) {
       <p> {
         .className = "lead"
         ["Costs "]
-        [CurrencyMark(currencyId(reward))]
-        [" " + reward.cost]
+        [CostMarks(costs)]
         [reward.currencyExchange ? " → Receive " : ". Ask a parent to actually pay out."]
         [reward.currencyExchange ? CurrencyMark(reward.exchangeCurrency) : ""]
         [reward.currencyExchange ? " " + reward.exchangeValue + " added to your balance." : ""]
@@ -60,11 +270,26 @@ export function askWho(reward) {
 }
 
 export function RewardChip(reward) {
+  const costs = rewardCosts(reward);
+  const pool = $rewardContributions.get()[reward.id] || {};
+  const gold = costs.some((row) => row.currency === "gold");
+  const cost = <span> { .className = "cost" }
+  if (reward.pooled) {
+    costs.forEach((row, index) => {
+      if (index) cost.append(" ");
+      cost.append(CurrencyMark(row.currency), " " + poolPaidIn(pool, row.currency) + "/" + row.amount);
+    });
+  } else {
+    cost.append(CostMarks(costs));
+    if (reward.currencyExchange) {
+      cost.append(" → ", CurrencyMark(reward.exchangeCurrency), " " + reward.exchangeValue);
+    }
+  }
   return <button> {
     .type = "button"
-    .className = currencyId(reward) === "gold" ? "reward gold" : "reward"
+    .className = gold ? "reward gold" : "reward"
     [reward.emoji + " " + reward.title]
-    <span> { .className = "cost"; [CurrencyMark(currencyId(reward))]; [" " + reward.cost]; [reward.currencyExchange ? " → " : ""]; [reward.currencyExchange ? CurrencyMark(reward.exchangeCurrency) : ""]; [reward.currencyExchange ? " " + reward.exchangeValue : ""] }
+    [cost]
     .onclick = () => askWho(reward)
   }
 }

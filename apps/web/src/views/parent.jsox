@@ -1,18 +1,20 @@
+import { poolPaidIn, rewardCosts } from "@chore-fridge/domain/rewards";
 import { openRewardForm as rewardForm } from "./reward-form.jsox";
+import { LedgerTab } from "./ledger.jsox";
 import { COLORS, $familyName, setFamilyName, $kids, saveKid, removeKid, $requireParentModeForCompletion, setRequireParentModeForCompletion, $requireParentModeForRedemptions, setRequireParentModeForRedemptions, $mcpEnabled, setMcpEnabled, $sayings, setSayingsFromText, restoreDefaultSayings, $currencies } from "../stores/family.js";
 import { currencyId, enabledCurrencies } from "@chore-fridge/domain/currencies";
 import { CurrencyTab } from "./currency-settings.jsox";
 import { formatSayingsText, parseSayingsText } from "@chore-fridge/domain/sayings";
 import { $serverMode } from "../stores/sync.js";
 import { $balances, amountForKid } from "../stores/balances.js";
-import { $rewards, removeReward } from "../stores/rewards.js";
+import { $rewardContributions, $rewards, removeReward } from "../stores/rewards.js";
 import { $ui, setUI, lockParent, closeSettings } from "../stores/navigation.js";
 import { eraseBoard } from "../stores/setup.js";
 import { updateList } from "../components/list.js";
 import { Choices } from "../components/choices.jsox";
 import { EmojiField } from "../components/emoji-field.jsox";
 import { defineScreen } from "../components/screen.jsox";
-import { Btn, showToast, openModal, closeModal, CurrencyMark } from "../ui.jsox";
+import { Btn, showToast, openModal, closeModal, CostMarks, CurrencyMark } from "../ui.jsox";
 import { TaskLists } from "./tasks.jsox";
 import { openTaskForm } from "./task-form.jsox";
 import { ViewControls } from "./view-options.jsox";
@@ -128,11 +130,17 @@ defineScreen("fridge-reward-settings", (root) => {
   }
   return () => {
     const reward = root.model;
-    text.replaceChildren(reward.emoji + " " + reward.title + " · ", CurrencyMark(currencyId(reward)), " " + reward.cost);
+    const costs = rewardCosts(reward);
+    const pool = $rewardContributions.get()[reward.id] || {};
+    text.replaceChildren(reward.emoji + " " + reward.title + " · ", CostMarks(costs));
+    if (reward.pooled) {
+      text.append(" · Family reward");
+      for (const row of costs) text.append(" · ", CurrencyMark(row.currency), " " + poolPaidIn(pool, row.currency) + "/" + row.amount);
+    }
     if (reward.currencyExchange) text.append(" → ", CurrencyMark(reward.exchangeCurrency), " " + reward.exchangeValue);
-    if (reward.oncePerDay) text.append(" · Once per child per day");
+    if (reward.oncePerDay) text.append(reward.pooled ? " · Once per day" : " · Once per child per day");
   };
-});
+}, [$rewardContributions]);
 
 defineScreen("fridge-rewards-settings", (root) => {
   const list = <div> { .className = "list" }
@@ -142,7 +150,7 @@ defineScreen("fridge-rewards-settings", (root) => {
     [list]
   }
   return () => updateList(list, $rewards.get(), "fridge-reward-settings");
-}, [$rewards]);
+}, [$rewards, $rewardContributions]);
 
 function RewardsTab() { return <fridge-rewards-settings> }
 
@@ -442,7 +450,7 @@ function HelpTab() {
 }
 
 defineScreen("fridge-parent", (root) => {
-  const tabOptions = ["general", "kids", "chores", "rewards", "currency", "display", "advanced", "help"].map(tab => ({
+  const tabOptions = ["general", "kids", "chores", "rewards", "ledger", "currency", "display", "advanced", "help"].map(tab => ({
     value: tab,
     label: tab.charAt(0).toUpperCase() + tab.slice(1),
   }));
@@ -480,7 +488,7 @@ defineScreen("fridge-parent", (root) => {
     }
   }
 
-  const factories = { general: () => <fridge-general-settings>, kids: KidsTab, chores: ChoresTab, rewards: RewardsTab, currency: CurrencyTab, display: DisplayTab, advanced: AdvancedTab, help: HelpTab };
+  const factories = { general: () => <fridge-general-settings>, kids: KidsTab, chores: ChoresTab, rewards: RewardsTab, ledger: LedgerTab, currency: CurrencyTab, display: DisplayTab, advanced: AdvancedTab, help: HelpTab };
   const pages = new Map();
   let currentTab;
   function sync() {

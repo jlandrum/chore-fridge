@@ -1,4 +1,4 @@
-import { todayKey } from "@chore-fridge/domain/dates";
+import { $boardDay } from "./clock.js";
 import { $ui } from "./navigation.js";
 import { defaultState } from "@chore-fridge/domain/state";
 export { defaultState } from "@chore-fridge/domain/state";
@@ -6,7 +6,7 @@ import { atom, batch } from "nanostores";
 import { $revision, $lastChange, commit } from "./changes.js";
 import { $familyName, $pin, $setupDone, $kids, $requireParentModeForCompletion, $requireParentModeForRedemptions, $mcpEnabled, $sayings, $currencies } from "./family.js";
 import { $chores, $completions, $counts, $archivedChores, $pastOnce } from "./chores.js";
-import { $rewards, $rewardRedemptions } from "./rewards.js";
+import { $rewards, $rewardRedemptions, $rewardContributions } from "./rewards.js";
 import { $spent, $goldSpent, $currencySpent, $exchangeEarned, $creditProjection, $balanceCarry } from "./balances.js";
 import { mergeCompletions, mergeCounts } from "@chore-fridge/domain/history";
 
@@ -18,7 +18,7 @@ const fields = {
   mcpEnabled: $mcpEnabled,
   familyName: $familyName, sayings: $sayings, currencies: $currencies, pin: $pin, setupDone: $setupDone, kids: $kids,
   chores: $chores, archivedChores: $archivedChores, completions: $completions, counts: $counts,
-  rewardRedemptions: $rewardRedemptions, exchangeEarned: $exchangeEarned,
+  rewardRedemptions: $rewardRedemptions, rewardContributions: $rewardContributions, exchangeEarned: $exchangeEarned,
   rewards: $rewards, spent: $spent, goldSpent: $goldSpent, currencySpent: $currencySpent, creditProjection: $creditProjection, balanceCarry:$balanceCarry, pastOnce:$pastOnce,
 };
 let metadata = { version: 1, nightMode: "auto", updatedAt: 0 };
@@ -66,11 +66,13 @@ export function startSync() {
   active = true;
   pullServer();
   const stopNavigation = $ui.listen(() => refreshArchives());
+  const stopDay = $boardDay.listen(() => { if (active) pullServer(); });
   retryTimer = setInterval(() => pullServer(), 5000);
   globalThis.window?.addEventListener?.("online", pullServer);
   return () => {
     active = false;
     stopNavigation();
+    stopDay();
     clearInterval(retryTimer);
     clearTimeout(saveTimer);
     events?.close(); events = null;
@@ -249,7 +251,7 @@ async function importLocal(snapshot) {
 }
 
 function stateURL() {
-  return capabilities?.dayBoard ? "/api/board?day="+todayKey() : "/api/state";
+  return capabilities?.dayBoard ? "/api/board?day="+$boardDay.get() : "/api/state";
 }
 async function refreshArchives() {
   if (!globalThis.window?.fetch || !capabilities?.dayBoard || $ui.get().view !== "parent" || $ui.get().parentTab !== "chores") return;

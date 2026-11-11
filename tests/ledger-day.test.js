@@ -172,3 +172,80 @@ test('a failed receipt rolls back journal, balance, state and history together',
     assert.equal(app.storage.ledger.totals().kid.stars,2);
   } finally { await app.close(); }
 });
+
+test('legacy gold completions are worth one gold star, and later gold chores keep their point value', () => {
+  const key = day + ':task:kid';
+  const legacy = {...defaultState(), setupDone:true, historyVersion:1, kids:[kid], chores:[{...task, points:0, gold:true}], completions:{[key]:1},
+    creditProjection:{[key]:[{taskId:'task', versionId:'baseline-task', kidId:'kid', units:1, points:0, gold:true}]}};
+  assert.deepEqual(balancesFor(legacy).kid, {stars:0, gold:1});
+  assert.equal(balancesFor(dayView(legacy, day, {kid:{stars:0, gold:1}})).kid.gold, 1);
+  const withPoints = {...legacy, creditProjection:{[key]:[{taskId:'task', versionId:'baseline-task', kidId:'kid', units:1, points:4, gold:true}]}};
+  assert.deepEqual(balancesFor(withPoints).kid, {stars:4, gold:1});
+  const modern = {...legacy, creditProjection:{[key]:[{taskId:'task', versionId:'v', kidId:'kid', units:1, points:2, gold:true, currency:'gold'}]}};
+  const board = dayView(modern, day, {kid:{stars:0, gold:2}});
+  assert.equal(board.creditProjection[key][0].currency, 'gold');
+  assert.equal(balancesFor(board).kid.gold, 2);
+  assert.equal(balancesFor(board).kid.stars, 0);
+});
+
+test('startup finishes a legacy gold undo that reversed none of the awarded star', async t => {
+  const options = files(t);
+  const db = new DatabaseSync(options.databaseFile);
+  db.exec(`CREATE TABLE household (id INTEGER PRIMARY KEY, document TEXT NOT NULL, revision INTEGER NOT NULL);
+    CREATE TABLE commands (id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, result TEXT NOT NULL);
+    CREATE TABLE migrations (name TEXT PRIMARY KEY, completed_at INTEGER NOT NULL);
+    CREATE TABLE history (revision INTEGER PRIMARY KEY, recorded_at INTEGER NOT NULL, action TEXT NOT NULL, command_id TEXT, document TEXT NOT NULL);
+    CREATE TABLE ledger (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE, revision INTEGER NOT NULL, recorded_at INTEGER NOT NULL, day TEXT NOT NULL, kind TEXT NOT NULL, kid_id TEXT NOT NULL, task_id TEXT, version_id TEXT, completion_key TEXT, units REAL NOT NULL, stars REAL NOT NULL, gold REAL NOT NULL, reverses TEXT REFERENCES ledger(id), command_id TEXT, currency TEXT NOT NULL DEFAULT '');
+    CREATE TABLE balances (kid_id TEXT PRIMARY KEY, stars REAL NOT NULL, gold REAL NOT NULL);
+    PRAGMA user_version=4;`);
+  db.prepare('INSERT INTO household VALUES(1,?,4)').run(JSON.stringify({...defaultState(), setupDone:true, kids:[kid]}));
+  for (const name of ['legacy-json','task-history','append-only-ledger']) db.prepare('INSERT INTO migrations VALUES(?,1)').run(name);
+  db.prepare('INSERT INTO ledger (id,revision,recorded_at,day,kind,kid_id,task_id,completion_key,units,stars,gold,currency) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)')
+    .run('credit-1', 4, 1, day, 'credit', 'kid', 'task', day+':task:kid', 1, 0, 1, '');
+  db.prepare('INSERT INTO ledger (id,revision,recorded_at,day,kind,kid_id,task_id,completion_key,units,stars,gold,reverses,currency) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .run('reversal-1', 4, 2, day, 'reversal', 'kid', 'task', day+':task:kid', -1, 0, 0, 'credit-1', 'gold');
+  db.prepare('INSERT INTO balances VALUES(?,?,?)').run('kid', 0, 1);
+  db.close();
+  let app = await createApp(options);
+  assert.equal(app.storage.ledger.totals().kid.gold, 0);
+  assert.equal(app.storage.ledger.list(day).filter(row => row.kind === 'reversal' && row.gold === -1).length, 1);
+  await app.close();
+  app = await createApp(options);
+  try {
+    assert.equal(app.storage.ledger.list(day).length, 3);
+    assert.equal(app.storage.ledger.totals().kid.gold, 0);
+  } finally { await app.close(); }
+});
+
+test('undoing a legacy gold completion takes the awarded gold star back', async t => {
+  const options = files(t);
+  const key = day + ':task:kid';
+  const chore = {...task, points:0, gold:true, taskId:'task', versionId:'baseline-task', validFrom:1};
+  const db = new DatabaseSync(options.databaseFile);
+  db.exec(`CREATE TABLE household (id INTEGER PRIMARY KEY, document TEXT NOT NULL, revision INTEGER NOT NULL);
+    CREATE TABLE commands (id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, result TEXT NOT NULL);
+    CREATE TABLE migrations (name TEXT PRIMARY KEY, completed_at INTEGER NOT NULL);
+    CREATE TABLE history (revision INTEGER PRIMARY KEY, recorded_at INTEGER NOT NULL, action TEXT NOT NULL, command_id TEXT, document TEXT NOT NULL);
+    CREATE TABLE ledger (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE, revision INTEGER NOT NULL, recorded_at INTEGER NOT NULL, day TEXT NOT NULL, kind TEXT NOT NULL, kid_id TEXT NOT NULL, task_id TEXT, version_id TEXT, completion_key TEXT, units REAL NOT NULL, stars REAL NOT NULL, gold REAL NOT NULL, reverses TEXT REFERENCES ledger(id), command_id TEXT, currency TEXT NOT NULL DEFAULT '');
+    CREATE TABLE balances (kid_id TEXT PRIMARY KEY, stars REAL NOT NULL, gold REAL NOT NULL);
+    PRAGMA user_version=4;`);
+  const state = {...defaultState(), setupDone:true, historyVersion:1, historyStartedAt:1, kids:[kid], chores:[chore], taskVersions:[chore], archivedChores:[], completions:{[key]:1},
+    creditProjection:{[key]:[{taskId:'task', versionId:'baseline-task', kidId:'kid', units:1, points:0, gold:true, entryId:'credit-1'}]}};
+  db.prepare('INSERT INTO household VALUES(1,?,4)').run(JSON.stringify(state));
+  for (const name of ['legacy-json','task-history','append-only-ledger','repair-legacy-gold-reversals']) db.prepare('INSERT INTO migrations VALUES(?,1)').run(name);
+  db.prepare('INSERT INTO ledger (id,revision,recorded_at,day,kind,kid_id,task_id,version_id,completion_key,units,stars,gold,currency) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .run('credit-1', 4, 1, day, 'credit', 'kid', 'task', 'baseline-task', key, 1, 0, 1, '');
+  db.prepare('INSERT INTO balances VALUES(?,?,?)').run('kid', 0, 1);
+  db.close();
+  const app = await createApp(options);
+  try {
+    assert.equal(balancesFor(app.storage.read().state).kid.gold, 1);
+    assert.equal(app.storage.ledger.totals().kid.gold, 1);
+    act(app, 'undo-legacy', 'chore.undo', {choreId:'task', kidId:'kid', day});
+    assert.equal(balancesFor(app.storage.read().state).kid.gold, 0);
+    assert.equal(app.storage.ledger.totals().kid.gold, 0);
+    const reversal = app.storage.ledger.list(day).find(row => row.kind === 'reversal');
+    assert.equal(reversal.gold, -1);
+    assert.equal(reversal.reverses, 'credit-1');
+  } finally { await app.close(); }
+});

@@ -1,0 +1,155 @@
+import { atom } from "nanostores";
+import { parseDay, todayKey } from "@chore-fridge/domain/dates";
+import { $kids } from "../stores/family.js";
+import { $chores } from "../stores/chores.js";
+import { $rewards } from "../stores/rewards.js";
+import { $balances } from "../stores/balances.js";
+import { $ui } from "../stores/navigation.js";
+import { defineScreen } from "../components/screen.jsox";
+import { Btn, CurrencyMark } from "../ui.jsox";
+
+const KINDS = {
+  credit: "Earned",
+  reversal: "Undone",
+  redemption: "Redeemed",
+  contribution: "Paid toward",
+  "contribution-return": "Payment returned",
+  "exchange-credit": "Exchange",
+  "opening-credit": "Starting balance",
+  "opening-debit": "Starting spending",
+  "spending-adjustment": "Balance correction",
+};
+
+const $ledgerDay = atom(todayKey());
+const $ledgerRows = atom([]);
+const $ledgerNote = atom("");
+let requestToken = 0;
+
+function shiftDay(day, delta) {
+  const date = parseDay(day) || new Date();
+  date.setDate(date.getDate() + delta);
+  return todayKey(date);
+}
+
+function formatTime(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+function entryValue(entry) {
+  if (entry.currency === "gold" || (!entry.currency && entry.gold)) return { currency: "gold", value: entry.gold };
+  if (entry.currency) return { currency: entry.currency, value: entry.stars };
+  return { currency: "star", value: entry.stars };
+}
+
+function signed(value) {
+  const amount = Number(value) || 0;
+  return amount > 0 ? "+" + amount : String(amount);
+}
+
+function entryTitle(entry, chores, rewards) {
+  if (entry.taskId) return chores.get(entry.taskId) || "Task";
+  if (entry.rewardId) return rewards.get(entry.rewardId) || "Reward";
+  if (entry.kind === "redemption" || entry.kind === "contribution" || entry.kind === "contribution-return") return "Reward";
+  return "";
+}
+
+async function load(day) {
+  const token = ++requestToken;
+  if (!globalThis.window?.fetch) {
+    $ledgerNote.set("The ledger is available when this page is connected to the household server.");
+    $ledgerRows.set([]);
+    return;
+  }
+  const showing = $ledgerRows.get()[0]?.day;
+  if (showing && showing !== day) {
+    $ledgerRows.set([]);
+    $ledgerNote.set("");
+  }
+  try {
+    const entries = [];
+    let after = 0;
+    for (let page = 0; page < 20; page += 1) {
+      const response = await globalThis.window.fetch("/api/ledger?day=" + encodeURIComponent(day) + "&after=" + after);
+      if (!response.ok) throw new Error("Ledger unavailable");
+      const body = await response.json();
+      entries.push(...(body.entries || []));
+      if (body.next == null) break;
+      after = body.next;
+    }
+    if (token !== requestToken) return;
+    $ledgerRows.set(entries.reverse());
+    $ledgerNote.set("");
+  } catch {
+    if (token !== requestToken) return;
+    $ledgerNote.set("The ledger could not be loaded.");
+    $ledgerRows.set([]);
+  }
+}
+
+function ledgerRow(entry, kidNames, choreTitles, rewardTitles) {
+  const amount = entryValue(entry);
+  return <div> {
+    .className = "ledger-row"
+    <span> { .className = "ledger-time"; [formatTime(entry.recordedAt)] }
+    <span> { [kidNames.get(entry.kidId) || "Someone"] }
+    <span> { [KINDS[entry.kind] || entry.kind] }
+    <span> { [entryTitle(entry, choreTitles, rewardTitles)] }
+    <span> { .className = "ledger-amount"; [CurrencyMark(amount.currency)]; [" " + signed(amount.value)] }
+  }
+}
+
+defineScreen("fridge-ledger", (root) => {
+  const label = <span> { .className = "ledger-day" }
+  const list = <div> { .className = "ledger-list" }
+  const next = Btn("Next", "btn ghost", () => {
+    const today = todayKey();
+    if ($ledgerDay.get() >= today) return;
+    const following = shiftDay($ledgerDay.get(), 1);
+    $ledgerDay.set(following > today ? today : following);
+  });
+  function paint() {
+    const day = $ledgerDay.get();
+    label.textContent = day;
+    next.disabled = day >= todayKey();
+    list.replaceChildren();
+    const note = $ledgerNote.get();
+    if (note) {
+      list.append(<p> { .className = "lead"; [note] });
+      return;
+    }
+    const rows = $ledgerRows.get();
+    if (!rows.length) {
+      list.append(<p> { .className = "lead"; ["Nothing recorded on this day."] });
+      return;
+    }
+    const kidNames = new Map($kids.get().map((kid) => [kid.id, kid.name]));
+    const choreTitles = new Map($chores.get().map((chore) => [chore.id, chore.title]));
+    const rewardTitles = new Map($rewards.get().map((reward) => [reward.id, reward.title]));
+    for (const entry of rows) list.append(ledgerRow(entry, kidNames, choreTitles, rewardTitles));
+  }
+  [root] {
+    .className = "settings-page"
+    <div> {
+      .className = "settings-intro"
+      <h2> { ["Ledger"] }
+      <p> { .className = "lead"; ["Earnings, spending, and family-reward payments for one day."] }
+    }
+    <div> {
+      .className = "ledger-controls"
+      [Btn("Prev", "btn ghost", () => $ledgerDay.set(shiftDay($ledgerDay.get(), -1)))]
+      [label]
+      [next]
+      [Btn("Today", "btn ghost", () => $ledgerDay.set(todayKey()))]
+    }
+    [list]
+  }
+  // Painting the rows must not request the ledger again.
+  return [
+    [[$kids, $chores, $rewards, $balances, $ui, $ledgerDay], () => { load($ledgerDay.get()); }],
+    [[$ledgerRows, $ledgerNote, $ledgerDay, $kids, $chores, $rewards], paint],
+  ];
+});
+
+export function LedgerTab() { return <fridge-ledger> }

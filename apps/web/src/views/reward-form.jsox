@@ -1,6 +1,7 @@
 import { $currencies } from "../stores/family.js";
 import { saveReward } from "../stores/rewards.js";
 import { currencyId, enabledCurrencies, currencyById } from "@chore-fridge/domain/currencies";
+import { rewardCosts } from "@chore-fridge/domain/rewards";
 import { Choices } from "../components/choices.jsox";
 import { EmojiField } from "../components/emoji-field.jsox";
 import { formToggle } from "../components/form-toggle.jsox";
@@ -8,21 +9,55 @@ import { Tabs } from "../components/tabs.jsox";
 import { Btn, showToast, openModal, closeModal } from "../ui.jsox";
 
 export function openRewardForm(existing = null) {
-  let currency = currencyId(existing);
   let exchangeCurrency = existing?.exchangeCurrency || "dollar";
   let selected = "general";
   const titleInput = <input> { .value = existing?.title || ""; .autocomplete = "off"; .setAttribute("aria-label", "Reward") }
   const emoji = EmojiField(existing?.emoji || "🎁", "🎁");
-  const costInput = <input> { .type = "number"; .min = "1"; .step = "1"; .value = String(existing?.cost || 20); .setAttribute("aria-label", "Cost") }
   const valueInput = <input> { .type = "number"; .min = "1"; .step = "1"; .value = String(existing?.exchangeValue || 5); .setAttribute("aria-label", "Payout value") }
   const options = enabledCurrencies($currencies.get()).map(item => ({value:item.id,label:item.name}));
-  for (const id of [currency, exchangeCurrency]) {
+  const lines = rewardCosts(existing).map((row) => ({currency: row.currency, amount: row.amount}));
+  if (!lines.length) lines.push({currency: currencyId(existing), amount: existing?.cost || 20});
+  for (const id of [...lines.map((line) => line.currency), exchangeCurrency]) {
     if (!options.some(item => item.value === id)) options.push({value:id,label:currencyById($currencies.get(), id).name});
   }
-  const currencyChoices = Choices(options, currency, value => { currency = value; }, {className:"row task-currency"});
   const exchangeChoices = Choices(options, exchangeCurrency, value => { exchangeCurrency = value; }, {className:"row task-currency"});
-  const exchange = formToggle("Currency Exchange", "Give another currency when this reward is redeemed.", "Currency Exchange", existing?.currencyExchange, () => updateTabs());
-  const daily = formToggle("Only allow one redemption per day", "Each child can redeem this reward once per calendar day.", "Only allow one redemption per day", existing?.oncePerDay);
+  const costList = <div> { .className = "cost-lines" }
+  function usedCurrencies(skip) {
+    return new Set(lines.map((line, index) => index === skip ? null : line.currency).filter(Boolean));
+  }
+  function readLines() {
+    for (const line of lines) {
+      if (line.input) line.amount = Number(line.input.value) || line.amount;
+    }
+  }
+  function renderCosts() {
+    readLines();
+    costList.replaceChildren();
+    lines.forEach((line, index) => {
+      const amountInput = <input> {
+        .type = "number"
+        .min = "1"
+        .step = "1"
+        .value = String(line.amount || 1)
+        .setAttribute("aria-label", index === 0 ? "Cost" : "Cost " + (index + 1))
+        .oninput = () => { line.amount = Number(amountInput.value); }
+      }
+      line.input = amountInput;
+      const available = options.filter((item) => item.value === line.currency || !usedCurrencies(index).has(item.value));
+      const picker = Choices(available, line.currency, (value) => { line.currency = value; renderCosts(); }, {className:"row task-currency"});
+      const row = <div> {
+        .className = "cost-line"
+        <div> { .className = "field"; <label> { [index === 0 ? "Cost" : "Cost " + (index + 1)] }; [amountInput] }
+        [picker]
+      }
+      if (lines.length > 1) row.append(Btn("Remove", "tiny", () => { lines.splice(index, 1); renderCosts(); }));
+      costList.append(row);
+    });
+  }
+  renderCosts();
+  const family = formToggle("Family reward", "Anyone can chip in toward this cost. It is redeemed when the payments reach the cost.", "Family reward", existing?.pooled, (on) => { if (on) exchange.set(false); updateTabs(); });
+  const exchange = formToggle("Currency Exchange", "Give another currency when this reward is redeemed.", "Currency Exchange", existing?.currencyExchange && !existing?.pooled, () => updateTabs());
+  const daily = formToggle("Only allow one redemption per day", "Each child can redeem this once per calendar day. A family reward can be completed once per day for the whole household.", "Only allow one redemption per day", existing?.oncePerDay);
   const general = <div> {
     .className = "task-panel"
     <div> {
@@ -30,14 +65,20 @@ export function openRewardForm(existing = null) {
       <div> { .className = "field task-title"; <label> { ["Reward"] }; [titleInput] }
       <div> { .className = "field task-emoji"; <label> { ["Emoji"] }; [emoji.trigger] }
     }
-    <div> { .className = "field"; <label> { ["Cost"] }; [costInput] }
+    [costList]
     <p> { .className = "view-label"; ["Currency to spend"] }
-    [currencyChoices]
+    [Btn("Add currency", "btn ghost", () => {
+      const used = usedCurrencies(-1);
+      const next = options.find((item) => !used.has(item.value));
+      if (!next) { showToast("Every currency is already on this reward"); return; }
+      lines.push({currency: next.value, amount: 1});
+      renderCosts();
+    })]
   }
   const advanced = <div> {
     .className = "task-panel"
     <h4> { ["Advanced"] }
-    <div> { .className = "settings-stack"; [exchange.node]; [daily.node] }
+    <div> { .className = "settings-stack"; [family.node]; [exchange.node]; [daily.node] }
   }
   const payout = <div> {
     .className = "task-panel"
@@ -56,6 +97,8 @@ export function openRewardForm(existing = null) {
     fields.setAttribute("aria-labelledby", "reward-form-tabs-" + value);
   }
   function updateTabs() {
+    if (family.get()) exchange.set(false);
+    exchange.node.hidden = family.get();
     if (!exchange.get() && selected === "exchange") selected = "advanced";
     const tabs = [{value:"general",label:"General"},{value:"advanced",label:"Advanced"}];
     if (exchange.get()) tabs.push({value:"exchange",label:"Currency Exchange"});
@@ -72,11 +115,15 @@ export function openRewardForm(existing = null) {
       [Btn("Save", "btn wide", () => {
         const title = titleInput.value.trim();
         if (!title) { showToast("Need a name"); return; }
-        const payload = {id:existing?.id,title,emoji:emoji.value,cost:Number(costInput.value),currency,gold:currency === "gold",currencyExchange:exchange.get(),oncePerDay:daily.get()};
-        if (exchange.get()) { payload.exchangeCurrency = exchangeCurrency; payload.exchangeValue = Number(valueInput.value); }
+        const pooled = family.get();
+        const exchanging = !pooled && exchange.get();
+        const costs = lines.map((line) => ({currency: line.currency, amount: Number(line.input ? line.input.value : line.amount)}));
+        const payload = {id:existing?.id,title,emoji:emoji.value,cost:costs[0]?.amount,currency:costs[0]?.currency,gold:costs[0]?.currency === "gold",costs,pooled,currencyExchange:exchanging,oncePerDay:daily.get()};
+        if (exchanging) { payload.exchangeCurrency = exchangeCurrency; payload.exchangeValue = Number(valueInput.value); }
         const result = saveReward(payload);
         if (result?.error) { showToast(result.error); return; }
         closeModal();
+        if (result?.completed) showToast(title + " is paid for.");
       })]
     }
   }

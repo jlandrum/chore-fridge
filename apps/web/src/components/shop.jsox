@@ -1,5 +1,5 @@
 import { $kids } from "../stores/family.js";
-import { $rewards } from "../stores/rewards.js";
+import { $rewardContributions, $rewards } from "../stores/rewards.js";
 import { $balances } from "../stores/balances.js";
 import { $view } from "../view.js";
 import { defineScreen } from "./screen.jsox";
@@ -32,6 +32,6 @@ defineScreen("fridge-shop", (root) => {
     if (!rewards.length) list.append(empty);
     else rewards.forEach((reward) => list.append(RewardChip(reward)));
   };
-}, [$rewards, $balances, $kids, $view]);
+}, [$rewards, $rewardContributions, $balances, $kids, $view]);
 
 export function Shop() { return <fridge-shop> }

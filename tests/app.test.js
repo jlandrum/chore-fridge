@@ -324,10 +324,10 @@ test('parent unlock lasts across navigation, explicit lock closes editors, and P
   assert.equal(boardScreen.inert,true);
   const tabs = active().querySelector('fridge-tabs');
   assert.equal(tabs.getAttribute('role'),'tablist');
-  assert.equal(tabs.querySelectorAll('[role="tab"]').length,8);
+  assert.equal(tabs.querySelectorAll('[role="tab"]').length,9);
   assert.equal(tabs.querySelector('[role="tab"]').getAttribute('aria-controls'),'settings-panel');
   assert.equal(tabs.querySelector('[aria-selected="true"]').textContent.toLowerCase(),navigation.$ui.get().parentTab);
-  for (const page of ['General','Kids','Chores','Rewards','Currency','Display','Advanced','Help']) {
+  for (const page of ['General','Kids','Chores','Rewards','Ledger','Currency','Display','Advanced','Help']) {
     click(page);
     assert.ok(active().querySelector('.settings-body .lead'),`${page} has a subtitle`);
   }
@@ -546,6 +546,38 @@ test('child balances retain their nodes and update custom marks as currencies ch
   }
 });
 
+test('exchange buttons apply daily limits per child and allow repeated unlimited conversions', async () => {
+  const sync = await import('../apps/web/src/stores/sync.js');
+  const { askWho } = await import('../apps/web/src/components/reward-chip.jsox');
+  const original = sync.serializeHousehold();
+  const reward = {id:'exchange',title:'Pocket money',emoji:'💵',cost:100,currency:'star',currencyExchange:true,exchangeCurrency:'dollar',exchangeValue:5,oncePerDay:true};
+  try {
+    sync.applySnapshot({...sync.defaultState(),kids:[{id:'alex',name:'Alex'},{id:'sam',name:'Sam'}],exchangeEarned:{star:{alex:300,sam:300}},rewards:[reward]});
+    const choices = () => [...modal.querySelectorAll('button.choice')];
+    askWho(reward);
+    assert.deepEqual(choices().map(button => button.disabled),[false,false]);
+    choices()[0].click();
+    askWho(reward);
+    assert.deepEqual(choices().map(button => button.disabled),[true,false]);
+    assert.match(choices()[0].textContent,/Already redeemed today/);
+    choices()[1].click();
+    assert.equal(balances.amountForKid('alex','dollar'),5);
+    assert.equal(balances.amountForKid('sam','dollar'),5);
+    const unlimited = {...reward,oncePerDay:false};
+    rewards.saveReward(unlimited);
+    for (let i=0;i<2;i++) {
+      askWho(unlimited);
+      assert.deepEqual(choices().map(button => button.disabled),[false,false]);
+      choices()[0].click();
+    }
+    askWho(unlimited);
+    assert.deepEqual(choices().map(button => button.disabled),[true,false]);
+    assert.doesNotMatch(choices()[0].textContent,/Already redeemed today/);
+    assert.equal(balances.amountForKid('alex','star'),0);
+    assert.equal(balances.amountForKid('alex','dollar'),15);
+  } finally { sync.applySnapshot(original); }
+});
+
 test('reward editor preserves advanced choices and local exchanges enforce the daily limit', async () => {
   const sync = await import('../apps/web/src/stores/sync.js');
   const { openRewardForm } = await import('../apps/web/src/views/reward-form.jsox');
@@ -582,4 +614,175 @@ test('reward editor preserves advanced choices and local exchanges enforce the d
     click('Save',modal);
     assert.equal(rewards.$rewards.get()[0].currencyExchange,false);
   } finally { sync.applySnapshot(original); }
+});
+
+test('a shop reward can spend two currencies at once', async () => {
+  const sync = await import('../apps/web/src/stores/sync.js');
+  const { openRewardForm } = await import('../apps/web/src/views/reward-form.jsox');
+  const original = sync.serializeHousehold();
+  try {
+    sync.applySnapshot({...sync.defaultState(), kids:[{id:'combo-kid', name:'Alex'}], exchangeEarned:{star:{'combo-kid':10}, gold:{'combo-kid':4}}});
+    navigation.setUI({parentUnlocked:true, view:'board'});
+    openRewardForm();
+    field('Reward', 'Movie night');
+    field('Cost', '5');
+    click('Add currency', modal);
+    field('Cost 2', '2');
+    click('Save', modal);
+    const reward = rewards.$rewards.get().find(item => item.title === 'Movie night');
+    assert.deepEqual(reward.costs, [{currency:'star', amount:5},{currency:'gold', amount:2}]);
+    assert.equal(rewards.redeemReward(reward.id, 'combo-kid').ok, true);
+    assert.equal(balances.amountForKid('combo-kid', 'star'), 5);
+    assert.equal(balances.amountForKid('combo-kid', 'gold'), 2);
+  } finally { sync.applySnapshot(original); }
+});
+
+test('family reward editor, shared payments, and the parent ledger', async () => {
+  const sync = await import('../apps/web/src/stores/sync.js');
+  const { openRewardForm } = await import('../apps/web/src/views/reward-form.jsox');
+  const { closeModal } = await import('../apps/web/src/ui.jsox');
+  const { todayKey } = await import('@chore-fridge/domain/dates');
+  const original = sync.serializeHousehold();
+  const previousFetch = window.fetch;
+  const alex = {id:'alex', name:'Alex', emoji:'🐻'};
+  const sam = {id:'sam', name:'Sam', emoji:'🐸'};
+  function kidRow(name) {
+    return [...modal.querySelectorAll('.pool-kid')].find(node => node.querySelector('label')?.textContent === name);
+  }
+  function fill(name, value) {
+    const row = kidRow(name);
+    assert.ok(row, name);
+    const input = row.querySelector('input');
+    input.value = value;
+    input.dispatchEvent(new Event('input', {bubbles: true}));
+  }
+  function submitPool() {
+    const button = [...modal.querySelectorAll('button')].find(node => {
+      const label = node.textContent.trim();
+      return label === 'Pay' || label === 'Redeem';
+    });
+    assert.ok(button, 'Pay or Redeem');
+    assert.equal(button.disabled, false);
+    button.click();
+  }
+  try {
+    sync.applySnapshot({...sync.defaultState(), setupDone:true, kids:[alex, sam]});
+    navigation.setUI({view:'board', parentUnlocked:true, parentTab:'rewards'});
+    openRewardForm();
+    field('Reward', 'Family Reward');
+    field('Cost', '10');
+    click('Advanced', modal);
+    modal.querySelector('input[aria-label="Currency Exchange"]').click();
+    assert.ok(modal.querySelector('[role="tab"][id="reward-form-tabs-exchange"]'));
+    modal.querySelector('input[aria-label="Family reward"]').click();
+    assert.equal(modal.querySelector('input[aria-label="Currency Exchange"]').checked, false);
+    assert.ok(!modal.querySelector('[role="tab"][id="reward-form-tabs-exchange"]'));
+    click('Save', modal);
+    const reward = rewards.$rewards.get().find(item => item.title === 'Family Reward');
+    assert.equal(reward.pooled, true);
+    assert.equal(reward.currencyExchange, false);
+    navigation.setUI({view:'parent', parentUnlocked:true, parentTab:'rewards'});
+    assert.match(active().textContent, /Family reward/);
+    assert.match(active().textContent, /0\/10/);
+
+    sync.applySnapshot({...sync.serializeHousehold(), exchangeEarned:{star:{alex:20, sam:8}}});
+    navigation.setUI({view:'board', parentUnlocked:true});
+    const chipOf = () => [...document.querySelectorAll('.reward')].find(node => node.textContent.includes('Family Reward'));
+    const chip = chipOf();
+    assert.ok(chip);
+    assert.match(chip.textContent, /0\/10/);
+    chip.click();
+    assert.ok(modal.querySelector('.pool-pie'));
+    assert.match(modal.textContent, /Paid 0/);
+    assert.match(modal.textContent, /Remaining 10/);
+    fill('Sam', '9');
+    submitPool();
+    assert.match(toastEl.textContent, /Not enough credit yet/);
+    assert.equal(modal.hidden, false);
+    fill('Alex', '6');
+    fill('Sam', '5');
+    submitPool();
+    assert.match(toastEl.textContent, /remaining cost/);
+    fill('Sam', '4');
+    submitPool();
+    assert.equal(modal.hidden, true);
+    assert.match(toastEl.textContent, /paid for/);
+    assert.equal(confettiEl.hidden, false);
+    assert.equal(balances.amountForKid('alex', 'star'), 14);
+    assert.equal(balances.amountForKid('sam', 'star'), 4);
+    assert.equal(rewards.$rewardRedemptions.get()[todayKey() + ':' + reward.id + ':*'], 1);
+    assert.equal(rewards.$rewardContributions.get()[reward.id], undefined);
+
+    chipOf().click();
+    fill('Alex', '3');
+    submitPool();
+    assert.equal(balances.amountForKid('alex', 'star'), 11);
+    [...kidRow('Alex').querySelectorAll('button')].find(node => node.textContent.trim() === 'Return').click();
+    assert.equal(balances.amountForKid('alex', 'star'), 14);
+    assert.equal(rewards.$rewardContributions.get()[reward.id], undefined);
+    closeModal();
+
+    const calls = [];
+    window.fetch = async (url) => {
+      const path = String(url);
+      if (!path.includes('/api/ledger')) return {ok:false, json:async () => ({})};
+      const requested = new URL(path, 'http://localhost').searchParams.get('day');
+      calls.push(requested);
+      if (calls.length === 1) {
+        return {ok:true, json:async () => ({day:requested, next:1, entries:[{sequence:1, recordedAt:Date.parse('2026-11-10T15:04:00'), day:requested, kidId:'alex', kind:'contribution', rewardId:reward.id, taskId:null, stars:-4, gold:0, currency:''}]})};
+      }
+      return {ok:true, json:async () => ({day:requested, next:null, entries:[{sequence:2, recordedAt:Date.parse('2026-11-10T15:05:00'), day:requested, kidId:'sam', kind:'redemption', rewardId:null, taskId:null, stars:-1, gold:0, currency:''}]})};
+    };
+    navigation.setUI({view:'parent', parentUnlocked:true, parentTab:'ledger'});
+    await new Promise(resolve => setTimeout(resolve, 50));
+    const ledger = active().textContent;
+    assert.match(ledger, /Paid toward/);
+    assert.match(ledger, /Family Reward/);
+    assert.match(ledger, /Alex/);
+    assert.match(ledger, /-4/);
+    assert.match(ledger, /Redeemed/);
+    assert.match(ledger, /Reward/);
+    assert.ok(ledger.indexOf('Redeemed') < ledger.indexOf('Paid toward'));
+    assert.equal([...active().querySelectorAll('button')].find(node => node.textContent.trim() === 'Next').disabled, true);
+    click('Prev');
+    await new Promise(resolve => setTimeout(resolve, 30));
+    assert.equal(calls.at(-1), todayKey(new Date(Date.parse(todayKey() + 'T12:00:00') - 86400000)));
+    click('Today');
+    assert.equal(active().querySelector('.ledger-day').textContent, todayKey());
+  } finally {
+    window.fetch = previousFetch;
+    closeModal();
+    navigation.setUI({view:'board', parentUnlocked:true, parentTab:'general'});
+    sync.applySnapshot(original);
+  }
+});
+
+test('the board can move to a past day and complete chores for that day', async () => {
+  const clock = await import('../apps/web/src/stores/clock.js');
+  const { todayKey } = await import('@chore-fridge/domain/dates');
+  const sync = await import('../apps/web/src/stores/sync.js');
+  const original = sync.serializeHousehold();
+  const originalDay = clock.$boardDay.get();
+  try {
+    const past = '2026-11-07';
+    sync.applySnapshot({
+      ...sync.defaultState(),
+      setupDone:true,
+      kids:[{id:'day-kid', name:'Alex', emoji:'🐻', color:'#e85d4c'}],
+      chores:[{id:'day-task', title:'Dishes', kidIds:['day-kid'], points:1, repeat:'daily', weekdays:[0,1,2,3,4,5,6]}],
+    });
+    navigation.setUI({view:'board', parentUnlocked:true});
+    clock.$boardDay.set(past);
+    assert.equal(active().querySelector('.date').dataset.day, past);
+    assert.equal([...active().querySelectorAll('button')].find(node => node.textContent.trim() === 'Next').disabled, false);
+    await pauseTap();
+    active().querySelector('fridge-chore button').click();
+    assert.ok(chores.$completions.get()['2026-11-07:day-task:day-kid'] > 0);
+    click('Today');
+    assert.equal(clock.$boardDay.get(), todayKey());
+    assert.equal([...active().querySelectorAll('button')].find(node => node.textContent.trim() === 'Next').disabled, true);
+  } finally {
+    clock.$boardDay.set(originalDay);
+    sync.applySnapshot(original);
+  }
 });

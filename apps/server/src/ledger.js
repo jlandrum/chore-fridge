@@ -11,7 +11,8 @@ export function createLedger(db) {
     revision INTEGER NOT NULL, recorded_at INTEGER NOT NULL, day TEXT NOT NULL,
     kind TEXT NOT NULL, kid_id TEXT NOT NULL, task_id TEXT, version_id TEXT,
     completion_key TEXT, units REAL NOT NULL, stars REAL NOT NULL, gold REAL NOT NULL,
-    reverses TEXT REFERENCES ledger(id), command_id TEXT, currency TEXT NOT NULL DEFAULT '');
+    reverses TEXT REFERENCES ledger(id), command_id TEXT, currency TEXT NOT NULL DEFAULT '',
+    reward_id TEXT);
     CREATE INDEX IF NOT EXISTS ledger_day ON ledger(day,sequence);
     CREATE TABLE IF NOT EXISTS balances (kid_id TEXT PRIMARY KEY, stars REAL NOT NULL, gold REAL NOT NULL);
     CREATE TABLE IF NOT EXISTS extra_balances (kid_id TEXT NOT NULL, currency TEXT NOT NULL, amount REAL NOT NULL, PRIMARY KEY(kid_id, currency));
@@ -19,6 +20,7 @@ export function createLedger(db) {
     CREATE TRIGGER IF NOT EXISTS ledger_no_delete BEFORE DELETE ON ledger BEGIN SELECT RAISE(ABORT,'Ledger is append-only'); END;`);
   const columns = db.prepare('PRAGMA table_info(ledger)').all().map(column => column.name);
   if (!columns.includes('currency')) db.exec("ALTER TABLE ledger ADD COLUMN currency TEXT NOT NULL DEFAULT ''");
+  if (!columns.includes('reward_id')) db.exec('ALTER TABLE ledger ADD COLUMN reward_id TEXT');
   function pack(entry, units) {
     const value = creditValue({ ...entry, units });
     const id = currencyId(entry);
@@ -28,10 +30,10 @@ export function createLedger(db) {
       currency: id === "star" ? "" : id,
     };
   }
-  function append({revision,day,kind,kidId,taskId=null,versionId=null,key=null,units=0,stars=0,gold=0,currency='',reverses=null,commandId=null}) {
+  function append({revision,day,kind,kidId,taskId=null,versionId=null,key=null,units=0,stars=0,gold=0,currency='',reverses=null,commandId=null,rewardId=null}) {
     const id = randomUUID();
-    db.prepare('INSERT INTO ledger (id,revision,recorded_at,day,kind,kid_id,task_id,version_id,completion_key,units,stars,gold,reverses,command_id,currency) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-      .run(id,revision,Date.now(),day,kind,kidId,taskId,versionId,key,units,stars,gold,reverses,commandId,currency || '');
+    db.prepare('INSERT INTO ledger (id,revision,recorded_at,day,kind,kid_id,task_id,version_id,completion_key,units,stars,gold,reverses,command_id,currency,reward_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      .run(id,revision,Date.now(),day,kind,kidId,taskId,versionId,key,units,stars,gold,reverses,commandId,currency || '',rewardId);
     if (currency && currency !== 'star' && currency !== 'gold') {
       db.prepare('INSERT INTO extra_balances VALUES(?,?,?) ON CONFLICT(kid_id,currency) DO UPDATE SET amount=amount+excluded.amount').run(kidId,currency,stars);
     } else {
@@ -39,7 +41,7 @@ export function createLedger(db) {
     }
     return id;
   }
-  function reconcile(previous,next,revision,action,commandId=null,day=todayKey()) {
+  function reconcile(previous,next,revision,action,commandId=null,day=todayKey(),rewardId=null) {
     const old = previous?.creditProjection || {};
     const current = next.creditProjection || {};
     for (const key of new Set([...Object.keys(old),...Object.keys(current)])) {
@@ -67,7 +69,7 @@ export function createLedger(db) {
         const amount = (after[kidId] || 0) - (before[kidId] || 0);
         if (!amount) continue;
         const packed = currency === 'gold' ? {stars:0,gold:amount,currency:'gold'} : {stars:amount,gold:0,currency:currency === 'star' ? '' : currency};
-        append({revision,day,kind:previous ? 'exchange-credit' : 'opening-credit',kidId,...packed,commandId});
+        append({revision,day,kind:previous ? 'exchange-credit' : 'opening-credit',kidId,...packed,commandId,rewardId});
       }
 
       const kids = new Set([...Object.keys(spentKids(previous, currency)), ...Object.keys(spentKids(next, currency))]);
@@ -75,7 +77,7 @@ export function createLedger(db) {
         const amount = spentFor(previous || {}, currency, kidId) - spentFor(next, currency, kidId);
         if (!amount) continue;
         const packed = currency === 'gold' ? { stars: 0, gold: amount, currency: 'gold' } : { stars: amount, gold: 0, currency: currency === 'star' ? '' : currency };
-        append({revision,day,kind:previous ? (action === 'reward.redeem' ? 'redemption' : 'spending-adjustment') : 'opening-debit',kidId,...packed,commandId});
+        append({revision,day,kind:spendingKind(action, previous),kidId,...packed,commandId,rewardId});
       }
     }
   }
@@ -93,9 +95,35 @@ export function createLedger(db) {
       return result;
     },
     list(day,after=0) {
-      return db.prepare('SELECT sequence,id,revision,recorded_at AS recordedAt,day,kind,kid_id AS kidId,task_id AS taskId,version_id AS versionId,completion_key AS completionKey,units,stars,gold,reverses,command_id AS commandId,currency FROM ledger WHERE day=? AND sequence>? ORDER BY sequence LIMIT 100').all(day,after);
+      return db.prepare('SELECT sequence,id,revision,recorded_at AS recordedAt,day,kind,kid_id AS kidId,task_id AS taskId,version_id AS versionId,completion_key AS completionKey,units,stars,gold,reverses,command_id AS commandId,currency,reward_id AS rewardId FROM ledger WHERE day=? AND sequence>? ORDER BY sequence LIMIT 100').all(day,after);
+    },
+    // Undo used to recompute a legacy gold credit as zero points and leave the awarded star in the balance.
+    // Summing every reversal of a credit makes a repeated repair append nothing.
+    repairIncompleteReversals(revision) {
+      const originals = db.prepare('SELECT * FROM ledger WHERE id IN (SELECT reverses FROM ledger WHERE reverses IS NOT NULL)').all();
+      const summed = new Map(db.prepare('SELECT reverses AS id, SUM(units) AS units, SUM(stars) AS stars, SUM(gold) AS gold FROM ledger WHERE reverses IS NOT NULL GROUP BY reverses').all().map(row => [row.id, row]));
+      const sample = db.prepare('SELECT * FROM ledger WHERE reverses=? ORDER BY sequence DESC LIMIT 1');
+      for (const original of originals) {
+        if (!original.units) continue;
+        const sum = summed.get(original.id);
+        const scale = sum.units / original.units;
+        const stars = original.stars * scale - sum.stars;
+        const gold = original.gold * scale - sum.gold;
+        if (Math.abs(stars) < 1e-9 && Math.abs(gold) < 1e-9) continue;
+        const source = sample.get(original.id);
+        const currency = Math.abs(gold) >= 1e-9 && Math.abs(stars) < 1e-9 ? 'gold' : (source.currency || '');
+        append({revision,day:source.day,kind:'reversal',kidId:source.kid_id,taskId:source.task_id,versionId:source.version_id,key:source.completion_key,units:0,stars,gold,currency,reverses:original.id,commandId:source.command_id});
+      }
     },
   };
+}
+
+function spendingKind(action, previous) {
+  if (!previous) return 'opening-debit';
+  if (action === 'reward.redeem') return 'redemption';
+  if (action === 'reward.contribute') return 'contribution';
+  if (action === 'reward.return' || action === 'reward.remove') return 'contribution-return';
+  return 'spending-adjustment';
 }
 
 function spentKids(state, currency) {

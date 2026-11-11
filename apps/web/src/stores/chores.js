@@ -5,7 +5,8 @@ import { ck, isCounted, maxCount, isOnce, isWeekly, normalizeChore } from "@chor
 import { atom } from "nanostores";
 import { commit } from "./changes.js";
 import { uid, upsert } from "@chore-fridge/domain/records";
-import { todayKey, datesInWeek } from "@chore-fridge/domain/dates";
+import { datesInWeek } from "@chore-fridge/domain/dates";
+import { $boardDay, boardDate } from "./clock.js";
 
 export const $pastOnce = atom([]);
 export const $archivedChores = atom([]);
@@ -16,13 +17,14 @@ let lastTap = 0;
 
 export { ck, timesEarned, isOnce, isWeekly, isEvery, choreKind, minCount, maxCount, isCounted } from "@chore-fridge/domain/chores";
 const snapshot = () => ({ chores: $chores.get(), counts: $counts.get(), completions: $completions.get(), pastOnce:$pastOnce.get() });
-export function countFor(...args) { return rules.countFor(snapshot(), ...args); }
-export function isDone(...args) { return rules.isDone(snapshot(), ...args); }
-export function claimedBy(...args) { return rules.claimedBy(snapshot(), ...args); }
-export function choresForKid(...args) { return rules.choresForKid(snapshot(), ...args); }
+const when = () => boardDate();
+export function countFor(chore, kidId) { return rules.countFor(snapshot(), chore, kidId, when()); }
+export function isDone(chore, kidId) { return rules.isDone(snapshot(), chore, kidId, when()); }
+export function claimedBy(chore) { return rules.claimedBy(snapshot(), chore, when()); }
+export function choresForKid(kidId) { return rules.choresForKid(snapshot(), kidId, when()); }
 export function dailyChores(...args) { return rules.dailyChores(snapshot(), ...args); }
 export function weeklyChores(...args) { return rules.weeklyChores(snapshot(), ...args); }
-export function oneOffChores(...args) { return rules.oneOffChores(snapshot(), ...args); }
+export function oneOffChores() { return rules.oneOffChores(snapshot(), when()); }
 
 export function bumpChore(choreId, kidId, delta) {
   if (completionLocked()) return {error:"Unlock Parent Mode to change task completion."};
@@ -31,11 +33,12 @@ export function bumpChore(choreId, kidId, delta) {
   lastTap = now;
   const chore = $chores.get().find((item) => item.id === choreId);
   if (!chore || !isCounted(chore)) return { skipped: true };
-  const key = ck(choreId, kidId);
+  const day = $boardDay.get();
+  const key = ck(choreId, kidId, day);
   const cur = countFor(chore, kidId);
   const next = Math.max(0, Math.min(maxCount(chore), cur + delta));
   if (next === cur) return { skipped: true };
-  commit(() => $counts.set({ ...$counts.get(), [key]: { n: next, t: Date.now() } }), { type:"chore.count", payload:{choreId,kidId,delta,day:todayKey(),...(chore.versionId ? {versionId:chore.versionId} : {})} });
+  commit(() => $counts.set({ ...$counts.get(), [key]: { n: next, t: Date.now() } }), { type:"chore.count", payload:{choreId,kidId,delta,day,...(chore.versionId ? {versionId:chore.versionId} : {})} });
   const chores = choresForKid(kidId);
   const all = chores.length && chores.every((c) => isDone(c, kidId));
   if (navigator.vibrate) navigator.vibrate(12);
@@ -50,7 +53,9 @@ export function toggleChore(choreId, kidId) {
   lastTap = now;
   const chore = $chores.get().find((item) => item.id === choreId);
   if (!chore) return { skipped: true };
-  const claimer = rules.claimedBy(snapshot(), chore);
+  const day = $boardDay.get();
+  const date = when();
+  const claimer = rules.claimedBy(snapshot(), chore, date);
   if (claimer && claimer !== kidId) return { skipped: true };
   if (isCounted(chore)) {
     lastTap = 0;
@@ -65,22 +70,22 @@ export function toggleChore(choreId, kidId) {
         (key) => key.includes(suffix) && Number(completions[key]) > 0
       );
       if (existing) completions[existing] = -Date.now();
-      else completions[ck(choreId, kidId)] = Date.now();
+      else completions[ck(choreId, kidId, day)] = Date.now();
     } else if (isWeekly(chore)) {
-      const hit = datesInWeek().find((day) => Number(completions[ck(choreId, kidId, day)] || 0) > 0);
+      const hit = datesInWeek(date).find((item) => Number(completions[ck(choreId, kidId, item)] || 0) > 0);
       if (hit) completions[ck(choreId, kidId, hit)] = -Date.now();
-      else completions[ck(choreId, kidId)] = Date.now();
+      else completions[ck(choreId, kidId, day)] = Date.now();
     } else {
-      const key = ck(choreId, kidId);
+      const key = ck(choreId, kidId, day);
       if (Number(completions[key] || 0) > 0) completions[key] = -Date.now();
-      else completions[ck(choreId, kidId)] = Date.now();
+      else completions[key] = Date.now();
     }
     $completions.set(completions);
-    if (type === "chore.complete" && isOnce(chore) && chore.archiveOnComplete !== false && rules.allAssignedDone({ ...snapshot(), completions }, chore)) {
+    if (type === "chore.complete" && isOnce(chore) && chore.archiveOnComplete !== false && rules.allAssignedDone({ ...snapshot(), completions }, chore, date)) {
       if (chore.versionId) $archivedChores.set([...$archivedChores.get(), { ...chore, archived: true }]);
       $chores.set($chores.get().filter((item) => item.id !== chore.id));
     }
-  }, { type, payload:{choreId,kidId,day:todayKey(),...(chore.versionId ? {versionId:chore.versionId} : {})} });
+  }, { type, payload:{choreId,kidId,day,...(chore.versionId ? {versionId:chore.versionId} : {})} });
   const chores = choresForKid(kidId);
   const all = chores.length && chores.every((c) => isDone(c, kidId));
   if (navigator.vibrate) navigator.vibrate(12);

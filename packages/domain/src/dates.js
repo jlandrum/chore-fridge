@@ -31,15 +31,15 @@ export function daysBetween(from, to) {
   return Math.round((b - a) / 86400000);
 }
 
-export function prettyDate() {
+export function prettyDate(d = new Date()) {
   try {
-    return new Date().toLocaleDateString(undefined, {
+    return d.toLocaleDateString(undefined, {
       weekday: "long",
       month: "long",
       day: "numeric",
     });
   } catch {
-    return todayKey();
+    return todayKey(d);
   }
 }
 

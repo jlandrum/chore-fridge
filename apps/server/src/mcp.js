@@ -135,10 +135,36 @@ export function createHouseholdMcp(storage) {
       exchangeCurrency: z.enum(["star", "gold", "coin", "dollar", "hours", "custom1", "custom2"]).optional(),
       exchangeValue: z.number().int().positive().optional(),
       oncePerDay: z.boolean().optional(),
+      pooled: z.boolean().optional(),
       gold: z.boolean().optional(),
       currency: z.enum(["star", "gold", "coin", "dollar", "hours", "custom1", "custom2"]).optional(),
+      costs: z.array(z.object({
+        currency: z.enum(["star", "gold", "coin", "dollar", "hours", "custom1", "custom2"]),
+        amount: z.number().int().positive(),
+      })).min(1).max(7).optional(),
     },
   }, async (payload) => run("reward.save", { ...payload, id: payload.id || randomUUID() }));
+
+  server.registerTool("contribute_reward", {
+    description: "Pay part of a family reward for a kid. The reward is redeemed when the payments reach its cost.",
+    inputSchema: {
+      rewardId: z.string(),
+      kidId: z.string(),
+      amount: z.number().int().positive(),
+      currency: z.enum(["star", "gold", "coin", "dollar", "hours", "custom1", "custom2"]).optional(),
+      day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    },
+  }, async ({ rewardId, kidId, amount, currency, day }) => run("reward.contribute", { rewardId, kidId, amount, ...(currency ? { currency } : {}), day: day || todayKey() }));
+
+  server.registerTool("return_reward", {
+    description: "Return some or all of a kid's open payment on a family reward. Omit amount to return the whole payment.",
+    inputSchema: {
+      rewardId: z.string(),
+      kidId: z.string(),
+      amount: z.number().int().positive().optional(),
+      day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    },
+  }, async ({ rewardId, kidId, amount, day }) => run("reward.return", { rewardId, kidId, ...(amount ? { amount } : {}), day: day || todayKey() }));
 
   server.registerTool("redeem_reward", {
     description: "Redeem a reward for a kid.",

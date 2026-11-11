@@ -1,4 +1,4 @@
-import { $rewards } from "../stores/rewards.js";
+import { $rewardContributions, $rewards } from "../stores/rewards.js";
 import { defineScreen } from "./screen.jsox";
 import { RewardChip } from "./reward-chip.jsox";
 
@@ -7,12 +7,12 @@ defineScreen("fridge-dock", (root) => {
   let key = "";
   return () => {
     const rewards = $rewards.get();
-    const next = JSON.stringify(rewards);
+    const next = JSON.stringify({rewards, pools: $rewardContributions.get()});
     if (next === key) return;
     key = next;
     root.replaceChildren();
     rewards.forEach((reward) => root.append(RewardChip(reward)));
   };
-}, [$rewards]);
+}, [$rewards, $rewardContributions]);
 
 export function Dock() { return <fridge-dock> }

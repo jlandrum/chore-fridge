@@ -196,21 +196,21 @@ function kindRank(chore) {
   return 0;
 }
 
-function boardRank(household, chore, kidId) {
-  const done = isDone(household, chore, kidId);
+function boardRank(household, chore, kidId, date = new Date()) {
+  const done = isDone(household, chore, kidId, date);
   const counted = isCounted(chore);
-  const extra = counted && done && countFor(household, chore, kidId) < maxCount(chore);
+  const extra = counted && done && countFor(household, chore, kidId, date) < maxCount(chore);
   const bucket = !done ? 0 : extra ? 1 : 2;
   return [bucket, chore.gold ? 0 : 1, kindRank(chore), (chore.title || "").toLowerCase()];
 }
 
-export function choresForKid(household, kidId) {
+export function choresForKid(household, kidId, date = new Date()) {
   return household.chores
-    .filter((c) => c.kidIds.includes(kidId) && appliesToday(household, c))
+    .filter((c) => c.kidIds.includes(kidId) && appliesToday(household, c, date))
     .slice()
     .sort((a, b) => {
-      const ra = boardRank(household, a, kidId);
-      const rb = boardRank(household, b, kidId);
+      const ra = boardRank(household, a, kidId, date);
+      const rb = boardRank(household, b, kidId, date);
       for (let i = 0; i < ra.length; i++) {
         if (ra[i] < rb[i]) return -1;
         if (ra[i] > rb[i]) return 1;
@@ -227,6 +227,6 @@ export function weeklyChores(household) {
   return household.chores.filter((c) => isWeekly(c));
 }
 
-export function oneOffChores(household) {
-  return household.chores.filter((c) => isOnce(c) && appliesToday(household, c));
+export function oneOffChores(household, date = new Date()) {
+  return household.chores.filter((c) => isOnce(c) && appliesToday(household, c, date));
 }

@@ -11,6 +11,9 @@ test('daily chores appear only on selected weekdays', () => {
   assert.equal(isDueOn(chore, monday), true);
   assert.equal(isDueOn(chore, tuesday), false);
   assert.deepEqual(chore.weekdays, [1, 3, 5]);
+  const household = { chores:[chore], completions:{}, counts:{} };
+  assert.equal(choresForKid(household, 'a', monday).length, 1);
+  assert.equal(choresForKid(household, 'a', tuesday).length, 0);
 });
 
 test('every N days, weeks, and months uses the saved anchor', () => {

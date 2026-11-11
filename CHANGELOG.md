@@ -4,6 +4,17 @@ User-facing changes and upgrade notes are recorded here. Move the Unreleased ent
 
 ## Unreleased
 
+### Added
+
+- A reward can be marked as a family reward. Anyone can chip in toward its cost; nobody has to. Each payment spends that person's balance immediately, and the reward is redeemed when the payments reach the cost. The shop sheet is a compact list with one Pay or Redeem action and a pie of who has paid. Open payments can be returned, and removing the reward returns them. A family reward can be limited to one completion per day for the household. Lowering its cost to the amount already paid redeems it.
+- A reward can cost more than one currency at once. Redeeming spends every listed amount. A family reward can collect those currencies separately. Older rewards still use a single cost.
+- Settings → Ledger shows one day's journal: who earned, spent, or had a payment returned, and for which task or reward. Older reward entries that were recorded before this change are labeled Reward.
+- The board can move to a past day so a missed daily list can be completed. That day is the accounting day in the ledger. Shop spending still uses the current calendar day.
+
+### Fixed
+
+- Redeeming a reward now spends the same balance the shop shows. Legacy gold chores keep the one gold star each completion awarded, and an undo that failed to take that star back is corrected when the server starts. A household can see a lower gold balance after the correction. A reward that costs more than that balance stays unavailable instead of playing the redemption animation.
+
 ## 2.0.0 — 2026-09-08
 
 ### Added

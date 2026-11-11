@@ -80,16 +80,21 @@ export function openStorage({ databaseFile, legacyFile }) {
         }
         db.prepare('INSERT INTO migrations VALUES(?,?)').run('append-only-ledger',Date.now());
       }
+      if (!db.prepare('SELECT 1 FROM migrations WHERE name=?').get('repair-legacy-gold-reversals')) {
+        const row = db.prepare('SELECT revision FROM household WHERE id=1').get();
+        if (row) ledger.repairIncompleteReversals(row.revision);
+        db.prepare('INSERT INTO migrations VALUES(?,?)').run('repair-legacy-gold-reversals',Date.now());
+      }
     });
   } catch (error) { db.close(); throw error; }
   function read() {
     const row = db.prepare('SELECT * FROM household WHERE id=1').get();
     return { state:row ? JSON.parse(row.document) : null, revision:row?.revision || 0 };
   }
-  function write(state, action, commandId = null, day) {
+  function write(state, action, commandId = null, day, rewardId = null) {
     const previous = read();
     const revision = previous.revision + 1;
-    ledger.reconcile(previous.state,state,revision,action,commandId,day);
+    ledger.reconcile(previous.state,state,revision,action,commandId,day,rewardId);
     db.prepare('INSERT INTO household VALUES(1,?,?) ON CONFLICT(id) DO UPDATE SET document=excluded.document, revision=excluded.revision').run(JSON.stringify(state),revision);
     db.prepare('INSERT INTO history VALUES(?,?,?,?,?)').run(revision,Date.now(),action,commandId,JSON.stringify(state));
     return {state,revision};
@@ -114,7 +119,8 @@ export function openStorage({ databaseFile, legacyFile }) {
           return {...read(),result:JSON.parse(previous.result),replayed:true};
         }
         const {state,result} = applyCommand(read().state,command);
-        const snapshot = write(state,command.type,command.id,command.payload.day);
+        const rewardId = command.payload.rewardId || (command.type === 'reward.remove' ? command.payload.id : null);
+        const snapshot = write(state,command.type,command.id,command.payload.day,rewardId);
         db.prepare('INSERT INTO commands VALUES(?,?,?)').run(command.id,fingerprint,JSON.stringify(result));
         changed = true;
         return {...snapshot,result,replayed:false};
@@ -126,7 +132,7 @@ export function openStorage({ databaseFile, legacyFile }) {
       validateState(incoming);
       const snapshot = transaction(() => {
         if (read().state) throw Object.assign(new Error('Household already exists'), {statusCode:409});
-        return write(initializeTaskHistory({...defaultState(),...untrustedSnapshot(incoming)}),'household.import');
+        return write(initializeTaskHistory({...defaultState(),...untrustedSnapshot(incoming),rewardContributions:incoming.rewardContributions || {}}),'household.import');
       });
       events.emit('change',snapshot.revision);
       return snapshot;
@@ -136,6 +142,7 @@ export function openStorage({ databaseFile, legacyFile }) {
       const snapshot = transaction(() => {
         const current = read().state;
         const next = {...defaultState(),exchangeEarned:current?.exchangeEarned || {},rewardRedemptions:current?.rewardRedemptions || {},...untrustedSnapshot(incoming),
+          rewardContributions:current?.rewardContributions || {},
           completions:mergeCompletions(current?.completions,incoming.completions),
           counts:mergeCounts(current?.counts,incoming.counts)};
         const state = current ? evolveTaskHistory(current,next,{id:randomUUID(),type:'legacy.put'}) : initializeTaskHistory(next);
@@ -150,5 +157,5 @@ export function openStorage({ databaseFile, legacyFile }) {
 
 // These fields are server-owned even when an older client sends a full snapshot.
 function untrustedSnapshot(incoming) {
-  return Object.fromEntries(Object.entries(incoming).filter(([key]) => !['historyVersion','historyStartedAt','taskVersions','archivedChores','creditProjection','creditLedger','balanceCarry','day','dayScoped','pastOnce'].includes(key)));
+  return Object.fromEntries(Object.entries(incoming).filter(([key]) => !['historyVersion','historyStartedAt','taskVersions','archivedChores','creditProjection','creditLedger','balanceCarry','day','dayScoped','pastOnce','rewardContributions'].includes(key)));
 }

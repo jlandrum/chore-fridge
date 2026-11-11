@@ -76,6 +76,15 @@ export function Star(gold) {
   return CurrencyMark(gold ? "gold" : "star");
 }
 
+export function CostMarks(costs) {
+  const node = <span> { .className = "cost-marks" }
+  ;(costs || []).forEach((row, index) => {
+    if (index) node.append(" ");
+    node.append(CurrencyMark(row.currency), " " + row.amount);
+  });
+  return node;
+}
+
 export function CurrencyMark(id) {
   if (id === "custom1" || id === "custom2") {
     const emoji = currencyById($currencies.get(), id).emoji || "●";
