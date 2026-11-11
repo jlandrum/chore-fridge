@@ -10,7 +10,6 @@
 .banner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   width: 100%;
   min-width: 0;
@@ -22,6 +21,7 @@
 
   .family-name {
     margin: 0;
+    flex: 1;
     min-width: 0;
     padding: 0;
     border: 0;
@@ -63,9 +63,18 @@
 
 .board-look-btn {
   min-width: 40px;
+  margin-left: auto;
   padding: 0 8px;
   font-size: 22px;
   line-height: 1;
+  flex-shrink: 0;
+}
+
+.board-day-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
 }
 
 .top-meta {
@@ -101,6 +110,11 @@
   gap: 8px;
   align-items: center;
   flex: 0 0 auto;
+}
+
+.store-jump {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .pill {

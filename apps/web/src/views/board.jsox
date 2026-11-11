@@ -19,7 +19,10 @@ defineScreen("fridge-board", (root) => {
     .onclick = () => $ui.get().parentUnlocked ? lockParent() : openParent()
   }
   const dateEl = <div> { .className = "date" }
-  const nextDay = Btn("Next", "btn ghost board-day-btn", () => shiftBoardDay(1));
+  const nextDay = Btn("Next", "btn ghost board-day-btn", () => {
+    if ($boardDay.get() >= todayKey()) return;
+    shiftBoardDay(1);
+  });
   const lookBtn = Btn("🖌️", "btn ghost board-day-btn board-look-btn", openViewOptions);
   lookBtn.setAttribute("aria-label", "View options");
   const todayBtn = Btn("Today", "btn ghost board-day-btn", showTodayBoard);
@@ -28,11 +31,10 @@ defineScreen("fridge-board", (root) => {
     [Btn("Prev", "btn ghost board-day-btn", () => shiftBoardDay(-1))]
     [dateEl]
     [nextDay]
-    [lookBtn]
     [todayBtn]
   }
   const totalsEl = <div> { .className = "top-balances" }
-  const storeButton = Btn("Visit Store", "pill", () => $compactOnStore.get() ? goCompactHome() : goCompactStore());
+  const storeButton = Btn("Visit Store", "pill store-jump", () => $compactOnStore.get() ? goCompactHome() : goCompactStore());
   const greetingEl = <div> { .className = "holiday-greeting"; .hidden = true }
   const settingsButton = Btn("Settings", "pill settings-button", openSettings);
   function fitGreeting() {
@@ -54,6 +56,7 @@ defineScreen("fridge-board", (root) => {
         .className = "banner"
         [titleEl]
         [dayNav]
+        [lookBtn]
       }
       <div> {
         .className = "top-meta"
@@ -90,7 +93,9 @@ defineScreen("fridge-board", (root) => {
       const date = parseDay(day) || boardDate();
       dateEl.textContent = prettyDate(date);
       dateEl.dataset.day = day;
-      nextDay.disabled = day >= todayKey();
+      const atToday = day >= todayKey();
+      nextDay.disabled = atToday;
+      nextDay.setAttribute("aria-disabled", atToday ? "true" : "false");
       todayBtn.hidden = day === todayKey();
       fitGreeting();
     }],
